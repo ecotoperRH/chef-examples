@@ -1,0 +1,5 @@
+---
+- name: Install system packages for FastAPI tutorial
+  ansible.builtin.package:
+    name: "{{ fastapi_system_packages }}"
+    state: present

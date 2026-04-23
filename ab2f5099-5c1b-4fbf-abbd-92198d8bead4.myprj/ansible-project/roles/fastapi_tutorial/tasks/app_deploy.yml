@@ -1,0 +1,31 @@
+---
+- name: Create application directory
+  ansible.builtin.file:
+    path: "{{ fastapi_app_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+- name: Clone FastAPI tutorial repository
+  ansible.builtin.git:
+    repo: "{{ fastapi_git_repo }}"
+    dest: "{{ fastapi_app_dir }}"
+    version: "{{ fastapi_git_branch }}"
+    update: true
+    force: true
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ fastapi_app_dir }}/venv
+    creates: "{{ fastapi_app_dir }}/venv"
+- name: Install Python dependencies
+  ansible.builtin.command:
+    cmd: "{{ fastapi_app_dir }}/venv/bin/pip install -r {{ fastapi_app_dir }}/requirements.txt"
+    chdir: "{{ fastapi_app_dir }}"
+    creates: "{{ fastapi_app_dir }}/venv/bin/uvicorn"
+- name: Deploy .env configuration file
+  ansible.builtin.template:
+    src: fastapi_env.j2
+    dest: "{{ fastapi_app_dir }}/.env"
+    owner: root
+    group: root
+    mode: "0640"

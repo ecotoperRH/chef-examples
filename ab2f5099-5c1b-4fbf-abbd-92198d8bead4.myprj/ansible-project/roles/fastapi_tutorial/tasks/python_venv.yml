@@ -1,0 +1,11 @@
+---
+- name: Confirm virtual environment is present
+  ansible.builtin.stat:
+    path: "{{ fastapi_app_dir }}/venv/bin/python"
+  register: _venv_python_stat
+- name: Assert virtual environment was created successfully
+  ansible.builtin.assert:
+    that:
+      - _venv_python_stat.stat.exists
+    fail_msg: Python virtual environment not found at {{ fastapi_app_dir }}/venv/bin/python. Ensure app_deploy.yml ran successfully before this task file.
+    quiet: true
