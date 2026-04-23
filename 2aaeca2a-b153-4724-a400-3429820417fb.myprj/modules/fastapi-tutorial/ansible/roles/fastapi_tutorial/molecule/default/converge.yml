@@ -1,0 +1,106 @@
+- name: Converge
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Create expected application directories
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/opt/fastapi-tutorial
+    - /tmp/molecule_test/opt/fastapi-tutorial/app
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin
+    - /tmp/molecule_test/etc/systemd/system
+  - name: Create requirements.txt (simulates git clone)
+    ansible.builtin.copy:
+      content: 'fastapi>=0.95.0
+
+        uvicorn[standard]>=0.21.0
+
+        sqlalchemy>=2.0.0
+
+        psycopg2-binary>=2.9.0
+
+        pydantic>=1.10.0
+
+        python-dotenv>=1.0.0
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/requirements.txt
+      mode: '0644'
+  - name: Create app/main.py (simulates git clone)
+    ansible.builtin.copy:
+      content: "from fastapi import FastAPI\n\napp = FastAPI(title=\"FastAPI Tutorial\")\n\n@app.get(\"/\")\ndef read_root():\n    return {\"message\": \"Hello World\"}\n"
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/app/main.py
+      mode: '0644'
+  - name: Create venv/bin/python3 stub (simulates venv creation)
+    ansible.builtin.copy:
+      content: '#!/bin/sh exec python3 "$@" '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/python3
+      mode: '0755'
+  - name: Create venv/bin/uvicorn stub (simulates pip install)
+    ansible.builtin.copy:
+      content: '#!/bin/sh
+
+        # uvicorn stub — installed by pip into virtualenv
+
+        echo "uvicorn 0.21.0"
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/uvicorn
+      mode: '0755'
+  - name: Create venv/bin/pip stub (simulates venv creation)
+    ansible.builtin.copy:
+      content: '#!/bin/sh
+
+        # pip stub — installed by venv
+
+        echo "pip 23.0"
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/pip
+      mode: '0755'
+  - name: Deploy .env configuration file
+    ansible.builtin.copy:
+      content: 'PROJECT_NAME="FastAPI Tutorial"
+
+        API_VERSION=1.0.0
+
+        DATABASE_URL=postgresql://fastapi:fastapi_password@localhost/fastapi_db
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      mode: '0644'
+  - name: Deploy systemd unit file
+    ansible.builtin.copy:
+      content: '[Unit]
+
+        Description=FastAPI Tutorial Service
+
+        After=network.target postgresql.service
+
+
+        [Service]
+
+        Type=simple
+
+        User=root
+
+        WorkingDirectory=/opt/fastapi-tutorial
+
+        Environment="PATH=/opt/fastapi-tutorial/venv/bin"
+
+        ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+        Restart=always
+
+
+        [Install]
+
+        WantedBy=multi-user.target
+
+        '
+      dest: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      mode: '0644'

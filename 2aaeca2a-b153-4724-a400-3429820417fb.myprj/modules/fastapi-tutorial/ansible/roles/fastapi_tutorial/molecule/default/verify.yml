@@ -1,0 +1,291 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    # ================================================================
+    # 1. APPLICATION ROOT DIRECTORY
+    # ================================================================
+    - name: Stat application root directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial
+      register: app_dir
+
+    - name: Assert application root directory exists and is a directory
+      ansible.builtin.assert:
+        that:
+          - app_dir.stat.exists
+          - app_dir.stat.isdir
+        fail_msg: "Application directory /opt/fastapi-tutorial is missing"
+        success_msg: "Application root directory exists"
+
+    # ================================================================
+    # 2. GIT-CLONED APPLICATION FILES
+    # ================================================================
+    - name: Stat requirements.txt
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial/requirements.txt
+      register: requirements_file
+
+    - name: Assert requirements.txt exists
+      ansible.builtin.assert:
+        that:
+          - requirements_file.stat.exists
+          - requirements_file.stat.size > 0
+        fail_msg: "requirements.txt not found — git clone may have failed"
+        success_msg: "requirements.txt exists"
+
+    - name: Stat app/main.py (application entry point)
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial/app/main.py
+      register: main_py
+
+    - name: Assert app/main.py exists
+      ansible.builtin.assert:
+        that:
+          - main_py.stat.exists
+          - main_py.stat.size > 0
+        fail_msg: "app/main.py not found — git clone may have failed"
+        success_msg: "app/main.py exists"
+
+    # ================================================================
+    # 3. PYTHON VIRTUAL ENVIRONMENT
+    # ================================================================
+    - name: Stat venv directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial/venv
+      register: venv_dir
+
+    - name: Assert venv directory exists
+      ansible.builtin.assert:
+        that:
+          - venv_dir.stat.exists
+          - venv_dir.stat.isdir
+        fail_msg: "Python virtual environment directory not found"
+        success_msg: "Virtual environment directory exists"
+
+    - name: Stat venv/bin/python3
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/python3
+      register: venv_python
+
+    - name: Assert venv/bin/python3 exists and is executable
+      ansible.builtin.assert:
+        that:
+          - venv_python.stat.exists
+          - venv_python.stat.executable
+        fail_msg: "venv/bin/python3 not found — virtual environment creation failed"
+        success_msg: "venv/bin/python3 exists and is executable"
+
+    - name: Stat venv/bin/uvicorn
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/uvicorn
+      register: venv_uvicorn
+
+    - name: Assert venv/bin/uvicorn exists and is executable
+      ansible.builtin.assert:
+        that:
+          - venv_uvicorn.stat.exists
+          - venv_uvicorn.stat.executable
+        fail_msg: "venv/bin/uvicorn not found — pip install of dependencies failed"
+        success_msg: "venv/bin/uvicorn exists and is executable"
+
+    # ================================================================
+    # 4. ENVIRONMENT CONFIGURATION FILE (.env)
+    # ================================================================
+    - name: Stat .env file
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      register: env_file
+
+    - name: Assert .env file exists with correct permissions
+      ansible.builtin.assert:
+        that:
+          - env_file.stat.exists
+          - env_file.stat.mode == "0644"
+          - env_file.stat.size > 0
+        fail_msg: ".env file missing or has wrong permissions (expected mode 0644)"
+        success_msg: ".env file exists with mode 0644"
+
+    - name: Slurp .env file content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      register: env_content
+
+    - name: Decode .env content
+      ansible.builtin.set_fact:
+        env_text: "{{ env_content.content | b64decode }}"
+
+    - name: Assert .env contains PROJECT_NAME
+      ansible.builtin.assert:
+        that:
+          - "'PROJECT_NAME=\"FastAPI Tutorial\"' in env_text"
+        fail_msg: "PROJECT_NAME not found or incorrect in .env"
+        success_msg: "PROJECT_NAME is correctly set in .env"
+
+    - name: Assert .env contains API_VERSION
+      ansible.builtin.assert:
+        that:
+          - "'API_VERSION=1.0.0' in env_text"
+        fail_msg: "API_VERSION not found or incorrect in .env"
+        success_msg: "API_VERSION is correctly set in .env"
+
+    - name: Assert .env contains DATABASE_URL with correct scheme and database name
+      ansible.builtin.assert:
+        that:
+          - "'DATABASE_URL=postgresql://' in env_text"
+          - "'fastapi_db' in env_text"
+        fail_msg: "DATABASE_URL missing or malformed in .env"
+        success_msg: "DATABASE_URL is present and references fastapi_db"
+
+    # ================================================================
+    # 5. SYSTEMD UNIT FILE
+    # ================================================================
+    - name: Stat systemd unit file
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      register: service_unit
+
+    - name: Assert systemd unit file exists with correct permissions
+      ansible.builtin.assert:
+        that:
+          - service_unit.stat.exists
+          - service_unit.stat.mode == "0644"
+          - service_unit.stat.size > 0
+        fail_msg: "fastapi-tutorial.service unit file missing or has wrong permissions (expected mode 0644)"
+        success_msg: "fastapi-tutorial.service unit file exists with mode 0644"
+
+    - name: Slurp systemd unit file content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      register: unit_content
+
+    - name: Decode unit file content
+      ansible.builtin.set_fact:
+        unit_text: "{{ unit_content.content | b64decode }}"
+
+    - name: Assert unit file contains correct ExecStart with uvicorn on port 8000
+      ansible.builtin.assert:
+        that:
+          - "'ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000' in unit_text"
+        fail_msg: "ExecStart line missing or incorrect in fastapi-tutorial.service"
+        success_msg: "ExecStart is correctly configured for uvicorn on port 8000"
+
+    - name: Assert unit file declares correct After= dependencies
+      ansible.builtin.assert:
+        that:
+          - "'After=network.target postgresql.service' in unit_text"
+        fail_msg: "After= directive missing or incorrect — must include network.target and postgresql.service"
+        success_msg: "After= directive correctly lists network.target and postgresql.service"
+
+    - name: Assert unit file has correct WorkingDirectory
+      ansible.builtin.assert:
+        that:
+          - "'WorkingDirectory=/opt/fastapi-tutorial' in unit_text"
+        fail_msg: "WorkingDirectory not set to /opt/fastapi-tutorial in unit file"
+        success_msg: "WorkingDirectory is correctly set"
+
+    - name: Assert unit file has Restart=always
+      ansible.builtin.assert:
+        that:
+          - "'Restart=always' in unit_text"
+        fail_msg: "Restart=always not found in unit file"
+        success_msg: "Restart=always is set"
+
+    - name: Assert unit file has WantedBy=multi-user.target
+      ansible.builtin.assert:
+        that:
+          - "'WantedBy=multi-user.target' in unit_text"
+        fail_msg: "WantedBy=multi-user.target not found in [Install] section"
+        success_msg: "WantedBy=multi-user.target is set"
+
+    # ================================================================
+    # 6. POSTGRESQL SERVICE  (cannot run in container — tagged notest)
+    # ================================================================
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert PostgreSQL service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'postgresql.service' in ansible_facts.services"
+          - ansible_facts.services['postgresql.service'].state == 'running'
+          - ansible_facts.services['postgresql.service'].status == 'enabled'
+        fail_msg: "postgresql.service is not running or not enabled"
+        success_msg: "postgresql.service is active and enabled"
+      tags: molecule-notest
+
+    # ================================================================
+    # 7. FASTAPI-TUTORIAL SERVICE  (cannot run in container — tagged notest)
+    # ================================================================
+    - name: Assert fastapi-tutorial service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'fastapi-tutorial.service' in ansible_facts.services"
+          - ansible_facts.services['fastapi-tutorial.service'].state == 'running'
+          - ansible_facts.services['fastapi-tutorial.service'].status == 'enabled'
+        fail_msg: "fastapi-tutorial.service is not running or not enabled"
+        success_msg: "fastapi-tutorial.service is active and enabled"
+      tags: molecule-notest
+
+    # ================================================================
+    # 8. NETWORK — PostgreSQL port 5432  (cannot run in container — tagged notest)
+    # ================================================================
+    - name: Check PostgreSQL is listening on port 5432
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 5432
+        timeout: 5
+        state: started
+      tags: molecule-notest
+
+    # ================================================================
+    # 9. NETWORK — FastAPI application port 8000  (cannot run in container — tagged notest)
+    # ================================================================
+    - name: Check FastAPI application is listening on port 8000
+      ansible.builtin.wait_for:
+        host: 0.0.0.0
+        port: 8000
+        timeout: 10
+        state: started
+      tags: molecule-notest
+
+    # ================================================================
+    # 10. APPLICATION HEALTH CHECK  (cannot run in container — tagged notest)
+    # ================================================================
+    - name: Check FastAPI root endpoint returns HTTP 200
+      ansible.builtin.uri:
+        url: http://localhost:8000/
+        method: GET
+        status_code:
+          - 200
+          - 307
+        timeout: 10
+      tags: molecule-notest
+
+    - name: Check FastAPI OpenAPI docs endpoint is reachable
+      ansible.builtin.uri:
+        url: http://localhost:8000/docs
+        method: GET
+        status_code: 200
+        timeout: 10
+      tags: molecule-notest
+
+    - name: Check FastAPI openapi.json contains correct title
+      ansible.builtin.uri:
+        url: http://localhost:8000/openapi.json
+        method: GET
+        status_code: 200
+        return_content: true
+        timeout: 10
+      register: openapi_response
+      tags: molecule-notest
+
+    - name: Assert openapi.json title is 'FastAPI Tutorial'
+      ansible.builtin.assert:
+        that:
+          - "'FastAPI Tutorial' in openapi_response.content"
+        fail_msg: "openapi.json does not contain expected title 'FastAPI Tutorial'"
+        success_msg: "openapi.json title is correct"
+      tags: molecule-notest

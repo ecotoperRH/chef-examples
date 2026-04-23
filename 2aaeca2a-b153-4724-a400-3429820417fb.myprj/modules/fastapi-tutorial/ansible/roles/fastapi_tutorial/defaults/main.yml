@@ -1,0 +1,23 @@
+---
+fastapi_app_dir: /opt/fastapi-tutorial
+fastapi_git_repo: https://github.com/dibanez/fastapi_tutorial.git
+fastapi_git_branch: main
+fastapi_app_entrypoint: app.main:app
+fastapi_bind_host: 0.0.0.0
+fastapi_port: 8000
+api_version: 1.0.0
+fastapi_system_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - git
+  - postgresql
+  - postgresql-contrib
+  - libpq-dev
+fastapi_service_name: fastapi-tutorial
+fastapi_env_file: "{{ fastapi_app_dir }}/.env"
+fastapi_env_file_mode: "0644"
+fastapi_env_file_owner: root
+fastapi_env_file_group: root
+fastapi_service_file: /etc/systemd/system/fastapi-tutorial.service
+fastapi_service_file_mode: "0644"
