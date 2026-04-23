@@ -70,6 +70,7 @@ Without this, project syncs will fail with:
 ## Available Molecule Job Templates
 
 - **Molecule — fastapi_tutorial** — tests the `fastapi_tutorial` role
+- **Molecule — nginx_multisite** — tests the `nginx_multisite` role
 
 ## How to Launch from the AAP UI
 

@@ -55,6 +55,44 @@ ansible-playbook run_fastapi_tutorial.yml -i inventory/hosts.yml
 
 
 
+### nginx_multisite
+
+
+Configures nginx with multiple SSL-enabled subdomains
+
+
+**Target platforms:** Ubuntu, EL
+
+
+Run this role:
+
+```bash
+ansible-playbook run_nginx_multisite.yml -i inventory/hosts.yml
+```
+
+
+**Default variables** (override in inventory or extra vars):
+
+| Variable | Default |
+|----------|---------|
+
+| `nginx_sites` | `{'test.cluster.local': {'document_root': '/opt/server/test', 'ssl_enabled': True}, 'ci.cluster.local': {'document_root': '/opt/server/ci', 'ssl_enabled': True}, 'status.cluster.local': {'document_root': '/opt/server/status', 'ssl_enabled': True}}` |
+
+| `nginx_ssl_certificate_path` | `/etc/ssl/certs` |
+
+| `nginx_ssl_private_key_path` | `/etc/ssl/private` |
+
+| `security_fail2ban_enabled` | `True` |
+
+| `security_ufw_enabled` | `True` |
+
+| `security_ssh_disable_root` | `True` |
+
+| `security_ssh_password_auth` | `False` |
+
+
+
+
 ## Prerequisites
 
 ### Collections
