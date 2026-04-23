@@ -1,0 +1,16 @@
+---
+- name: Deploy systemd unit file for fastapi-tutorial
+  ansible.builtin.template:
+    src: fastapi-tutorial.service.j2
+    dest: /etc/systemd/system/fastapi-tutorial.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd daemon
+    - Restart fastapi-tutorial
+- name: Enable and start fastapi-tutorial service
+  ansible.builtin.systemd:
+    name: fastapi-tutorial
+    state: started
+    enabled: true

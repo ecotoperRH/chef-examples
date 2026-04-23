@@ -1,0 +1,13 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Install system packages
+  ansible.builtin.include_tasks: packages.yml
+- name: Deploy application code
+  ansible.builtin.include_tasks: app_deploy.yml
+- name: Configure Python virtual environment
+  ansible.builtin.include_tasks: python_venv.yml
+- name: Configure PostgreSQL database
+  ansible.builtin.include_tasks: postgresql.yml
+- name: Configure and start fastapi-tutorial service
+  ansible.builtin.include_tasks: service.yml
