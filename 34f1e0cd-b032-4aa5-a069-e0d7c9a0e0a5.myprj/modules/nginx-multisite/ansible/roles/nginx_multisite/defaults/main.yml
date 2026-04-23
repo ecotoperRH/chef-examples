@@ -1,0 +1,26 @@
+---
+nginx_sites:
+  test.cluster.local:
+    document_root: /opt/server/test
+    ssl_enabled: true
+  ci.cluster.local:
+    document_root: /opt/server/ci
+    ssl_enabled: true
+  status.cluster.local:
+    document_root: /opt/server/status
+    ssl_enabled: true
+nginx_ssl_certificate_path: /etc/ssl/certs
+nginx_ssl_private_key_path: /etc/ssl/private
+nginx_ssl_cert_days: 365
+nginx_ssl_cert_bits: 2048
+nginx_ssl_cert_country: US
+nginx_ssl_cert_state: Example
+nginx_ssl_cert_locality: Example
+nginx_ssl_cert_org: Example Org
+nginx_ssl_cert_ou: IT
+nginx_ssl_cert_email: admin@example.com
+security_fail2ban_enabled: true
+security_ufw_enabled: true
+security_ssh_disable_root: true
+security_ssh_password_auth: false
+nginx_user: "{{ 'www-data' if ansible_os_family == 'Debian' else 'nginx' }}"

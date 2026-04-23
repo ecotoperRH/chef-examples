@@ -1,0 +1,28 @@
+---
+- name: Deploy nginx site configurations
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: "{{ nginx_sites_available_dir }}/{{ item.key }}"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    server_name: "{{ item.key }}"
+    document_root: "{{ item.value.document_root }}"
+    ssl_enabled: "{{ item.value.ssl_enabled }}"
+    cert_file: "{{ nginx_ssl_certificate_path }}/{{ item.key }}.crt"
+    key_file: "{{ nginx_ssl_private_key_path }}/{{ item.key }}.key"
+  loop: "{{ nginx_sites | dict2items }}"
+  notify: Reload nginx
+- name: Enable nginx sites via symlink
+  ansible.builtin.file:
+    src: "{{ nginx_sites_available_dir }}/{{ item.key }}"
+    dest: "{{ nginx_sites_enabled_dir }}/{{ item.key }}"
+    state: link
+  loop: "{{ nginx_sites | dict2items }}"
+  notify: Reload nginx
+- name: Remove default nginx site
+  ansible.builtin.file:
+    path: "{{ nginx_sites_enabled_dir }}/default"
+    state: absent
+  notify: Reload nginx

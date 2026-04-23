@@ -1,0 +1,56 @@
+---
+- name: Install nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+- name: Ensure nginx sites-available directory exists
+  ansible.builtin.file:
+    path: "{{ nginx_sites_available_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+- name: Ensure nginx sites-enabled directory exists
+  ansible.builtin.file:
+    path: "{{ nginx_sites_enabled_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+- name: Deploy nginx main configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload nginx
+- name: Deploy nginx security configuration
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload nginx
+- name: Create document root directories for each site
+  ansible.builtin.file:
+    path: "{{ item.value.document_root }}"
+    state: directory
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+    mode: "0755"
+  loop: "{{ nginx_sites | dict2items }}"
+- name: Deploy index.html for each site
+  ansible.builtin.copy:
+    src: "{{ item.key.split('.')[0] }}/index.html"
+    dest: "{{ item.value.document_root }}/index.html"
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+    mode: "0644"
+  loop: "{{ nginx_sites | dict2items }}"
+- name: Enable and start nginx service
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started

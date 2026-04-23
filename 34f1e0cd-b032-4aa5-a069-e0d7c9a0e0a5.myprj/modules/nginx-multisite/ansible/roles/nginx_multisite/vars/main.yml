@@ -1,0 +1,8 @@
+---
+nginx_conf_dir: /etc/nginx
+nginx_sites_available_dir: /etc/nginx/sites-available
+nginx_sites_enabled_dir: /etc/nginx/sites-enabled
+nginx_conf_d_dir: /etc/nginx/conf.d
+fail2ban_jail_local: /etc/fail2ban/jail.local
+sysctl_security_conf: /etc/sysctl.d/99-security.conf
+sshd_config: /etc/ssh/sshd_config
