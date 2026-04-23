@@ -1,0 +1,4 @@
+---
+fastapi_service_unit: /etc/systemd/system/fastapi-tutorial.service
+fastapi_env_file: "{{ fastapi_app_dir }}/.env"
+fastapi_requirements_file: "{{ fastapi_app_dir }}/requirements.txt"

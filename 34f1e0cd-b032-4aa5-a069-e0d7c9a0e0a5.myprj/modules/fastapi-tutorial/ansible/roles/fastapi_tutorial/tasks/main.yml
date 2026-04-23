@@ -1,0 +1,5 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Run FastAPI tutorial deployment tasks
+  ansible.builtin.include_tasks: default.yml

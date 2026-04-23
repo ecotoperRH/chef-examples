@@ -1,0 +1,22 @@
+---
+fastapi_app_dir: /opt/fastapi-tutorial
+fastapi_venv_dir: /opt/fastapi-tutorial/venv
+fastapi_git_repo: https://github.com/dibanez/fastapi_tutorial.git
+fastapi_git_branch: main
+fastapi_project_name: FastAPI Tutorial
+fastapi_api_version: 1.0.0
+fastapi_app_module: app.main:app
+fastapi_bind_host: 0.0.0.0
+fastapi_port: 8000
+fastapi_service_user: root
+fastapi_system_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - git
+  - postgresql
+  - postgresql-contrib
+  - libpq-dev
+fastapi_db_user: "{{ db_username | default('fastapi') }}"
+fastapi_db_name: "{{ db_name | default('fastapi_db') }}"
+fastapi_db_host: "{{ db_host | default('localhost') }}"
