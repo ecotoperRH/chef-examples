@@ -1,0 +1,7 @@
+---
+- name: Run cache
+  hosts: all
+
+
+  roles:
+    - cache

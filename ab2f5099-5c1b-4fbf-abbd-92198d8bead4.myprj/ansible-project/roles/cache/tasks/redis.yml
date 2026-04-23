@@ -1,0 +1,68 @@
+---
+- name: Install Redis package
+  ansible.builtin.package:
+    name: "{{ redis_package }}"
+    state: present
+- name: Ensure redis system group exists
+  ansible.builtin.group:
+    name: redis
+    system: true
+    state: present
+- name: Ensure redis system user exists
+  ansible.builtin.user:
+    name: redis
+    group: redis
+    system: true
+    home: "{{ redis_data_dir }}"
+    shell: /bin/false
+    create_home: false
+    state: present
+- name: Create Redis configuration directory
+  ansible.builtin.file:
+    path: "{{ redis_conf_dir }}"
+    state: directory
+    owner: root
+    group: redis
+    mode: "0775"
+- name: Create Redis data directory
+  ansible.builtin.file:
+    path: "{{ redis_data_dir }}"
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0775"
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: "{{ redis_log_dir }}"
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+- name: Create Redis run directory
+  ansible.builtin.file:
+    path: "{{ redis_run_dir }}"
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+- name: Deploy Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ redis_conf_dir }}/{{ redis_port }}.conf"
+    owner: redis
+    group: redis
+    mode: "0640"
+  notify: Restart redis
+- name: Disable OS default redis-server service (if present)
+  ansible.builtin.service:
+    name: redis-server
+    state: stopped
+    enabled: false
+  failed_when: false
+  changed_when: false
+  when: redis_service_name != 'redis-server'
+- name: Enable and start Redis service
+  ansible.builtin.service:
+    name: "{{ redis_service_name }}"
+    state: started
+    enabled: true

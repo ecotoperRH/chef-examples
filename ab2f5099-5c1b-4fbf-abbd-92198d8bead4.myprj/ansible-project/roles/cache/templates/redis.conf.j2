@@ -1,0 +1,42 @@
+# Redis configuration file for instance {{ redis_port }}
+# Managed by Ansible — do not edit manually
+
+# Network
+bind 127.0.0.1
+port {{ redis_port }}
+protected-mode yes
+
+# General
+daemonize no
+supervised systemd
+loglevel {{ redis_loglevel }}
+logfile ""
+
+# Syslog
+syslog-enabled yes
+syslog-ident redis
+syslog-facility {{ redis_syslog_facility }}
+
+# Persistence
+dir {{ redis_data_dir }}
+dbfilename dump.rdb
+save 900 1
+save 300 10
+save 60 10000
+
+# Security
+requirepass {{ vault_redis_password }}
+
+# Limits
+maxclients {{ redis_maxclients }}
+
+# Slow log
+slowlog-log-slower-than 10000
+slowlog-max-len 128
+
+# Append only file
+appendonly no
+appendfilename "appendonly.aof"
+
+# Pid file
+pidfile {{ redis_run_dir }}/redis_{{ redis_port }}.pid

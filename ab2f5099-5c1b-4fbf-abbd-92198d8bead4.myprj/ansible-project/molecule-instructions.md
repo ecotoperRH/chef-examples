@@ -69,6 +69,7 @@ Without this, project syncs will fail with:
 
 ## Available Molecule Job Templates
 
+- **Molecule — cache** — tests the `cache` role
 - **Molecule — fastapi_tutorial** — tests the `fastapi_tutorial` role
 - **Molecule — nginx_multisite** — tests the `nginx_multisite` role
 

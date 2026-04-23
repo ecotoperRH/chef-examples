@@ -1,0 +1,138 @@
+- name: Converge
+  hosts: all
+  gather_facts: false
+  vars:
+    vault_redis_password: redis_secure_password_123
+    vault_postgres_user: molecule_pg_user
+    vault_postgres_password: molecule_pg_pass
+    redis_port: 6379
+    redis_loglevel: notice
+    redis_syslog_facility: local0
+    redis_maxclients: 10000
+    redis_conf_dir: /tmp/molecule_test/etc/redis
+    redis_data_dir: /tmp/molecule_test/var/lib/redis
+    redis_log_dir: /tmp/molecule_test/var/log/redis
+    redis_run_dir: /tmp/molecule_test/var/run/redis/6379
+    memcached_port: 11211
+    memcached_max_memory_mb: 64
+    memcached_max_connections: 1024
+    memcached_conf_dir: /tmp/molecule_test/etc/memcached
+  tasks:
+  - name: Validate required credential variables are defined
+    ansible.builtin.assert:
+      that:
+      - vault_redis_password is defined
+      fail_msg: One or more required credential variables are not defined.
+      quiet: true
+  - name: Create Redis expected directories
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/etc/redis
+    - /tmp/molecule_test/var/lib/redis
+    - /tmp/molecule_test/var/log/redis
+    - /tmp/molecule_test/var/run/redis/6379
+  - name: Deploy Redis configuration file
+    ansible.builtin.copy:
+      dest: /tmp/molecule_test/etc/redis/6379.conf
+      mode: '0640'
+      content: '# Redis configuration file for instance 6379
+
+        # Managed by Ansible — do not edit manually
+
+
+        # Network
+
+        bind 127.0.0.1
+
+        port 6379
+
+        protected-mode yes
+
+
+        # General
+
+        daemonize no
+
+        supervised systemd
+
+        loglevel notice
+
+        logfile ""
+
+
+        # Syslog
+
+        syslog-enabled yes
+
+        syslog-ident redis
+
+        syslog-facility local0
+
+
+        # Persistence
+
+        dir /tmp/molecule_test/var/lib/redis
+
+        dbfilename dump.rdb
+
+        save 900 1
+
+        save 300 10
+
+        save 60 10000
+
+
+        # Security
+
+        requirepass redis_secure_password_123
+
+
+        # Limits
+
+        maxclients 10000
+
+
+        # Slow log
+
+        slowlog-log-slower-than 10000
+
+        slowlog-max-len 128
+
+
+        # Append only file
+
+        appendonly no
+
+        appendfilename "appendonly.aof"
+
+
+        # Pid file
+
+        pidfile /tmp/molecule_test/var/run/redis/6379/redis_6379.pid
+
+        '
+  - name: Create Memcached expected directory
+    ansible.builtin.file:
+      path: /tmp/molecule_test/etc/memcached
+      state: directory
+      mode: '0755'
+  - name: Create Memcached placeholder config
+    ansible.builtin.copy:
+      dest: /tmp/molecule_test/etc/memcached/memcached.conf
+      mode: '0644'
+      content: '# Memcached configuration
+
+        # Managed by Ansible — do not edit manually
+
+        -p 11211
+
+        -u memcache
+
+        -m 64
+
+        -c 1024
+
+        '
