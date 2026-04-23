@@ -1,0 +1,64 @@
+---
+- name: Install memcached package
+  ansible.builtin.package:
+    name: memcached
+    state: present
+- name: Create memcached system group
+  ansible.builtin.group:
+    name: "{{ memcached_group }}"
+    system: true
+    state: present
+- name: Create memcached system user
+  ansible.builtin.user:
+    name: "{{ memcached_user }}"
+    system: true
+    create_home: false
+    home: /nonexistent
+    shell: /bin/false
+    comment: Memcached
+    group: "{{ memcached_group }}"
+    password: "!"
+    state: present
+- name: Create memcached log directory
+  ansible.builtin.file:
+    path: "{{ memcached_log_dir }}"
+    state: directory
+    owner: "{{ memcached_user }}"
+    group: "{{ memcached_group }}"
+    mode: "0755"
+- name: Create memcached run directory
+  ansible.builtin.file:
+    path: /var/run/memcached
+    state: directory
+    owner: "{{ memcached_user }}"
+    group: "{{ memcached_group }}"
+    mode: "0755"
+- name: Stop and disable default memcached service
+  ansible.builtin.systemd:
+    name: memcached
+    state: stopped
+    enabled: false
+  failed_when: false
+- name: Remove default memcached config files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/memcached.conf
+    - /etc/memcached_default.conf
+- name: Deploy memcached systemd unit
+  ansible.builtin.template:
+    src: memcached.service.j2
+    dest: /etc/systemd/system/memcached_memcached.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart memcached instance
+- name: Enable and start memcached instance
+  ansible.builtin.systemd:
+    name: memcached_memcached
+    state: started
+    enabled: true
+    daemon_reload: true

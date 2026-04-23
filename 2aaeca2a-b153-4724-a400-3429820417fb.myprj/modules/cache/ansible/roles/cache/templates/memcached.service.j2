@@ -1,0 +1,31 @@
+[Unit]
+Description=memcached instance memcached_memcached
+After=network.target
+
+[Service]
+User={{ memcached_user }}
+LimitNOFILE={{ memcached_ulimit }}
+ExecStart=/usr/bin/memcached \
+  -m {{ memcached_memory }} \
+  -p {{ memcached_port }} \
+  -U {{ memcached_udp_port }} \
+  -l {{ memcached_listen }} \
+  -c {{ memcached_maxconn }} \
+  -I {{ memcached_max_object_size }} \
+  -u {{ memcached_user }}
+Restart=on-failure
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateDevices=true
+CapabilityBoundingSet=CAP_SETGID CAP_SETUID CAP_SYS_RESOURCE
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+ProtectControlGroups=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

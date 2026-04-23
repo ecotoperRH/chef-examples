@@ -1,0 +1,77 @@
+---
+- name: Install redis-server package
+  ansible.builtin.package:
+    name: redis-server
+    state: present
+- name: Create redis group
+  ansible.builtin.group:
+    name: "{{ redis_group }}"
+    system: true
+    state: present
+- name: Create redis user
+  ansible.builtin.user:
+    name: "{{ redis_user }}"
+    system: true
+    create_home: false
+    home: /var/lib/redis
+    shell: /bin/false
+    group: "{{ redis_group }}"
+    state: present
+- name: Create redis log directory
+  ansible.builtin.file:
+    path: "{{ redis_log_dir }}"
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+- name: Create redis data directory
+  ansible.builtin.file:
+    path: "{{ redis_data_dir }}"
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+- name: Create redis config directory
+  ansible.builtin.file:
+    path: "{{ redis_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ redis_group }}"
+    mode: "0755"
+- name: Create redis pid directory
+  ansible.builtin.file:
+    path: "{{ redis_pid_dir }}"
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+- name: Deploy Redis configuration file
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ redis_config_dir }}/{{ redis_port }}.conf"
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0640"
+  notify: Restart redis instance
+- name: Deploy redis@ systemd template unit
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /etc/systemd/system/redis@.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart redis instance
+- name: Stop and disable OS default redis service
+  ansible.builtin.systemd:
+    name: redis-server
+    state: stopped
+    enabled: false
+  failed_when: false
+- name: Enable and start redis instance
+  ansible.builtin.systemd:
+    name: redis@{{ redis_port }}
+    state: started
+    enabled: true
+    daemon_reload: true

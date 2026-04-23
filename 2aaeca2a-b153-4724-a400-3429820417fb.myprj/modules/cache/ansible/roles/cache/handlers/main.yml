@@ -1,0 +1,15 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+  listen: Reload systemd
+- name: Restart memcached instance
+  ansible.builtin.systemd:
+    name: memcached_memcached
+    state: restarted
+  listen: Restart memcached instance
+- name: Restart redis instance
+  ansible.builtin.systemd:
+    name: redis@{{ redis_port }}
+    state: restarted
+  listen: Restart redis instance

@@ -1,0 +1,13 @@
+[Unit]
+Description=Redis (%i) persistent key-value database
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart={{ redis_bin_path }}/redis-server {{ redis_config_dir }}/%i.conf --daemonize no
+User={{ redis_user }}
+Group={{ redis_group }}
+LimitNOFILE={{ redis_limit_nofile }}
+
+[Install]
+WantedBy=multi-user.target

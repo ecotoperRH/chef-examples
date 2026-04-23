@@ -1,0 +1,103 @@
+# Redis configuration — managed by Ansible
+# Instance: {{ redis_port }}
+
+daemonize no
+
+pidfile {{ redis_pid_dir }}/redis_{{ redis_port }}.pid
+
+port {{ redis_port }}
+
+tcp-backlog {{ redis_tcpbacklog }}
+
+timeout {{ redis_timeout }}
+
+tcp-keepalive {{ redis_keepalive }}
+
+loglevel {{ redis_loglevel }}
+
+syslog-enabled {{ redis_syslog_enabled }}
+syslog-ident redis-{{ redis_port }}
+syslog-facility {{ redis_syslog_facility }}
+
+databases {{ redis_databases }}
+
+################################# SNAPSHOTTING ################################
+
+{% if redis_backuptype in ['rdb', 'both'] %}
+save 900 1
+save 300 10
+save 60 10000
+
+stop-writes-on-bgsave-error {{ redis_stop_writes_on_bgsave_error }}
+rdbcompression {{ redis_rdb_compression }}
+rdbchecksum {{ redis_rdb_checksum }}
+dbfilename dump-{{ redis_port }}.rdb
+{% endif %}
+
+dir {{ redis_data_dir }}
+
+################################# REPLICATION #################################
+
+# No replication configured — standalone instance.
+# replica-serve-stale-data, replica-read-only, repl-ping-replica-period,
+# client-output-buffer-limit, and replica-priority are intentionally omitted
+# (stripped by the original cookbook's fix_redis_config ruby_block).
+
+repl-diskless-sync {{ redis_repl_diskless_sync }}
+repl-diskless-sync-delay {{ redis_repl_diskless_sync_delay }}
+repl-timeout {{ redis_repl_timeout }}
+repl-disable-tcp-nodelay {{ redis_repl_disable_tcp_nodelay }}
+repl-backlog-size {{ redis_repl_backlog_size }}
+repl-backlog-ttl {{ redis_repl_backlog_ttl }}
+
+################################## SECURITY ###################################
+
+requirepass {{ redis_requirepass }}
+
+################################### LIMITS ####################################
+
+maxclients {{ redis_maxclients }}
+
+############################## APPEND ONLY MODE ###############################
+
+{% if redis_backuptype in ['aof', 'both'] %}
+appendonly yes
+appendfilename "appendonly-{{ redis_port }}.aof"
+appendfsync {{ redis_appendfsync }}
+no-appendfsync-on-rewrite {{ redis_no_appendfsync_on_rewrite }}
+auto-aof-rewrite-percentage {{ redis_aof_rewrite_percentage }}
+auto-aof-rewrite-min-size {{ redis_aof_rewrite_min_size }}
+aof-load-truncated {{ redis_aof_load_truncated }}
+aof-rewrite-incremental-fsync {{ redis_aof_rewrite_incremental_fsync }}
+{% else %}
+appendonly no
+{% endif %}
+
+################################ LUA SCRIPTING ################################
+
+lua-time-limit {{ redis_lua_time_limit }}
+
+################################## SLOW LOG ###################################
+
+slowlog-log-slower-than {{ redis_slowlog_log_slower_than }}
+slowlog-max-len {{ redis_slowlog_max_len }}
+
+################################ LATENCY MONITOR ##############################
+
+latency-monitor-threshold 0
+
+############################# EVENT NOTIFICATION ##############################
+
+notify-keyspace-events "{{ redis_notify_keyspace_events }}"
+
+############################### ADVANCED CONFIG ###############################
+
+hash-max-ziplist-entries {{ redis_hash_max_ziplist_entries }}
+hash-max-ziplist-value {{ redis_hash_max_ziplist_value }}
+set-max-intset-entries {{ redis_set_max_intset_entries }}
+zset-max-ziplist-entries {{ redis_zset_max_ziplist_entries }}
+zset-max-ziplist-value {{ redis_zset_max_ziplist_value }}
+hll-sparse-max-bytes {{ redis_hll_sparse_max_bytes }}
+activerehashing {{ redis_active_rehashing }}
+
+hz {{ redis_hz }}

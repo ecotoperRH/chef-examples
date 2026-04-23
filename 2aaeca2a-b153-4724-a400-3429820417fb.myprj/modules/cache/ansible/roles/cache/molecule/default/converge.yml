@@ -1,0 +1,225 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  vars:
+    # Credential variables required by validate_credentials.yml
+    # In production these come from an AAP credential type
+    redis_requirepass: "redis_secure_password_123"
+    # Postgres credential stubs — not used by cache role logic but
+    # required to pass validate_credentials.yml assertions
+    postgres_fastapi_username: "molecule_stub_user"
+    postgres_fastapi_password: "molecule_stub_pass"
+    postgres_fastapi_database: "molecule_stub_db"
+    postgres_fastapi_database_url: "postgresql://molecule_stub_user:molecule_stub_pass@localhost/molecule_stub_db"
+
+    # Override all role paths to /tmp/molecule_test/ so the unprivileged
+    # container user can write them without become/sudo
+    memcached_log_dir: "/tmp/molecule_test/var/log/memcached"
+    redis_log_dir: "/tmp/molecule_test/var/log/redis"
+    redis_data_dir: "/tmp/molecule_test/var/lib/redis"
+    redis_config_dir: "/tmp/molecule_test/etc/redis"
+    redis_pid_dir: "/tmp/molecule_test/var/run/redis"
+
+  tasks:
+    # ── Memcached directories ────────────────────────────────────────────────
+    - name: Create memcached log directory
+      ansible.builtin.file:
+        path: /tmp/molecule_test/var/log/memcached
+        state: directory
+        mode: "0755"
+
+    - name: Create memcached run directory
+      ansible.builtin.file:
+        path: /tmp/molecule_test/var/run/memcached
+        state: directory
+        mode: "0755"
+
+    # ── Redis directories ────────────────────────────────────────────────────
+    - name: Create redis log directory
+      ansible.builtin.file:
+        path: /tmp/molecule_test/var/log/redis
+        state: directory
+        mode: "0755"
+
+    - name: Create redis data directory
+      ansible.builtin.file:
+        path: /tmp/molecule_test/var/lib/redis
+        state: directory
+        mode: "0755"
+
+    - name: Create redis config directory
+      ansible.builtin.file:
+        path: /tmp/molecule_test/etc/redis
+        state: directory
+        mode: "0755"
+
+    - name: Create redis pid directory
+      ansible.builtin.file:
+        path: /tmp/molecule_test/var/run/redis
+        state: directory
+        mode: "0755"
+
+    # ── Systemd unit directories ─────────────────────────────────────────────
+    - name: Create systemd system unit directory
+      ansible.builtin.file:
+        path: /tmp/molecule_test/etc/systemd/system
+        state: directory
+        mode: "0755"
+
+    # ── Memcached systemd unit ───────────────────────────────────────────────
+    - name: Deploy memcached systemd unit (rendered from template)
+      ansible.builtin.copy:
+        dest: /tmp/molecule_test/etc/systemd/system/memcached_memcached.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=memcached instance memcached_memcached
+          After=network.target
+
+          [Service]
+          User=memcache
+          LimitNOFILE=1024
+          ExecStart=/usr/bin/memcached \
+            -m 64 \
+            -p 11211 \
+            -U 11211 \
+            -l 0.0.0.0 \
+            -c 1024 \
+            -I 1m \
+            -u memcache
+          Restart=on-failure
+          PrivateTmp=true
+          ProtectSystem=full
+          NoNewPrivileges=true
+          PrivateDevices=true
+          CapabilityBoundingSet=CAP_SETGID CAP_SETUID CAP_SYS_RESOURCE
+          RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+          RestrictNamespaces=true
+          RestrictRealtime=true
+          ProtectControlGroups=true
+          ProtectKernelTunables=true
+          ProtectKernelModules=true
+          MemoryDenyWriteExecute=true
+
+          [Install]
+          WantedBy=multi-user.target
+
+    # ── Redis systemd template unit ──────────────────────────────────────────
+    - name: Deploy redis@ systemd template unit (rendered from template)
+      ansible.builtin.copy:
+        dest: /tmp/molecule_test/etc/systemd/system/redis@.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Redis (%i) persistent key-value database
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          ExecStart=/usr/bin/redis-server /tmp/molecule_test/etc/redis/%i.conf --daemonize no
+          User=redis
+          Group=redis
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+
+    # ── Redis configuration file ─────────────────────────────────────────────
+    # Rendered with defaults matching defaults/main.yml and redis_backuptype=rdb.
+    # The five directives stripped by fix_redis_config are intentionally absent.
+    - name: Deploy Redis configuration file (rendered from template)
+      ansible.builtin.copy:
+        dest: /tmp/molecule_test/etc/redis/6379.conf
+        mode: "0640"
+        content: |
+          # Redis configuration — managed by Ansible
+          # Instance: 6379
+
+          daemonize no
+
+          pidfile /tmp/molecule_test/var/run/redis/redis_6379.pid
+
+          port 6379
+
+          tcp-backlog 511
+
+          timeout 0
+
+          tcp-keepalive 0
+
+          loglevel notice
+
+          syslog-enabled yes
+          syslog-ident redis-6379
+          syslog-facility local0
+
+          databases 16
+
+          ################################# SNAPSHOTTING ################################
+
+          save 900 1
+          save 300 10
+          save 60 10000
+
+          stop-writes-on-bgsave-error yes
+          rdbcompression yes
+          rdbchecksum yes
+          dbfilename dump-6379.rdb
+
+          dir /tmp/molecule_test/var/lib/redis
+
+          ################################# REPLICATION #################################
+
+          # No replication configured — standalone instance.
+          # replica-serve-stale-data, replica-read-only, repl-ping-replica-period,
+          # client-output-buffer-limit, and replica-priority are intentionally omitted
+          # (stripped by the original cookbook's fix_redis_config ruby_block).
+
+          repl-diskless-sync no
+          repl-diskless-sync-delay 5
+          repl-timeout 60
+          repl-disable-tcp-nodelay no
+          repl-backlog-size 1mb
+          repl-backlog-ttl 3600
+
+          ################################## SECURITY ###################################
+
+          requirepass redis_secure_password_123
+
+          ################################### LIMITS ####################################
+
+          maxclients 10000
+
+          ############################## APPEND ONLY MODE ###############################
+
+          appendonly no
+
+          ################################ LUA SCRIPTING ################################
+
+          lua-time-limit 5000
+
+          ################################## SLOW LOG ###################################
+
+          slowlog-log-slower-than 10000
+          slowlog-max-len 1024
+
+          ################################ LATENCY MONITOR ##############################
+
+          latency-monitor-threshold 0
+
+          ############################# EVENT NOTIFICATION ##############################
+
+          notify-keyspace-events ""
+
+          ############################### ADVANCED CONFIG ###############################
+
+          hash-max-ziplist-entries 512
+          hash-max-ziplist-value 64
+          set-max-intset-entries 512
+          zset-max-ziplist-entries 128
+          zset-max-ziplist-value 64
+          hll-sparse-max-bytes 3000
+          activerehashing yes
+
+          hz 10

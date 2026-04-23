@@ -1,0 +1,297 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    # ════════════════════════════════════════════════════════════════════════
+    # MEMCACHED — Directory checks
+    # ════════════════════════════════════════════════════════════════════════
+
+    - name: Stat memcached log directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/var/log/memcached
+      register: memcached_log_dir
+
+    - name: Assert memcached log directory exists
+      ansible.builtin.assert:
+        that:
+          - memcached_log_dir.stat.exists
+          - memcached_log_dir.stat.isdir
+        fail_msg: "Memcached log directory /tmp/molecule_test/var/log/memcached not found"
+        success_msg: "Memcached log directory exists"
+
+    - name: Stat memcached run directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/var/run/memcached
+      register: memcached_run_dir
+
+    - name: Assert memcached run directory exists
+      ansible.builtin.assert:
+        that:
+          - memcached_run_dir.stat.exists
+          - memcached_run_dir.stat.isdir
+        fail_msg: "Memcached run directory /tmp/molecule_test/var/run/memcached not found"
+        success_msg: "Memcached run directory exists"
+
+    # ════════════════════════════════════════════════════════════════════════
+    # MEMCACHED — Systemd unit file
+    # ════════════════════════════════════════════════════════════════════════
+
+    - name: Stat memcached_memcached systemd unit file
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/systemd/system/memcached_memcached.service
+      register: memcached_unit_file
+
+    - name: Assert memcached_memcached systemd unit file exists
+      ansible.builtin.assert:
+        that:
+          - memcached_unit_file.stat.exists
+          - memcached_unit_file.stat.size > 0
+        fail_msg: "memcached_memcached.service unit file not found"
+        success_msg: "memcached_memcached.service unit file exists"
+
+    - name: Slurp memcached_memcached systemd unit file
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/systemd/system/memcached_memcached.service
+      register: memcached_unit_content
+
+    - name: Assert memcached unit contains expected directives
+      ansible.builtin.assert:
+        that:
+          - "'Description=memcached instance memcached_memcached' in (memcached_unit_content.content | b64decode)"
+          - "'ExecStart=/usr/bin/memcached' in (memcached_unit_content.content | b64decode)"
+          - "'-p 11211' in (memcached_unit_content.content | b64decode)"
+          - "'-m 64' in (memcached_unit_content.content | b64decode)"
+          - "'-c 1024' in (memcached_unit_content.content | b64decode)"
+          - "'User=memcache' in (memcached_unit_content.content | b64decode)"
+          - "'WantedBy=multi-user.target' in (memcached_unit_content.content | b64decode)"
+        fail_msg: "memcached_memcached.service is missing expected directives"
+        success_msg: "memcached_memcached.service contains all expected directives"
+
+    # ════════════════════════════════════════════════════════════════════════
+    # REDIS — Directory checks
+    # ════════════════════════════════════════════════════════════════════════
+
+    - name: Stat redis log directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/var/log/redis
+      register: redis_log_dir
+
+    - name: Assert redis log directory exists
+      ansible.builtin.assert:
+        that:
+          - redis_log_dir.stat.exists
+          - redis_log_dir.stat.isdir
+        fail_msg: "Redis log directory /tmp/molecule_test/var/log/redis not found"
+        success_msg: "Redis log directory exists"
+
+    - name: Stat redis data directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/var/lib/redis
+      register: redis_data_dir
+
+    - name: Assert redis data directory exists
+      ansible.builtin.assert:
+        that:
+          - redis_data_dir.stat.exists
+          - redis_data_dir.stat.isdir
+        fail_msg: "Redis data directory /tmp/molecule_test/var/lib/redis not found"
+        success_msg: "Redis data directory exists"
+
+    - name: Stat redis config directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/redis
+      register: redis_config_dir
+
+    - name: Assert redis config directory exists
+      ansible.builtin.assert:
+        that:
+          - redis_config_dir.stat.exists
+          - redis_config_dir.stat.isdir
+        fail_msg: "Redis config directory /tmp/molecule_test/etc/redis not found"
+        success_msg: "Redis config directory exists"
+
+    - name: Stat redis pid directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/var/run/redis
+      register: redis_pid_dir
+
+    - name: Assert redis pid directory exists
+      ansible.builtin.assert:
+        that:
+          - redis_pid_dir.stat.exists
+          - redis_pid_dir.stat.isdir
+        fail_msg: "Redis pid directory /tmp/molecule_test/var/run/redis not found"
+        success_msg: "Redis pid directory exists"
+
+    # ════════════════════════════════════════════════════════════════════════
+    # REDIS — Systemd template unit file (redis@.service)
+    # ════════════════════════════════════════════════════════════════════════
+
+    - name: Stat redis@ systemd template unit file
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/systemd/system/redis@.service
+      register: redis_at_unit_file
+
+    - name: Assert redis@ systemd template unit file exists
+      ansible.builtin.assert:
+        that:
+          - redis_at_unit_file.stat.exists
+          - redis_at_unit_file.stat.size > 0
+        fail_msg: "redis@.service unit file not found"
+        success_msg: "redis@.service unit file exists"
+
+    - name: Slurp redis@ systemd template unit file
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/systemd/system/redis@.service
+      register: redis_at_unit_content
+
+    - name: Assert redis@ unit contains expected directives
+      ansible.builtin.assert:
+        that:
+          - "'Description=Redis' in (redis_at_unit_content.content | b64decode)"
+          - "'redis-server' in (redis_at_unit_content.content | b64decode)"
+          - "'LimitNOFILE=65536' in (redis_at_unit_content.content | b64decode)"
+          - "'User=redis' in (redis_at_unit_content.content | b64decode)"
+          - "'Group=redis' in (redis_at_unit_content.content | b64decode)"
+          - "'WantedBy=multi-user.target' in (redis_at_unit_content.content | b64decode)"
+        fail_msg: "redis@.service is missing expected directives"
+        success_msg: "redis@.service contains all expected directives"
+
+    # ════════════════════════════════════════════════════════════════════════
+    # REDIS — Configuration file (6379.conf)
+    # ════════════════════════════════════════════════════════════════════════
+
+    - name: Stat redis 6379.conf
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/redis/6379.conf
+      register: redis_conf_file
+
+    - name: Assert redis 6379.conf exists
+      ansible.builtin.assert:
+        that:
+          - redis_conf_file.stat.exists
+          - redis_conf_file.stat.size > 0
+        fail_msg: "Redis config file /tmp/molecule_test/etc/redis/6379.conf not found"
+        success_msg: "Redis config file 6379.conf exists"
+
+    - name: Slurp redis 6379.conf
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/redis/6379.conf
+      register: redis_conf_content
+
+    - name: Assert redis.conf contains expected core directives
+      ansible.builtin.assert:
+        that:
+          - "'port 6379' in (redis_conf_content.content | b64decode)"
+          - "'requirepass redis_secure_password_123' in (redis_conf_content.content | b64decode)"
+          - "'databases 16' in (redis_conf_content.content | b64decode)"
+          - "'loglevel notice' in (redis_conf_content.content | b64decode)"
+          - "'syslog-enabled yes' in (redis_conf_content.content | b64decode)"
+          - "'maxclients 10000' in (redis_conf_content.content | b64decode)"
+          - "'daemonize no' in (redis_conf_content.content | b64decode)"
+        fail_msg: "redis 6379.conf is missing expected core directives"
+        success_msg: "redis 6379.conf contains all expected core directives"
+
+    - name: Assert redis.conf contains RDB snapshot directives (redis_backuptype=rdb)
+      ansible.builtin.assert:
+        that:
+          - "'save 900 1' in (redis_conf_content.content | b64decode)"
+          - "'save 300 10' in (redis_conf_content.content | b64decode)"
+          - "'save 60 10000' in (redis_conf_content.content | b64decode)"
+          - "'dbfilename dump-6379.rdb' in (redis_conf_content.content | b64decode)"
+          - "'rdbcompression yes' in (redis_conf_content.content | b64decode)"
+        fail_msg: "redis 6379.conf is missing RDB snapshot directives"
+        success_msg: "redis 6379.conf contains RDB snapshot directives"
+
+    - name: Assert redis.conf does NOT contain stripped incompatible directives
+      # These five directives were stripped by the original cookbook's fix_redis_config
+      # ruby_block. The Ansible template omits them entirely — verify they are absent.
+      ansible.builtin.assert:
+        that:
+          - "'replica-serve-stale-data' not in (redis_conf_content.content | b64decode)"
+          - "'replica-read-only' not in (redis_conf_content.content | b64decode)"
+          - "'repl-ping-replica-period' not in (redis_conf_content.content | b64decode)"
+          - "'client-output-buffer-limit' not in (redis_conf_content.content | b64decode)"
+          - "'replica-priority' not in (redis_conf_content.content | b64decode)"
+        fail_msg: >
+          redis 6379.conf contains one or more directives that should have been stripped
+          (replica-serve-stale-data, replica-read-only, repl-ping-replica-period,
+          client-output-buffer-limit, replica-priority). Check the template.
+        success_msg: "redis 6379.conf correctly omits all incompatible stripped directives"
+
+    - name: Assert redis.conf AOF is disabled (default redis_backuptype=rdb)
+      ansible.builtin.assert:
+        that:
+          - "'appendonly no' in (redis_conf_content.content | b64decode)"
+        fail_msg: "redis 6379.conf should have appendonly no for rdb backup type"
+        success_msg: "redis 6379.conf correctly has appendonly no"
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SERVICE STATUS — requires a real systemd host; skipped in container EE
+    # ════════════════════════════════════════════════════════════════════════
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert memcached_memcached service is enabled and active
+      ansible.builtin.assert:
+        that:
+          - "'memcached_memcached.service' in ansible_facts.services"
+          - "ansible_facts.services['memcached_memcached.service']['state'] == 'running'"
+          - "ansible_facts.services['memcached_memcached.service']['status'] == 'enabled'"
+        fail_msg: "memcached_memcached service is not running/enabled"
+        success_msg: "memcached_memcached service is running and enabled"
+      tags: molecule-notest
+
+    - name: Assert redis@6379 service is enabled and active
+      ansible.builtin.assert:
+        that:
+          - "'redis@6379.service' in ansible_facts.services"
+          - "ansible_facts.services['redis@6379.service']['state'] == 'running'"
+          - "ansible_facts.services['redis@6379.service']['status'] == 'enabled'"
+        fail_msg: "redis@6379 service is not running/enabled"
+        success_msg: "redis@6379 service is running and enabled"
+      tags: molecule-notest
+
+    - name: Assert distro default memcached service is disabled
+      ansible.builtin.assert:
+        that:
+          - >
+            'memcached.service' not in ansible_facts.services
+            or ansible_facts.services['memcached.service']['status'] == 'disabled'
+            or ansible_facts.services['memcached.service']['status'] == 'masked'
+        fail_msg: "Default memcached service is still enabled — it should be disabled"
+        success_msg: "Default memcached service is correctly disabled/absent"
+      tags: molecule-notest
+
+    - name: Assert distro default redis-server service is disabled
+      ansible.builtin.assert:
+        that:
+          - >
+            'redis-server.service' not in ansible_facts.services
+            or ansible_facts.services['redis-server.service']['status'] == 'disabled'
+            or ansible_facts.services['redis-server.service']['status'] == 'masked'
+        fail_msg: "Default redis-server service is still enabled — it should be disabled"
+        success_msg: "Default redis-server service is correctly disabled/absent"
+      tags: molecule-notest
+
+    # ════════════════════════════════════════════════════════════════════════
+    # CONNECTIVITY — requires live services; skipped in container EE
+    # ════════════════════════════════════════════════════════════════════════
+
+    - name: Check memcached port 11211 is reachable
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        timeout: 5
+      tags: molecule-notest
+
+    - name: Check redis port 6379 is reachable
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        timeout: 5
+      tags: molecule-notest
