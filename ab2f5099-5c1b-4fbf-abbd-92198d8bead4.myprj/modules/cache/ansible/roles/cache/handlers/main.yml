@@ -1,0 +1,13 @@
+---
+- name: Restart redis
+  ansible.builtin.service:
+    name: "{{ redis_service_name }}"
+    state: restarted
+- name: Reload redis
+  ansible.builtin.service:
+    name: "{{ redis_service_name }}"
+    state: reloaded
+- name: Restart memcached
+  ansible.builtin.service:
+    name: "{{ memcached_service_name }}"
+    state: restarted

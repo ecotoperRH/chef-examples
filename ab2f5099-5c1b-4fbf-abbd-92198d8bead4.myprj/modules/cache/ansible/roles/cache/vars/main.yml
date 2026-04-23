@@ -1,0 +1,9 @@
+---
+redis_packages:
+  Debian: redis-server
+  RedHat: redis
+memcached_packages:
+  Debian: memcached
+  RedHat: memcached
+redis_package: "{{ redis_packages[ansible_os_family] | default('redis-server') }}"
+memcached_package: "{{ memcached_packages[ansible_os_family] | default('memcached') }}"

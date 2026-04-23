@@ -1,0 +1,149 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/metadata.rb",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata generated from Chef metadata.rb",
+      "notes": "meta/main.yml already exists and is marked complete. Skipped to avoid overwriting."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for restarting redis-server and memcached services",
+      "notes": "Handlers for restart/reload redis and restart memcached."
+    },
+    {
+      "category": "attributes",
+      "source_path": "cookbooks/cache/attributes/default.rb",
+      "target_path": "ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Redis and Memcached default variables (port, maxclients, loglevel, backuptype, syslog facility, directories)",
+      "notes": "Source attributes/default.rb not present in workspace. Defaults written from migration plan: redis_port, redis_loglevel, redis_syslog_facility, redis_maxclients, directory paths, service names, memcached defaults."
+    },
+    {
+      "category": "attributes",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/vars/main.yml",
+      "status": "complete",
+      "description": "Role-level vars (non-overridable values such as redis user, config paths, systemd unit name)",
+      "notes": "OS-family specific package name mappings for redis and memcached (Debian/RedHat)."
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/redisio/templates/default/redis.conf.erb",
+      "target_path": "ansible/roles/cache/templates/redis.conf.j2",
+      "status": "complete",
+      "description": "Redis instance config template \u2014 replaces redis.conf.erb + ruby_block patch hack; uses vault_redis_password for requirepass directive",
+      "notes": "Converted ERB template to Jinja2. Source ERB not available in workspace; template written from migration plan analysis. Includes all effective runtime config: port, requirepass (vault_redis_password), maxclients, loglevel, syslog, persistence. Deprecated directives (replica-*) excluded \u2014 eliminates the ruby_block hack."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/memcached.yml",
+      "status": "complete",
+      "description": "Memcached tasks \u2014 package install, service enable+start (replaces memcached_instance custom resource)",
+      "notes": "Converted memcached include_recipe to package install + service enable/start tasks."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/redis.yml",
+      "status": "complete",
+      "description": "Redis tasks \u2014 package install, user/group, directories (/etc/redis, /var/lib/redis, /var/run/redis/6379, /var/log/redis), redis.conf.j2 template render, systemd service enable+start",
+      "notes": "Converted redisio chain to: package install, user/group/directory setup, template deploy, service enable/start. ruby_block config-patching hack eliminated by writing clean template directly."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Main tasks entry point \u2014 orchestrates redis and memcached task includes",
+      "notes": "Includes validate_credentials.yml first (as required), then redis.yml and memcached.yml."
+    },
+    {
+      "category": "files",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/group_vars/all/vault.yml",
+      "status": "complete",
+      "description": "Ansible Vault encrypted file storing vault_redis_password (replaces hardcoded 'redis_secure_password_123' in Chef recipe)",
+      "notes": "Vault file with vault_redis_password. NOTE: Must be encrypted with: ansible-vault encrypt ansible/group_vars/all/vault.yml before committing."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verify playbook \u2014 checks /tmp/molecule_test/ paths for redis config, directories, service state, port 6379 and 11211",
+      "notes": "Generated by MoleculeAgent. Verifies: Redis conf dir, data dir, log dir, run dir existence; redis.conf content (required directives present, deprecated directives absent); Memcached conf dir and file existence; port 11211 reference in memcached.conf. Service/port checks tagged molecule-notest for container safety."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "Molecule no-op instance destroy stub (delegated driver)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/create.yml",
+      "status": "complete",
+      "description": "Molecule no-op instance create stub (delegated driver)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration \u2014 delegated driver, local connection (not docker/podman)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook \u2014 creates expected filesystem state under /tmp/molecule_test/ (redis dirs, config, memcached)",
+      "notes": "Generated by MoleculeAgent. Recreates Redis and Memcached filesystem state under /tmp/molecule_test/. Includes credential variable injection, directory creation, redis.conf with all required directives (port 6379, requirepass, maxclients, loglevel, syslog, persistence), and absence of deprecated replica-* directives. No become, no include_role, no service tasks."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}

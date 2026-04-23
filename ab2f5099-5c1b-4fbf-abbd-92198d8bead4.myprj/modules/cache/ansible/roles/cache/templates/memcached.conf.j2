@@ -1,0 +1,14 @@
+# Memcached configuration
+# Managed by Ansible — do not edit manually
+
+# Port to listen on
+-p {{ memcached_port }}
+
+# Run as the memcache user
+-u memcache
+
+# Maximum memory to use (MB)
+-m {{ memcached_max_memory_mb }}
+
+# Maximum simultaneous connections
+-c {{ memcached_max_connections }}
