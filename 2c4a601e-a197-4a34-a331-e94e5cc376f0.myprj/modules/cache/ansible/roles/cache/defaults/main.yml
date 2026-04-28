@@ -1,0 +1,13 @@
+---
+memcached_port: 11211
+memcached_listen_ip: 127.0.0.1
+memcached_memory_limit: 64
+memcached_connections: 1024
+memcached_user: memcache
+memcached_group: memcache
+redis_port: 6379
+redis_bind_interface: 127.0.0.1
+redis_logdir: /var/log/redis
+redis_user: redis
+redis_group: redis
+redis_dir: /var/lib/redis

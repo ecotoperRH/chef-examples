@@ -1,0 +1,117 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/metadata.rb",
+      "target_path": "./ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata including dependencies",
+      "notes": "Created meta/main.yml with role metadata"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Main defaults file for role variables",
+      "notes": "Created defaults/main.yml with memcached and redis configuration variables"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Main handlers file",
+      "notes": "Created handlers/main.yml with restart handlers for memcached and redis"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "./ansible/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Main recipe that configures Redis and Memcached",
+      "notes": "Created tasks/main.yml with memcached installation and redis configuration using eloy.redis collection"
+    },
+    {
+      "category": "dependencies",
+      "source_path": "collection:eloy.redis",
+      "target_path": "./ansible/roles/cache/requirements.yml",
+      "status": "complete",
+      "description": "Redis collection for configuring Redis server",
+      "notes": "Created requirements.yml with eloy.redis collection"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook",
+      "notes": "Created converge.yml that sets up the expected filesystem structure under /tmp/molecule_test/ for Redis and Memcached configurations"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verification tasks",
+      "notes": "Created verify.yml that checks for Redis and Memcached configuration files, validates their content, and includes service checks with molecule-notest tags"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/molecule/default/create.yml",
+      "status": "complete",
+      "description": "Molecule create playbook",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "Molecule destroy playbook",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Install memcached
+  ansible.builtin.package:
+    name: memcached
+    state: present
+- name: Ensure memcached PID directory exists
+  ansible.builtin.file:
+    path: /var/run/memcached
+    state: directory
+    owner: "{{ memcached_user }}"
+    group: "{{ memcached_group }}"
+    mode: "0755"
+- name: Configure memcached
+  ansible.builtin.template:
+    src: memcached.conf.j2
+    dest: /etc/memcached.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart memcached
+- name: Ensure memcached service is enabled and running
+  ansible.builtin.service:
+    name: memcached
+    state: started
+    enabled: true
+- name: Configure Redis with authentication
+  ansible.builtin.include_role:
+    name: eloy.redis.redis
+  vars:
+    redis_port: "{{ redis_port }}"
+    redis_requirepass: "{{ redis_password }}"
+    redis_bind_interface: "{{ redis_bind_interface }}"
+    redis_dir: "{{ redis_dir }}"
+    redis_logdir: "{{ redis_logdir }}"
+    redis_user: "{{ redis_user }}"
+    redis_group: "{{ redis_group }}"
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: "{{ redis_logdir }}"
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+    state: directory
+    recurse: true
+- name: Fix Redis configuration
+  ansible.builtin.lineinfile:
+    path: /etc/redis/{{ redis_port }}.conf
+    regexp: "{{ item }}"
+    state: absent
+  loop:
+    - ^replica-serve-stale-data.*$
+    - ^replica-read-only.*$
+    - ^repl-ping-replica-period.*$
+    - ^client-output-buffer-limit.*$
+    - ^replica-priority.*$
+  notify: Restart redis
