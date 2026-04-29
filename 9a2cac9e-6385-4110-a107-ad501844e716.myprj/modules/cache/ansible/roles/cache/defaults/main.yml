@@ -1,0 +1,16 @@
+---
+memcached_memory: 64
+memcached_port: 11211
+memcached_listen_ip: 0.0.0.0
+memcached_max_connections: 1024
+memcached_user: memcache
+memcached_package: memcached
+memcached_service_name: memcached
+redis_port: 6379
+redis_bind: 0.0.0.0
+redis_requirepass: "{{ redis_password | default('redis_secure_password_123') }}"
+redis_maxmemory: 64mb
+redis_protected_mode: "yes"
+redis_logfile: /var/log/redis/redis_6379.log
+redis_dir: /var/lib/redis
+redis_service_name: redis@6379

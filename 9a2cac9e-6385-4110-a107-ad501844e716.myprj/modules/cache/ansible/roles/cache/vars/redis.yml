@@ -1,0 +1,11 @@
+---
+redis_port: 6379
+redis_bind: 0.0.0.0
+redis_requirepass: "{{ redis_password | default('redis_secure_password_123') }}"
+redis_maxmemory: 64mb
+redis_protected_mode: "yes"
+redis_logfile: /var/log/redis/redis_6379.log
+redis_dir: /var/lib/redis
+redis_piddir: /var/run/redis
+redis_user: redis
+redis_group: redis

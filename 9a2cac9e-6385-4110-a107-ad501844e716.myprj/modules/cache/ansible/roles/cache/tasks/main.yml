@@ -1,0 +1,23 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Include memcached tasks
+  ansible.builtin.include_tasks: memcached.yml
+- name: Ensure Redis log directory exists
+  ansible.builtin.file:
+    path: /var/log/redis
+    state: directory
+    mode: "0755"
+- name: Configure Redis cache server
+  ansible.builtin.include_role:
+    name: eloy.redis.redis
+  vars:
+    redis_port: "{{ redis_port }}"
+    redis_requirepass: "{{ redis_password | default('redis_secure_password_123') }}"
+    redis_maxmemory: "{{ redis_maxmemory }}"
+    redis_bind: "{{ redis_bind }}"
+    redis_protected_mode: "{{ redis_protected_mode }}"
+    redis_logfile: "{{ redis_logfile }}"
+    redis_dir: "{{ redis_dir }}"
+- name: Include Redis configuration fix tasks
+  ansible.builtin.include_tasks: redis_config_fix.yml

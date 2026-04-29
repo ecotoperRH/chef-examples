@@ -1,0 +1,13 @@
+description "Redis Server {{ redis_port }}"
+
+start on runlevel [23]
+stop on shutdown
+
+pre-start script
+    mkdir -p /var/run/redis
+    chown {{ redis_user }}:{{ redis_group }} /var/run/redis
+end script
+
+exec su -s /bin/sh -c "/usr/bin/redis-server /etc/redis/{{ redis_port }}.conf" {{ redis_user }}
+
+respawn

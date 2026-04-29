@@ -1,0 +1,189 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/metadata.rb",
+      "target_path": "./ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata including dependencies and supported platforms",
+      "notes": "Created meta/main.yml with role metadata"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Main handler file",
+      "notes": "Created handlers/main.yml with restart handlers for memcached and redis"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Default variables for the role",
+      "notes": "Created defaults/main.yml with memcached and redis configuration variables"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "./ansible/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Main tasks file for cache role",
+      "notes": "Created tasks/main.yml with main task flow including memcached and redis setup"
+    },
+    {
+      "category": "recipes",
+      "source_path": "/workspace/source/migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/recipes/default.rb",
+      "target_path": "./ansible/roles/cache/tasks/memcached.yml",
+      "status": "complete",
+      "description": "Memcached installation and configuration tasks",
+      "notes": "Created tasks/memcached.yml with memcached installation and configuration tasks"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "./ansible/roles/cache/tasks/redis_config_fix.yml",
+      "status": "complete",
+      "description": "Redis configuration fix tasks",
+      "notes": "Created tasks/redis_config_fix.yml with Redis configuration fix tasks"
+    },
+    {
+      "category": "attributes",
+      "source_path": "/workspace/source/migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/attributes/default.rb",
+      "target_path": "./ansible/roles/cache/vars/memcached.yml",
+      "status": "complete",
+      "description": "Memcached configuration variables",
+      "notes": "Created vars/memcached.yml with memcached configuration variables based on migration plan"
+    },
+    {
+      "category": "attributes",
+      "source_path": "/workspace/source/migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/attributes/default.rb",
+      "target_path": "./ansible/roles/cache/vars/redis.yml",
+      "status": "complete",
+      "description": "Redis configuration variables",
+      "notes": "Created vars/redis.yml with redis configuration variables based on migration plan"
+    },
+    {
+      "category": "templates",
+      "source_path": "/workspace/source/migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/redis.conf.erb",
+      "target_path": "./ansible/roles/cache/templates/redis.conf.j2",
+      "status": "complete",
+      "description": "Redis configuration template",
+      "notes": "Created templates/redis.conf.j2 with Redis configuration template"
+    },
+    {
+      "category": "templates",
+      "source_path": "/workspace/source/migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/redis@.service.erb",
+      "target_path": "./ansible/roles/cache/templates/redis@.service.j2",
+      "status": "complete",
+      "description": "Redis systemd service template",
+      "notes": "Created templates/redis@.service.j2 with Redis systemd service template"
+    },
+    {
+      "category": "templates",
+      "source_path": "/workspace/source/migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/redis.init.erb",
+      "target_path": "./ansible/roles/cache/templates/redis.init.j2",
+      "status": "complete",
+      "description": "Redis init script template",
+      "notes": "Created templates/redis.init.j2 with Redis init script template"
+    },
+    {
+      "category": "templates",
+      "source_path": "/workspace/source/migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/redis.upstart.conf.erb",
+      "target_path": "./ansible/roles/cache/templates/redis.upstart.conf.j2",
+      "status": "complete",
+      "description": "Redis upstart configuration template",
+      "notes": "Created templates/redis.upstart.conf.j2 with Redis upstart configuration template"
+    },
+    {
+      "category": "templates",
+      "source_path": "/workspace/source/migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/redis.rcinit.erb",
+      "target_path": "./ansible/roles/cache/templates/redis.rcinit.j2",
+      "status": "complete",
+      "description": "Redis rcinit script template",
+      "notes": "Created templates/redis.rcinit.j2 with Redis rc init script template"
+    },
+    {
+      "category": "dependencies",
+      "source_path": "collection:eloy.redis",
+      "target_path": "./ansible/roles/cache/requirements.yml",
+      "status": "complete",
+      "description": "Redis collection for installation and configuration",
+      "notes": "Created requirements.yml with eloy.redis collection"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook",
+      "notes": "Created converge.yml that sets up test directories and files under /tmp/molecule_test/ to simulate the cache role's filesystem state"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verification tasks",
+      "notes": "Created verify.yml with tests for memcached and redis configuration files, directories, and service status checks with molecule-notest tags for container-incompatible tests"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/molecule/default/create.yml",
+      "status": "complete",
+      "description": "Molecule instance creation (no-op)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/cache/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "Molecule instance destruction (no-op)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}
