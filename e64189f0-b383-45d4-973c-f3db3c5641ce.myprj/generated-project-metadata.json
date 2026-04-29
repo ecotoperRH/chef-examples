@@ -1,0 +1,20 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Nginx web server with multiple SSL-enabled virtual hosts, security hardening, and custom configurations. Includes multi-site configuration, SSL certificate generation, and security features like fail2ban and ufw firewall.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Caching services configuration including Memcached and Redis with authentication. Features Redis with password authentication and Memcached configuration.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Python FastAPI application deployment with PostgreSQL database backend. Includes Python virtual environment setup, Git repository deployment, PostgreSQL database configuration, and systemd service management.",
+    "technology": "Chef"
+  }
+]
