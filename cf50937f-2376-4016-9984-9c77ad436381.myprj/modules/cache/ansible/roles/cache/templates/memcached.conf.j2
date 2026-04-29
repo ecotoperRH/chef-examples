@@ -1,0 +1,35 @@
+# memcached default config file
+# See /etc/memcached.conf for more information
+
+# Run memcached as a daemon
+-d
+
+# Log memcached's output to the following file
+logfile {{ memcached_log_file }}
+
+# Use {{ memcached_memory }}MB memory max
+-m {{ memcached_memory }}
+
+# Default connection port is 11211
+-p {{ memcached_port }}
+
+# Run the daemon as memcache user
+-u memcache
+
+# Specify which IP address to listen on
+-l {{ memcached_listen }}
+
+# Limit the number of simultaneous incoming connections
+-c {{ memcached_max_connections }}
+
+# Use a standard memory allocator
+# -m malloc
+
+# Lock down all paged memory
+# -k
+
+# Disable flush_all command
+# -F
+
+# Return error when memory is exhausted (rather than removing items)
+# -M

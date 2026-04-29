@@ -1,0 +1,63 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Configure memcached
+  ansible.builtin.include_tasks: memcached.yml
+- name: Configure Redis using eloy.redis collection
+  ansible.builtin.include_role:
+    name: eloy.redis.redis
+  vars:
+    redis_port: "{{ redis_port }}"
+    redis_requirepass: "{{ redis_password }}"
+    redis_maxmemory: "{{ redis_maxmemory }}"
+    redis_bind: "{{ redis_bind }}"
+  when: use_redis_collection | default(true)
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: "{{ redis_log_dir }}"
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+    state: directory
+  when: not use_redis_collection | default(true)
+- name: Create Redis data directory
+  ansible.builtin.file:
+    path: "{{ redis_data_dir }}"
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+    state: directory
+  when: not use_redis_collection | default(true)
+- name: Install Redis packages
+  ansible.builtin.package:
+    name: "{{ redis_packages[ansible_os_family] }}"
+    state: present
+  when: not use_redis_collection | default(true)
+- name: Configure Redis
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: /etc/redis/{{ redis_port }}.conf
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0640"
+  when: not use_redis_collection | default(true)
+  notify: Restart redis
+- name: Fix Redis configuration
+  ansible.builtin.lineinfile:
+    path: /etc/redis/{{ redis_port }}.conf
+    regexp: "{{ item }}"
+    state: absent
+  loop:
+    - ^replica-serve-stale-data.*$
+    - ^replica-read-only.*$
+    - ^repl-ping-replica-period.*$
+    - ^client-output-buffer-limit.*$
+    - ^replica-priority.*$
+  when: not use_redis_collection | default(true)
+  notify: Restart redis
+- name: Ensure Redis service is enabled and running
+  ansible.builtin.service:
+    name: redis@{{ redis_port }}
+    state: started
+    enabled: true
+  when: not use_redis_collection | default(true)

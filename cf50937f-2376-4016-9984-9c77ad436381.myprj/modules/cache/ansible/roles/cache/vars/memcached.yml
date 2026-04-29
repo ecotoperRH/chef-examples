@@ -1,0 +1,14 @@
+---
+memcached_packages:
+  Debian:
+    - memcached
+    - libmemcached-tools
+  RedHat:
+    - memcached
+    - libmemcached
+memcached_service_name:
+  Debian: memcached
+  RedHat: memcached
+memcached_config_file:
+  Debian: /etc/memcached.conf
+  RedHat: /etc/sysconfig/memcached

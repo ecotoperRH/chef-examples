@@ -1,0 +1,42 @@
+# Redis configuration file
+
+# Network
+bind 0.0.0.0
+port {{ redis_port | default('6379') }}
+protected-mode yes
+
+# General
+daemonize yes
+pidfile /var/run/redis/{{ redis_port | default('6379') }}.pid
+loglevel notice
+logfile /var/log/redis/redis_{{ redis_port | default('6379') }}.log
+
+# Security
+{% if redis_password is defined and redis_password %}
+requirepass {{ redis_password }}
+{% endif %}
+
+# Memory management
+maxmemory {{ redis_maxmemory | default('64mb') }}
+maxmemory-policy {{ redis_maxmemory_policy | default('allkeys-lru') }}
+
+# Persistence
+dir /var/lib/redis
+dbfilename dump-{{ redis_port | default('6379') }}.rdb
+save 900 1
+save 300 10
+save 60 10000
+
+# Advanced config
+tcp-backlog 511
+tcp-keepalive 300
+timeout 0
+databases 16
+
+# Remove replica-related configuration as per the ruby_block in the Chef recipe
+# The following lines are intentionally removed:
+# - replica-serve-stale-data
+# - replica-read-only
+# - repl-ping-replica-period
+# - client-output-buffer-limit for replica
+# - replica-priority

@@ -1,0 +1,102 @@
+- name: Converge
+  hosts: all
+  gather_facts: true
+  vars:
+    redis_password: redis_secure_password_123
+    redis_port: 6379
+    redis_maxmemory: 64mb
+    redis_bind: 0.0.0.0
+    redis_log_dir: /tmp/molecule_test/var/log/redis
+    redis_data_dir: /tmp/molecule_test/var/lib/redis
+    redis_user: root
+    redis_group: root
+    use_redis_collection: false
+    memcached_memory: 64
+    memcached_port: 11211
+    memcached_listen: 0.0.0.0
+    memcached_max_connections: 1024
+    memcached_log_file: /tmp/molecule_test/var/log/memcached.log
+  tasks:
+  - name: Create Redis directories
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/etc/redis
+    - /tmp/molecule_test/var/log/redis
+    - /tmp/molecule_test/var/lib/redis
+  - name: Create Redis configuration file
+    ansible.builtin.copy:
+      content: '# Redis configuration file
+
+        port 6379
+
+        bind 0.0.0.0
+
+        maxmemory 64mb
+
+        maxmemory-policy allkeys-lru
+
+        requirepass redis_secure_password_123
+
+        dir /var/lib/redis
+
+        logfile /var/log/redis/redis_6379.log
+
+        '
+      dest: /tmp/molecule_test/etc/redis/6379.conf
+      mode: '0640'
+  - name: Create Memcached directories
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/etc
+    - /tmp/molecule_test/etc/sysconfig
+    - /tmp/molecule_test/var/log
+  - name: Create Memcached configuration file (Debian)
+    ansible.builtin.copy:
+      content: '# memcached default config file
+
+        -m 64
+
+        -p 11211
+
+        -u memcached
+
+        -l 0.0.0.0
+
+        -c 1024
+
+        -v
+
+        logfile /var/log/memcached.log
+
+        '
+      dest: /tmp/molecule_test/etc/memcached.conf
+      mode: '0644'
+  - name: Create Memcached configuration file (RedHat)
+    ansible.builtin.copy:
+      content: 'PORT="11211"
+
+        USER="memcached"
+
+        MAXCONN="1024"
+
+        CACHESIZE="64"
+
+        OPTIONS="-l 0.0.0.0"
+
+        '
+      dest: /tmp/molecule_test/etc/sysconfig/memcached
+      mode: '0644'
+  - name: Create log files
+    ansible.builtin.copy:
+      content: '# Log file '
+      dest: '{{ item }}'
+      mode: '0644'
+    loop:
+    - /tmp/molecule_test/var/log/redis/redis_6379.log
+    - /tmp/molecule_test/var/log/memcached.log

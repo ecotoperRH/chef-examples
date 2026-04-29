@@ -1,0 +1,6 @@
+# Configuration for memcached on RedHat systems
+PORT="{{ memcached_port }}"
+USER="memcached"
+MAXCONN="{{ memcached_max_connections }}"
+CACHESIZE="{{ memcached_memory }}"
+OPTIONS="-l {{ memcached_listen }} -U {{ memcached_port }} -v >> {{ memcached_log_file }} 2>&1"

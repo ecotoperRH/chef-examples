@@ -1,0 +1,15 @@
+---
+redis_packages:
+  Debian:
+    - redis-server
+  RedHat:
+    - redis
+redis_service_name:
+  Debian: redis-server
+  RedHat: redis
+redis_config_file:
+  Debian: /etc/redis/redis.conf
+  RedHat: /etc/redis.conf
+redis_systemd_service: redis@.service
+redis_user: redis
+redis_group: redis
