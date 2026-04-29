@@ -1,0 +1,19 @@
+[Unit]
+Description=Redis persistent key-value database
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/redis-server /etc/redis/%i.conf
+ExecStop=/usr/local/bin/redis-cli -p %i {% if redis_password is defined and redis_password %}-a {{ redis_password }} {% endif %}shutdown
+User=redis
+Group=redis
+RuntimeDirectory=redis
+RuntimeDirectoryMode=0755
+Type=simple
+PIDFile=/var/run/redis/%i.pid
+TimeoutStopSec=0
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

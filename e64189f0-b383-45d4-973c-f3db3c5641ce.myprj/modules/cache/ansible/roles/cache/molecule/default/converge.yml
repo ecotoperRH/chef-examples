@@ -1,0 +1,114 @@
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+  - name: Create directory structure for tests
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/var/log/redis
+    - /tmp/molecule_test/var/lib/redis
+    - /tmp/molecule_test/etc/redis
+    - /tmp/molecule_test/etc/systemd/system
+    - '{{ ''/tmp/molecule_test/etc'' if ansible_os_family == ''Debian'' else ''/tmp/molecule_test/etc/sysconfig'' }}'
+    - /tmp/molecule_test/var/run/memcached
+  - name: Create memcached configuration file
+    ansible.builtin.copy:
+      content: '# Memcached configuration file
+
+        -m 64
+
+        -p 11211
+
+        -l 0.0.0.0
+
+        -c 1024
+
+        -u {{ ''memcache'' if ansible_os_family == ''Debian'' else ''memcached'' }}
+
+        '
+      dest: '{{ ''/tmp/molecule_test/etc/memcached.conf'' if ansible_os_family == ''Debian'' else ''/tmp/molecule_test/etc/sysconfig/memcached'' }}'
+      mode: '0644'
+  - name: Create Redis configuration file
+    ansible.builtin.copy:
+      content: '# Redis configuration file for 6379
+
+        port 6379
+
+        bind 127.0.0.1
+
+        requirepass redis_secure_password_123
+
+        maxmemory 64mb
+
+        maxmemory-policy volatile-lru
+
+        databases 16
+
+        dir /var/lib/redis
+
+        logfile /var/log/redis/redis_6379.log
+
+        appendonly no
+
+        '
+      dest: /tmp/molecule_test/etc/redis/6379.conf
+      mode: '0644'
+  - name: Create Redis systemd service file
+    ansible.builtin.copy:
+      content: '[Unit]
+
+        Description=Redis persistent key-value database
+
+        After=network.target
+
+
+        [Service]
+
+        ExecStart=/usr/local/bin/redis-server /etc/redis/6379.conf
+
+        ExecStop=/usr/local/bin/redis-cli -h 127.0.0.1 -p 6379 -a redis_secure_password_123 shutdown
+
+        User=redis
+
+        Group=redis
+
+        RuntimeDirectory=redis
+
+        RuntimeDirectoryMode=0755
+
+
+        [Install]
+
+        WantedBy=multi-user.target
+
+        '
+      dest: /tmp/molecule_test/etc/systemd/system/redis@6379.service
+      mode: '0644'
+    when: ansible_service_mgr == 'systemd'
+  - name: Create Redis init script
+    ansible.builtin.copy:
+      content: "#!/bin/sh\n# Redis init script\n# chkconfig: 2345 80 20\n# description: Redis daemon\n\nREDISPORT=6379\nEXEC=/usr/local/bin/redis-server\nCLIEXEC=/usr/local/bin/redis-cli\nPIDFILE=/var/run/redis_${REDISPORT}.pid\nCONF=\"/etc/redis/${REDISPORT}.conf\"\nREDISPASS=\"redis_secure_password_123\"\n\ncase
+        \"$1\" in\n    start)\n        $EXEC $CONF\n        ;;\n    stop)\n        $CLIEXEC -h 127.0.0.1 -p $REDISPORT -a $REDISPASS shutdown\n        ;;\n    *)\n
+        \       echo \"Usage: /etc/init.d/redis{start|stop}\"\n        exit 1\n        ;;\nesac\nexit 0\n"
+      dest: /tmp/molecule_test/etc/init.d/redis6379
+      mode: '0755'
+    when: ansible_service_mgr != 'systemd'
+  - name: Create Redis log file
+    ansible.builtin.copy:
+      content: '# Redis server log '
+      dest: /tmp/molecule_test/var/log/redis/redis_6379.log
+      mode: '0644'
+  - name: Ensure unwanted configuration lines are not in Redis config
+    ansible.builtin.lineinfile:
+      path: /tmp/molecule_test/etc/redis/6379.conf
+      regexp: '{{ item }}'
+      state: absent
+    loop:
+    - ^replica-serve-stale-data.*$
+    - ^replica-read-only.*$
+    - ^repl-ping-replica-period.*$
+    - ^client-output-buffer-limit.*$
+    - ^replica-priority.*$

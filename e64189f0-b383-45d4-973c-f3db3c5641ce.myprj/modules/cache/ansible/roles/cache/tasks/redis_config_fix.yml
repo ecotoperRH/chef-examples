@@ -1,0 +1,13 @@
+---
+- name: Remove unwanted configuration lines from Redis config
+  ansible.builtin.lineinfile:
+    path: /etc/redis/6379.conf
+    regexp: "{{ item }}"
+    state: absent
+  loop:
+    - ^replica-serve-stale-data.*$
+    - ^replica-read-only.*$
+    - ^repl-ping-replica-period.*$
+    - ^client-output-buffer-limit.*$
+    - ^replica-priority.*$
+  notify: Restart redis

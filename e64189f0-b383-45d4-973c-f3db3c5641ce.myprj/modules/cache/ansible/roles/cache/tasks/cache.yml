@@ -1,0 +1,43 @@
+---
+- name: Include memcached tasks
+  ansible.builtin.include_tasks: memcached.yml
+- name: Ensure redis group exists
+  ansible.builtin.group:
+    name: redis
+    state: present
+- name: Ensure redis user exists
+  ansible.builtin.user:
+    name: redis
+    group: redis
+    system: true
+    shell: /sbin/nologin
+    home: /var/lib/redis
+    state: present
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    owner: redis
+    group: redis
+    mode: "0755"
+    state: directory
+    recurse: true
+- name: Create Redis data directory
+  ansible.builtin.file:
+    path: /var/lib/redis
+    owner: redis
+    group: redis
+    mode: "0755"
+    state: directory
+    recurse: true
+- name: Configure Redis with authentication
+  ansible.builtin.include_role:
+    name: eloy.redis.redis
+  vars:
+    redis_port: 6379
+    redis_requirepass: "{{ redis_password }}"
+    redis_maxmemory: 64mb
+    redis_databases: 16
+    redis_dir: /var/lib/redis
+    redis_logfile: /var/log/redis/redis_6379.log
+- name: Include Redis configuration fix tasks
+  ansible.builtin.include_tasks: redis_config_fix.yml
