@@ -1,0 +1,20 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Manages Nginx web server with multi-site virtual host management, per-site SSL/TLS using self-signed certificates, HTTP-to-HTTPS redirects, security header injection, gzip compression, and a full security hardening layer covering UFW firewall rules, fail2ban intrusion prevention, SSH daemon hardening, and kernel-level sysctl network security tuning.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Installs and configures both Memcached and Redis caching services with password authentication enabled, including a post-install ruby_block workaround that strips deprecated Redis configuration directives to ensure compatibility with newer Redis versions.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Deploys a full-stack Python FastAPI web application by cloning the app from GitHub, creating a Python virtual environment, installing pip dependencies, provisioning a PostgreSQL database and user, writing a .env configuration file, and managing a systemd service unit running on port 8000.",
+    "technology": "Chef"
+  }
+]
