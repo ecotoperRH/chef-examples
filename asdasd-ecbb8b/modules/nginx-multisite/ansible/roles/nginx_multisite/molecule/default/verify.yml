@@ -1,0 +1,541 @@
+---
+# verify.yml — asserts that every file/directory/symlink produced by
+# converge.yml exists with the correct type, permissions, and content.
+# All paths are under /tmp/molecule_test/ — no root/sudo required.
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    # ==================================================================
+    # SECTION 1 — Directory structure
+    # ==================================================================
+    - name: "VERIFY | Directory exists: /tmp/molecule_test/etc/nginx"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx
+      register: _dir_nginx
+    - name: "ASSERT | /tmp/molecule_test/etc/nginx is a directory"
+      ansible.builtin.assert:
+        that: _dir_nginx.stat.isdir
+        fail_msg: "/tmp/molecule_test/etc/nginx is missing or not a directory"
+
+    - name: "VERIFY | Directory exists: /tmp/molecule_test/etc/nginx/conf.d"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/conf.d
+      register: _dir_confd
+    - name: "ASSERT | /tmp/molecule_test/etc/nginx/conf.d is a directory"
+      ansible.builtin.assert:
+        that: _dir_confd.stat.isdir
+        fail_msg: "/tmp/molecule_test/etc/nginx/conf.d is missing or not a directory"
+
+    - name: "VERIFY | Directory exists: /tmp/molecule_test/etc/nginx/sites-available"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/sites-available
+      register: _dir_sites_avail
+    - name: "ASSERT | /tmp/molecule_test/etc/nginx/sites-available is a directory"
+      ansible.builtin.assert:
+        that: _dir_sites_avail.stat.isdir
+        fail_msg: "/tmp/molecule_test/etc/nginx/sites-available is missing or not a directory"
+
+    - name: "VERIFY | Directory exists: /tmp/molecule_test/etc/nginx/sites-enabled"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/sites-enabled
+      register: _dir_sites_enabled
+    - name: "ASSERT | /tmp/molecule_test/etc/nginx/sites-enabled is a directory"
+      ansible.builtin.assert:
+        that: _dir_sites_enabled.stat.isdir
+        fail_msg: "/tmp/molecule_test/etc/nginx/sites-enabled is missing or not a directory"
+
+    - name: "VERIFY | Directory exists: /tmp/molecule_test/etc/ssl/certs"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssl/certs
+      register: _dir_ssl_certs
+    - name: "ASSERT | /tmp/molecule_test/etc/ssl/certs is a directory"
+      ansible.builtin.assert:
+        that: _dir_ssl_certs.stat.isdir
+        fail_msg: "/tmp/molecule_test/etc/ssl/certs is missing or not a directory"
+
+    - name: "VERIFY | Directory exists: /tmp/molecule_test/etc/ssl/private"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssl/private
+      register: _dir_ssl_private
+    - name: "ASSERT | /tmp/molecule_test/etc/ssl/private is a directory"
+      ansible.builtin.assert:
+        that: _dir_ssl_private.stat.isdir
+        fail_msg: "/tmp/molecule_test/etc/ssl/private is missing or not a directory"
+
+    - name: "VERIFY | Document root exists: /tmp/molecule_test/opt/server/test"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/server/test
+      register: _docroot_test
+    - name: "ASSERT | /tmp/molecule_test/opt/server/test is a directory"
+      ansible.builtin.assert:
+        that: _docroot_test.stat.isdir
+        fail_msg: "Document root /tmp/molecule_test/opt/server/test is missing"
+
+    - name: "VERIFY | Document root exists: /tmp/molecule_test/opt/server/ci"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/server/ci
+      register: _docroot_ci
+    - name: "ASSERT | /tmp/molecule_test/opt/server/ci is a directory"
+      ansible.builtin.assert:
+        that: _docroot_ci.stat.isdir
+        fail_msg: "Document root /tmp/molecule_test/opt/server/ci is missing"
+
+    - name: "VERIFY | Document root exists: /tmp/molecule_test/opt/server/status"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/server/status
+      register: _docroot_status
+    - name: "ASSERT | /tmp/molecule_test/opt/server/status is a directory"
+      ansible.builtin.assert:
+        that: _docroot_status.stat.isdir
+        fail_msg: "Document root /tmp/molecule_test/opt/server/status is missing"
+
+    # ==================================================================
+    # SECTION 2 — nginx.conf
+    # ==================================================================
+    - name: "VERIFY | Stat nginx.conf"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/nginx.conf
+      register: _nginx_conf
+    - name: "ASSERT | nginx.conf exists and is a regular file"
+      ansible.builtin.assert:
+        that:
+          - _nginx_conf.stat.exists
+          - _nginx_conf.stat.isreg
+        fail_msg: "/tmp/molecule_test/etc/nginx/nginx.conf is missing"
+
+    - name: "VERIFY | Read nginx.conf"
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/nginx/nginx.conf
+      register: _nginx_conf_content
+    - name: "ASSERT | nginx.conf contains required directives"
+      ansible.builtin.assert:
+        that:
+          - "'worker_processes auto' in (_nginx_conf_content.content | b64decode)"
+          - "'keepalive_timeout 65' in (_nginx_conf_content.content | b64decode)"
+          - "'include /etc/nginx/conf.d/*.conf' in (_nginx_conf_content.content | b64decode)"
+          - "'include /etc/nginx/sites-enabled/*' in (_nginx_conf_content.content | b64decode)"
+          - "'gzip on' in (_nginx_conf_content.content | b64decode)"
+        fail_msg: "nginx.conf is missing one or more required directives"
+
+    # ==================================================================
+    # SECTION 3 — security.conf
+    # ==================================================================
+    - name: "VERIFY | Stat security.conf"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/conf.d/security.conf
+      register: _security_conf
+    - name: "ASSERT | security.conf exists and is a regular file"
+      ansible.builtin.assert:
+        that:
+          - _security_conf.stat.exists
+          - _security_conf.stat.isreg
+        fail_msg: "/tmp/molecule_test/etc/nginx/conf.d/security.conf is missing"
+
+    - name: "VERIFY | Read security.conf"
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/nginx/conf.d/security.conf
+      register: _security_conf_content
+    - name: "ASSERT | security.conf contains hardening directives"
+      ansible.builtin.assert:
+        that:
+          - "'server_tokens off' in (_security_conf_content.content | b64decode)"
+          - "'limit_req_zone' in (_security_conf_content.content | b64decode)"
+          - "'ssl_protocols TLSv1.2 TLSv1.3' in (_security_conf_content.content | b64decode)"
+          - "'ssl_prefer_server_ciphers on' in (_security_conf_content.content | b64decode)"
+          - "'client_body_buffer_size' in (_security_conf_content.content | b64decode)"
+        fail_msg: "security.conf is missing one or more hardening directives"
+
+    # ==================================================================
+    # SECTION 4 — sites-available configs
+    # ==================================================================
+    - name: "VERIFY | Stat sites-available config for test.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/sites-available/test.cluster.local.conf
+      register: _sa_test
+    - name: "ASSERT | test.cluster.local.conf exists in sites-available"
+      ansible.builtin.assert:
+        that:
+          - _sa_test.stat.exists
+          - _sa_test.stat.isreg
+        fail_msg: "sites-available/test.cluster.local.conf is missing"
+
+    - name: "VERIFY | Read test.cluster.local.conf"
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/nginx/sites-available/test.cluster.local.conf
+      register: _sa_test_content
+    - name: "ASSERT | test.cluster.local.conf has correct server_name and document root"
+      ansible.builtin.assert:
+        that:
+          - "'server_name test.cluster.local' in (_sa_test_content.content | b64decode)"
+          - "'root /opt/server/test' in (_sa_test_content.content | b64decode)"
+          - "'listen 80' in (_sa_test_content.content | b64decode)"
+          - "'X-Frame-Options DENY' in (_sa_test_content.content | b64decode)"
+          - "'X-Content-Type-Options nosniff' in (_sa_test_content.content | b64decode)"
+        fail_msg: "test.cluster.local.conf is missing required directives"
+
+    - name: "VERIFY | Stat sites-available config for ci.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/sites-available/ci.cluster.local.conf
+      register: _sa_ci
+    - name: "ASSERT | ci.cluster.local.conf exists in sites-available"
+      ansible.builtin.assert:
+        that:
+          - _sa_ci.stat.exists
+          - _sa_ci.stat.isreg
+        fail_msg: "sites-available/ci.cluster.local.conf is missing"
+
+    - name: "VERIFY | Read ci.cluster.local.conf"
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/nginx/sites-available/ci.cluster.local.conf
+      register: _sa_ci_content
+    - name: "ASSERT | ci.cluster.local.conf has correct server_name and document root"
+      ansible.builtin.assert:
+        that:
+          - "'server_name ci.cluster.local' in (_sa_ci_content.content | b64decode)"
+          - "'root /opt/server/ci' in (_sa_ci_content.content | b64decode)"
+          - "'listen 80' in (_sa_ci_content.content | b64decode)"
+          - "'X-Frame-Options DENY' in (_sa_ci_content.content | b64decode)"
+          - "'X-Content-Type-Options nosniff' in (_sa_ci_content.content | b64decode)"
+        fail_msg: "ci.cluster.local.conf is missing required directives"
+
+    - name: "VERIFY | Stat sites-available config for status.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/sites-available/status.cluster.local.conf
+      register: _sa_status
+    - name: "ASSERT | status.cluster.local.conf exists in sites-available"
+      ansible.builtin.assert:
+        that:
+          - _sa_status.stat.exists
+          - _sa_status.stat.isreg
+        fail_msg: "sites-available/status.cluster.local.conf is missing"
+
+    - name: "VERIFY | Read status.cluster.local.conf"
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/nginx/sites-available/status.cluster.local.conf
+      register: _sa_status_content
+    - name: "ASSERT | status.cluster.local.conf has correct server_name and document root"
+      ansible.builtin.assert:
+        that:
+          - "'server_name status.cluster.local' in (_sa_status_content.content | b64decode)"
+          - "'root /opt/server/status' in (_sa_status_content.content | b64decode)"
+          - "'listen 80' in (_sa_status_content.content | b64decode)"
+          - "'X-Frame-Options DENY' in (_sa_status_content.content | b64decode)"
+          - "'X-Content-Type-Options nosniff' in (_sa_status_content.content | b64decode)"
+        fail_msg: "status.cluster.local.conf is missing required directives"
+
+    # ==================================================================
+    # SECTION 5 — sites-enabled symlinks
+    # ==================================================================
+    - name: "VERIFY | Stat sites-enabled symlink for test.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/sites-enabled/test.cluster.local.conf
+      register: _se_test
+    - name: "ASSERT | test.cluster.local.conf symlink exists in sites-enabled"
+      ansible.builtin.assert:
+        that:
+          - _se_test.stat.exists
+          - _se_test.stat.islnk
+        fail_msg: "sites-enabled/test.cluster.local.conf symlink is missing"
+
+    - name: "ASSERT | test.cluster.local.conf symlink points to sites-available"
+      ansible.builtin.assert:
+        that:
+          - "'/sites-available/test.cluster.local.conf' in _se_test.stat.lnk_target"
+        fail_msg: >
+          sites-enabled/test.cluster.local.conf does not point to sites-available
+          (target: {{ _se_test.stat.lnk_target }})
+
+    - name: "VERIFY | Stat sites-enabled symlink for ci.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/sites-enabled/ci.cluster.local.conf
+      register: _se_ci
+    - name: "ASSERT | ci.cluster.local.conf symlink exists in sites-enabled"
+      ansible.builtin.assert:
+        that:
+          - _se_ci.stat.exists
+          - _se_ci.stat.islnk
+        fail_msg: "sites-enabled/ci.cluster.local.conf symlink is missing"
+
+    - name: "ASSERT | ci.cluster.local.conf symlink points to sites-available"
+      ansible.builtin.assert:
+        that:
+          - "'/sites-available/ci.cluster.local.conf' in _se_ci.stat.lnk_target"
+        fail_msg: >
+          sites-enabled/ci.cluster.local.conf does not point to sites-available
+          (target: {{ _se_ci.stat.lnk_target }})
+
+    - name: "VERIFY | Stat sites-enabled symlink for status.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/sites-enabled/status.cluster.local.conf
+      register: _se_status
+    - name: "ASSERT | status.cluster.local.conf symlink exists in sites-enabled"
+      ansible.builtin.assert:
+        that:
+          - _se_status.stat.exists
+          - _se_status.stat.islnk
+        fail_msg: "sites-enabled/status.cluster.local.conf symlink is missing"
+
+    - name: "ASSERT | status.cluster.local.conf symlink points to sites-available"
+      ansible.builtin.assert:
+        that:
+          - "'/sites-available/status.cluster.local.conf' in _se_status.stat.lnk_target"
+        fail_msg: >
+          sites-enabled/status.cluster.local.conf does not point to sites-available
+          (target: {{ _se_status.stat.lnk_target }})
+
+    # ==================================================================
+    # SECTION 6 — Default site is ABSENT
+    # ==================================================================
+    - name: "VERIFY | Stat default site in sites-enabled"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/sites-enabled/default
+      register: _se_default
+    - name: "ASSERT | Default nginx site has been removed from sites-enabled"
+      ansible.builtin.assert:
+        that: not _se_default.stat.exists
+        fail_msg: "Default nginx site still present in sites-enabled — it should have been removed"
+
+    # ==================================================================
+    # SECTION 7 — Document root index.html files
+    # ==================================================================
+    - name: "VERIFY | Stat test site index.html"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/server/test/index.html
+      register: _idx_test
+    - name: "ASSERT | test/index.html exists and is a regular file"
+      ansible.builtin.assert:
+        that:
+          - _idx_test.stat.exists
+          - _idx_test.stat.isreg
+        fail_msg: "/tmp/molecule_test/opt/server/test/index.html is missing"
+
+    - name: "VERIFY | Read test/index.html"
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/opt/server/test/index.html
+      register: _idx_test_content
+    - name: "ASSERT | test/index.html references test.cluster.local"
+      ansible.builtin.assert:
+        that: "'test.cluster.local' in (_idx_test_content.content | b64decode)"
+        fail_msg: "test/index.html does not reference test.cluster.local"
+
+    - name: "VERIFY | Stat ci site index.html"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/server/ci/index.html
+      register: _idx_ci
+    - name: "ASSERT | ci/index.html exists and is a regular file"
+      ansible.builtin.assert:
+        that:
+          - _idx_ci.stat.exists
+          - _idx_ci.stat.isreg
+        fail_msg: "/tmp/molecule_test/opt/server/ci/index.html is missing"
+
+    - name: "VERIFY | Read ci/index.html"
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/opt/server/ci/index.html
+      register: _idx_ci_content
+    - name: "ASSERT | ci/index.html references ci.cluster.local"
+      ansible.builtin.assert:
+        that: "'ci.cluster.local' in (_idx_ci_content.content | b64decode)"
+        fail_msg: "ci/index.html does not reference ci.cluster.local"
+
+    - name: "VERIFY | Stat status site index.html"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/server/status/index.html
+      register: _idx_status
+    - name: "ASSERT | status/index.html exists and is a regular file"
+      ansible.builtin.assert:
+        that:
+          - _idx_status.stat.exists
+          - _idx_status.stat.isreg
+        fail_msg: "/tmp/molecule_test/opt/server/status/index.html is missing"
+
+    - name: "VERIFY | Read status/index.html"
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/opt/server/status/index.html
+      register: _idx_status_content
+    - name: "ASSERT | status/index.html references status.cluster.local"
+      ansible.builtin.assert:
+        that: "'status.cluster.local' in (_idx_status_content.content | b64decode)"
+        fail_msg: "status/index.html does not reference status.cluster.local"
+
+    # ==================================================================
+    # SECTION 8 — SSL certificate and key files
+    # ==================================================================
+    - name: "VERIFY | Stat SSL certificate for test.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssl/certs/test.cluster.local.crt
+      register: _crt_test
+    - name: "ASSERT | test.cluster.local.crt exists"
+      ansible.builtin.assert:
+        that:
+          - _crt_test.stat.exists
+          - _crt_test.stat.isreg
+        fail_msg: "SSL certificate for test.cluster.local is missing"
+
+    - name: "VERIFY | Stat SSL certificate for ci.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssl/certs/ci.cluster.local.crt
+      register: _crt_ci
+    - name: "ASSERT | ci.cluster.local.crt exists"
+      ansible.builtin.assert:
+        that:
+          - _crt_ci.stat.exists
+          - _crt_ci.stat.isreg
+        fail_msg: "SSL certificate for ci.cluster.local is missing"
+
+    - name: "VERIFY | Stat SSL certificate for status.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssl/certs/status.cluster.local.crt
+      register: _crt_status
+    - name: "ASSERT | status.cluster.local.crt exists"
+      ansible.builtin.assert:
+        that:
+          - _crt_status.stat.exists
+          - _crt_status.stat.isreg
+        fail_msg: "SSL certificate for status.cluster.local is missing"
+
+    - name: "VERIFY | Stat SSL private key for test.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssl/private/test.cluster.local.key
+      register: _key_test
+    - name: "ASSERT | test.cluster.local.key exists with mode 0640"
+      ansible.builtin.assert:
+        that:
+          - _key_test.stat.exists
+          - _key_test.stat.isreg
+          - _key_test.stat.mode == '0640'
+        fail_msg: >
+          SSL private key for test.cluster.local is missing or has wrong permissions
+          (mode: {{ _key_test.stat.mode | default('N/A') }})
+
+    - name: "VERIFY | Stat SSL private key for ci.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssl/private/ci.cluster.local.key
+      register: _key_ci
+    - name: "ASSERT | ci.cluster.local.key exists with mode 0640"
+      ansible.builtin.assert:
+        that:
+          - _key_ci.stat.exists
+          - _key_ci.stat.isreg
+          - _key_ci.stat.mode == '0640'
+        fail_msg: >
+          SSL private key for ci.cluster.local is missing or has wrong permissions
+          (mode: {{ _key_ci.stat.mode | default('N/A') }})
+
+    - name: "VERIFY | Stat SSL private key for status.cluster.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssl/private/status.cluster.local.key
+      register: _key_status
+    - name: "ASSERT | status.cluster.local.key exists with mode 0640"
+      ansible.builtin.assert:
+        that:
+          - _key_status.stat.exists
+          - _key_status.stat.isreg
+          - _key_status.stat.mode == '0640'
+        fail_msg: >
+          SSL private key for status.cluster.local is missing or has wrong permissions
+          (mode: {{ _key_status.stat.mode | default('N/A') }})
+
+    # ==================================================================
+    # SECTION 9 — fail2ban jail.local
+    # ==================================================================
+    - name: "VERIFY | Stat fail2ban jail.local"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/fail2ban/jail.local
+      register: _jail_local
+    - name: "ASSERT | fail2ban jail.local exists"
+      ansible.builtin.assert:
+        that:
+          - _jail_local.stat.exists
+          - _jail_local.stat.isreg
+        fail_msg: "/tmp/molecule_test/etc/fail2ban/jail.local is missing"
+
+    - name: "VERIFY | Read fail2ban jail.local"
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/fail2ban/jail.local
+      register: _jail_local_content
+    - name: "ASSERT | jail.local contains required jail sections"
+      ansible.builtin.assert:
+        that:
+          - "'[DEFAULT]' in (_jail_local_content.content | b64decode)"
+          - "'[sshd]' in (_jail_local_content.content | b64decode)"
+          - "'[nginx-http-auth]' in (_jail_local_content.content | b64decode)"
+          - "'[nginx-limit-req]' in (_jail_local_content.content | b64decode)"
+          - "'[nginx-botsearch]' in (_jail_local_content.content | b64decode)"
+          - "'bantime = 3600' in (_jail_local_content.content | b64decode)"
+          - "'maxretry = 3' in (_jail_local_content.content | b64decode)"
+        fail_msg: "jail.local is missing one or more required sections or directives"
+
+    # ==================================================================
+    # SECTION 10 — sysctl 99-security.conf
+    # ==================================================================
+    - name: "VERIFY | Stat sysctl 99-security.conf"
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/sysctl.d/99-security.conf
+      register: _sysctl_conf
+    - name: "ASSERT | 99-security.conf exists"
+      ansible.builtin.assert:
+        that:
+          - _sysctl_conf.stat.exists
+          - _sysctl_conf.stat.isreg
+        fail_msg: "/tmp/molecule_test/etc/sysctl.d/99-security.conf is missing"
+
+    - name: "VERIFY | Read sysctl 99-security.conf"
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/sysctl.d/99-security.conf
+      register: _sysctl_conf_content
+    - name: "ASSERT | 99-security.conf contains kernel hardening parameters"
+      ansible.builtin.assert:
+        that:
+          - "'net.ipv4.conf.all.rp_filter = 1' in (_sysctl_conf_content.content | b64decode)"
+          - "'net.ipv4.conf.all.accept_redirects = 0' in (_sysctl_conf_content.content | b64decode)"
+          - "'net.ipv4.conf.all.send_redirects = 0' in (_sysctl_conf_content.content | b64decode)"
+          - "'net.ipv4.tcp_syncookies = 1' in (_sysctl_conf_content.content | b64decode)"
+          - "'net.ipv4.icmp_echo_ignore_broadcasts = 1' in (_sysctl_conf_content.content | b64decode)"
+          - "'net.ipv6.conf.all.disable_ipv6 = 1' in (_sysctl_conf_content.content | b64decode)"
+        fail_msg: "99-security.conf is missing one or more kernel hardening parameters"
+
+    # ==================================================================
+    # SECTION 11 — nginx.conf syntax check (molecule-notest tag)
+    #   Runs only when nginx binary is available on the test host.
+    #   Tagged molecule-notest so it is skipped in pure file-system runs.
+    # ==================================================================
+    - name: "VERIFY | Check nginx binary availability"
+      ansible.builtin.command:
+        cmd: which nginx
+      register: _nginx_binary
+      failed_when: false
+      changed_when: false
+      tags: molecule-notest
+
+    - name: "VERIFY | nginx -t syntax check against converged nginx.conf"
+      ansible.builtin.command:
+        cmd: nginx -t -c /tmp/molecule_test/etc/nginx/nginx.conf
+      register: _nginx_syntax
+      changed_when: false
+      failed_when: _nginx_syntax.rc != 0
+      when: _nginx_binary.rc == 0
+      tags: molecule-notest
+
+    # ==================================================================
+    # SECTION 12 — HTTP port 80 response (molecule-notest tag)
+    #   Only meaningful when nginx is actually running on the test host.
+    # ==================================================================
+    - name: "VERIFY | HTTP GET localhost:80 returns a response"
+      ansible.builtin.uri:
+        url: "http://localhost:80"
+        method: GET
+        status_code: [200, 301, 302, 404]
+        timeout: 5
+      register: _http_response
+      failed_when: false
+      tags: molecule-notest
+
+    - name: "ASSERT | HTTP response received from localhost:80"
+      ansible.builtin.assert:
+        that: _http_response.status in [200, 301, 302, 404]
+        fail_msg: "No HTTP response from localhost:80 (status: {{ _http_response.status | default('N/A') }})"
+      when: _http_response.status is defined
+      tags: molecule-notest

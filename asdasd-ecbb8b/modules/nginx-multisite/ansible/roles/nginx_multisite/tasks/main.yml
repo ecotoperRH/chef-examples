@@ -1,0 +1,17 @@
+---
+- name: Include credential validation tasks
+  ansible.builtin.include_tasks:
+    file: validate_credentials.yml
+- name: Include security hardening tasks
+  ansible.builtin.include_tasks:
+    file: security.yml
+  when: security_fail2ban_enabled | bool or security_ufw_enabled | bool
+- name: Include nginx installation and configuration tasks
+  ansible.builtin.include_tasks:
+    file: nginx.yml
+- name: Include SSL certificate tasks
+  ansible.builtin.include_tasks:
+    file: ssl.yml
+- name: Include nginx virtual host site tasks
+  ansible.builtin.include_tasks:
+    file: sites.yml

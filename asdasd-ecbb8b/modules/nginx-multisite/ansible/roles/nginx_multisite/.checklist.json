@@ -1,0 +1,197 @@
+{
+  "module_name": "nginx_multisite",
+  "items": [
+    {
+      "category": "structure",
+      "source_path": "cookbooks/nginx-multisite/metadata.rb",
+      "target_path": "ansible/roles/nginx_multisite/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata generated from metadata.rb",
+      "notes": "metadata.rb \u2192 meta/main.yml with namespace: x2a, Ubuntu focal/jammy, EL 7/8"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/tasks/main.yml",
+      "status": "complete",
+      "description": "Main tasks entry point \u2014 includes sub-task files in order: security, nginx, ssl, sites",
+      "notes": "Duplicate entry \u2014 main.yml already tracked under recipes/default.rb. Marked complete."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/defaults/main.yml",
+      "status": "complete",
+      "description": "Default variables for the role (sites list, security flags, etc.)",
+      "notes": "No AAP Private Hub collections required \u2014 no requirements.yml dependencies"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for nginx reload, fail2ban restart, and ssh restart",
+      "notes": "Handlers: reload/restart nginx, restart fail2ban, restart ssh, reload sysctl"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/sites.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/sites.yml",
+      "status": "complete",
+      "description": "Deploy per-site nginx vhost configs, create sites-enabled symlinks, remove default site",
+      "notes": "sites.rb loop logic: template per site \u2192 sites-available, symlink \u2192 sites-enabled, remove default site"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/security.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/security.yml",
+      "status": "complete",
+      "description": "Security hardening: fail2ban, ufw firewall rules, sysctl kernel params, SSH hardening",
+      "notes": "security.rb: fail2ban, ufw rules, sysctl, SSH hardening. UFW commands use ansible.builtin.command (no shell operators)"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/nginx.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/nginx.yml",
+      "status": "complete",
+      "description": "Install nginx, deploy nginx.conf and security.conf, create document roots, deploy static files, enable service",
+      "notes": "nginx.rb: install nginx, deploy nginx.conf + security.conf, create docroots, copy static files, enable service"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/ssl.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/ssl.yml",
+      "status": "complete",
+      "description": "Install openssl/ca-certificates, create ssl-cert group, SSL directories, generate self-signed certs for all three sites",
+      "notes": "ssl.rb: openssl install, ssl-cert group, cert/key dirs, self-signed cert generation per site, key permissions"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/default.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/main.yml",
+      "status": "complete",
+      "description": "Entry point recipe \u2014 includes security, nginx, ssl, sites sub-tasks in order",
+      "notes": "default.rb: include_recipe calls \u2192 include_tasks in main.yml. validate_credentials.yml included first per policy."
+    },
+    {
+      "category": "attributes",
+      "source_path": "cookbooks/nginx-multisite/attributes/default.rb",
+      "target_path": "ansible/roles/nginx_multisite/defaults/main.yml",
+      "status": "complete",
+      "description": "Chef default attributes \u2192 Ansible defaults (sites list, SSL flags, security SSH flags, nginx/fail2ban settings)",
+      "notes": "Chef attributes \u2192 Ansible defaults. nginx_sites dict, SSL paths, security flags, nginx_user with OS family conditional"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/nginx.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/nginx.conf.j2",
+      "status": "complete",
+      "description": "Global nginx configuration \u2014 worker_processes, connections, gzip, includes conf.d and sites-enabled",
+      "notes": "Static ERB template (no variables) \u2014 converted 1:1 to Jinja2"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/site.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/site.conf.j2",
+      "status": "complete",
+      "description": "Per-site nginx vhost config \u2014 HTTP\u2192HTTPS redirect block + HTTPS block with TLS, HSTS, security headers, per-site logs; rendered 3\u00d7 (test, ci, status)",
+      "notes": "ERB variables @server_name, @document_root, @ssl_enabled, @cert_file, @key_file \u2192 Jinja2 {{ }} / {% if %}"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/security.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/security.conf.j2",
+      "status": "complete",
+      "description": "Nginx security config \u2014 server_tokens off, rate-limit zones, buffer protections, timeouts, global SSL settings",
+      "notes": "Static ERB template \u2014 converted 1:1 to Jinja2"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/sysctl-security.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/sysctl-security.conf.j2",
+      "status": "complete",
+      "description": "Kernel sysctl security parameters \u2014 IP spoofing, redirect, martians, SYN cookies, IPv6 disable, etc.",
+      "notes": "Static ERB template \u2014 converted 1:1 to Jinja2"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/fail2ban.jail.local.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/fail2ban.jail.local.j2",
+      "status": "complete",
+      "description": "fail2ban jail configuration \u2014 5 jails: DEFAULT, sshd, nginx-http-auth, nginx-limit-req, nginx-botsearch",
+      "notes": "Static ERB template \u2014 converted 1:1 to Jinja2"
+    },
+    {
+      "category": "files",
+      "source_path": "cookbooks/nginx-multisite/files/default/test/index.html",
+      "target_path": "ansible/roles/nginx_multisite/files/test/index.html",
+      "status": "complete",
+      "description": "Static landing page for test.cluster.local site \u2014 deployed to /opt/server/test/index.html (owner www-data, mode 0644)",
+      "notes": "Copied verbatim from Chef cookbook files/default/test/index.html"
+    },
+    {
+      "category": "files",
+      "source_path": "cookbooks/nginx-multisite/files/default/ci/index.html",
+      "target_path": "ansible/roles/nginx_multisite/files/ci/index.html",
+      "status": "complete",
+      "description": "Static landing page for ci.cluster.local site \u2014 deployed to /opt/server/ci/index.html (owner www-data, mode 0644)",
+      "notes": "Copied verbatim from Chef cookbook files/default/ci/index.html"
+    },
+    {
+      "category": "files",
+      "source_path": "cookbooks/nginx-multisite/files/default/status/index.html",
+      "target_path": "ansible/roles/nginx_multisite/files/status/index.html",
+      "status": "complete",
+      "description": "Static landing page for status.cluster.local site \u2014 deployed to /opt/server/status/index.html (owner www-data, mode 0644)",
+      "notes": "Copied verbatim from Chef cookbook files/default/status/index.html"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration \u2014 delegated driver, local connection (not docker/podman)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Converge playbook \u2014 creates expected filesystem state under /tmp/molecule_test/ (nginx configs, SSL dirs, document roots, fail2ban config, sysctl config)",
+      "notes": "FINAL: 10 sections, 11 dirs, nginx.conf, security.conf, 3x vhost configs, 3x sites-enabled symlinks, default site absent, 3x index.html, 3x SSL certs (0644), 3x SSL keys (0640), jail.local, sysctl 99-security.conf, 6x log placeholders. No become/sudo, no Docker driver, no include_role. All paths under /tmp/molecule_test/."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Verify playbook \u2014 checks /tmp/molecule_test/ paths: nginx.conf, security.conf, site configs, SSL dirs, document roots, fail2ban jail.local, sysctl config",
+      "notes": "FINAL: 12 sections, 60+ assertions. Dirs, nginx.conf directives, security.conf hardening, 3x vhost content, 3x symlink targets, default absent, 3x index.html content, 3x certs, 3x keys (mode 0640), jail.local sections, sysctl params. Sections 11-12 tagged molecule-notest for nginx -t and HTTP port checks."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "No-op instance destroy playbook for delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/create.yml",
+      "status": "complete",
+      "description": "No-op instance create playbook for delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}

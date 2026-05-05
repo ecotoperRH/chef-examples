@@ -1,0 +1,56 @@
+---
+- name: Install nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+- name: Deploy nginx main configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+    owner: root
+    group: root
+    validate: nginx -t -c %s
+  notify: Reload nginx
+- name: Deploy nginx security configuration
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Reload nginx
+- name: Create document root directories for each site
+  ansible.builtin.file:
+    path: "{{ item.value.document_root }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+  loop: "{{ nginx_sites | dict2items }}"
+- name: Copy static site files for test site
+  ansible.builtin.copy:
+    src: test/index.html
+    dest: "{{ nginx_sites['test.cluster.local'].document_root }}/index.html"
+    mode: "0644"
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+- name: Copy static site files for ci site
+  ansible.builtin.copy:
+    src: ci/index.html
+    dest: "{{ nginx_sites['ci.cluster.local'].document_root }}/index.html"
+    mode: "0644"
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+- name: Copy static site files for status site
+  ansible.builtin.copy:
+    src: status/index.html
+    dest: "{{ nginx_sites['status.cluster.local'].document_root }}/index.html"
+    mode: "0644"
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+- name: Enable and start nginx service
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started

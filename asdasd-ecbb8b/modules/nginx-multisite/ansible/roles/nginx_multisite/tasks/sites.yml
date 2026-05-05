@@ -1,0 +1,28 @@
+---
+- name: Deploy nginx virtual host configuration for each site
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item.key }}.conf
+    mode: "0644"
+    owner: root
+    group: root
+  vars:
+    server_name: "{{ item.key }}"
+    document_root: "{{ item.value.document_root }}"
+    ssl_enabled: "{{ item.value.ssl_enabled | default(false) }}"
+    cert_file: "{{ nginx_ssl_certificate_path }}/{{ item.key }}.crt"
+    key_file: "{{ nginx_ssl_private_key_path }}/{{ item.key }}.key"
+  loop: "{{ nginx_sites | dict2items }}"
+  notify: Reload nginx
+- name: Enable nginx virtual host sites
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item.key }}.conf
+    dest: /etc/nginx/sites-enabled/{{ item.key }}.conf
+    state: link
+  loop: "{{ nginx_sites | dict2items }}"
+  notify: Reload nginx
+- name: Remove default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
