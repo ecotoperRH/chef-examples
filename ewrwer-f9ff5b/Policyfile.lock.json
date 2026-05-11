@@ -1,0 +1,207 @@
+{
+  "revision_id": "6689d788b8a04d2aa139b541887464145a8d356e345f80d2b089e56442d0aa56",
+  "name": "nginx-multisite-policy",
+  "run_list": [
+    "recipe[nginx-multisite::default]",
+    "recipe[cache::default]",
+    "recipe[fastapi-tutorial::default]"
+  ],
+  "included_policy_locks": [
+
+  ],
+  "cookbook_locks": {
+    "cache": {
+      "version": "1.0.0",
+      "identifier": "8af253a1652c2d2161cc3e72a8b3048c6ebcf62f",
+      "dotted_decimal_identifier": "39109987790040109.9396204080375987.5001199810095",
+      "source": "cookbooks/cache",
+      "cache_key": null,
+      "scm_info": {
+        "scm": "git",
+        "remote": null,
+        "revision": "c7845a88d33d7664bf0fcf5aa567d33ce7a2684c",
+        "working_tree_clean": false,
+        "published": false,
+        "synchronized_remote_branches": [
+
+        ]
+      },
+      "source_options": {
+        "path": "cookbooks/cache"
+      }
+    },
+    "fastapi-tutorial": {
+      "version": "1.0.0",
+      "identifier": "1fd2adb58829736bac3130cf176fedaa91529fa3",
+      "dotted_decimal_identifier": "8957367794805107.30307149780293487.261316838334371",
+      "source": "cookbooks/fastapi-tutorial",
+      "cache_key": null,
+      "scm_info": {
+        "scm": "git",
+        "remote": null,
+        "revision": "c7845a88d33d7664bf0fcf5aa567d33ce7a2684c",
+        "working_tree_clean": false,
+        "published": false,
+        "synchronized_remote_branches": [
+
+        ]
+      },
+      "source_options": {
+        "path": "cookbooks/fastapi-tutorial"
+      }
+    },
+    "memcached": {
+      "version": "6.1.0",
+      "identifier": "7992788f1a376defb902059063f5295e37d281cb",
+      "dotted_decimal_identifier": "34219518676580205.67475937768268789.45484640207307",
+      "cache_key": "memcached-6.1.0-supermarket.chef.io",
+      "origin": "https://supermarket.chef.io:443/api/v1/cookbooks/memcached/versions/6.1.0/download",
+      "source_options": {
+        "artifactserver": "https://supermarket.chef.io:443/api/v1/cookbooks/memcached/versions/6.1.0/download",
+        "version": "6.1.0"
+      }
+    },
+    "nginx": {
+      "version": "12.3.1",
+      "identifier": "3eab9225f5a843d70aabfffa87eaa247186b1e82",
+      "dotted_decimal_identifier": "17640092746491971.60528853843085290.178426236051074",
+      "cache_key": "nginx-12.3.1-supermarket.chef.io",
+      "origin": "https://supermarket.chef.io:443/api/v1/cookbooks/nginx/versions/12.3.1/download",
+      "source_options": {
+        "artifactserver": "https://supermarket.chef.io:443/api/v1/cookbooks/nginx/versions/12.3.1/download",
+        "version": "12.3.1"
+      }
+    },
+    "nginx-multisite": {
+      "version": "1.0.0",
+      "identifier": "a9a3c72f574b2ab8e287b2d44cb4a45adb0e7c0d",
+      "dotted_decimal_identifier": "47749346952170282.52040468163480756.180710129171469",
+      "source": "cookbooks/nginx-multisite",
+      "cache_key": null,
+      "scm_info": {
+        "scm": "git",
+        "remote": null,
+        "revision": "c7845a88d33d7664bf0fcf5aa567d33ce7a2684c",
+        "working_tree_clean": false,
+        "published": false,
+        "synchronized_remote_branches": [
+
+        ]
+      },
+      "source_options": {
+        "path": "cookbooks/nginx-multisite"
+      }
+    },
+    "redisio": {
+      "version": "7.2.4",
+      "identifier": "cac70a2ec9102cac4f5391358c8565d244f5d4db",
+      "dotted_decimal_identifier": "57076791844081708.48500916331318405.111953774499035",
+      "cache_key": "redisio-7.2.4-supermarket.chef.io",
+      "origin": "https://supermarket.chef.io:443/api/v1/cookbooks/redisio/versions/7.2.4/download",
+      "source_options": {
+        "artifactserver": "https://supermarket.chef.io:443/api/v1/cookbooks/redisio/versions/7.2.4/download",
+        "version": "7.2.4"
+      }
+    },
+    "selinux": {
+      "version": "6.2.4",
+      "identifier": "c414582aa5688ac843992facf3b65811abf43d2f",
+      "dotted_decimal_identifier": "55191464340449418.56369320551052214.96832922598703",
+      "cache_key": "selinux-6.2.4-supermarket.chef.io",
+      "origin": "https://supermarket.chef.io:443/api/v1/cookbooks/selinux/versions/6.2.4/download",
+      "source_options": {
+        "artifactserver": "https://supermarket.chef.io:443/api/v1/cookbooks/selinux/versions/6.2.4/download",
+        "version": "6.2.4"
+      }
+    },
+    "ssl_certificate": {
+      "version": "2.1.0",
+      "identifier": "ba59c12efc92350741606e9df32682de1de1f261",
+      "dotted_decimal_identifier": "52453031920046645.2042207265485606.143890495697505",
+      "cache_key": "ssl_certificate-2.1.0-supermarket.chef.io",
+      "origin": "https://supermarket.chef.io:443/api/v1/cookbooks/ssl_certificate/versions/2.1.0/download",
+      "source_options": {
+        "artifactserver": "https://supermarket.chef.io:443/api/v1/cookbooks/ssl_certificate/versions/2.1.0/download",
+        "version": "2.1.0"
+      }
+    }
+  },
+  "default_attributes": {
+
+  },
+  "override_attributes": {
+
+  },
+  "solution_dependencies": {
+    "Policyfile": [
+      [
+        "cache",
+        ">= 0.0.0"
+      ],
+      [
+        "fastapi-tutorial",
+        ">= 0.0.0"
+      ],
+      [
+        "memcached",
+        "= 6.1.0"
+      ],
+      [
+        "nginx",
+        "= 12.3.1"
+      ],
+      [
+        "nginx-multisite",
+        ">= 0.0.0"
+      ],
+      [
+        "redisio",
+        "= 7.2.4"
+      ],
+      [
+        "selinux",
+        "= 6.2.4"
+      ],
+      [
+        "ssl_certificate",
+        "= 2.1.0"
+      ]
+    ],
+    "dependencies": {
+      "cache (1.0.0)": [
+        [
+          "memcached",
+          "~> 6.0"
+        ],
+        [
+          "redisio",
+          ">= 0.0.0"
+        ]
+      ],
+      "fastapi-tutorial (1.0.0)": [
+
+      ],
+      "memcached (6.1.0)": [
+
+      ],
+      "nginx (12.3.1)": [
+
+      ],
+      "nginx-multisite (1.0.0)": [
+
+      ],
+      "redisio (7.2.4)": [
+        [
+          "selinux",
+          ">= 0.0.0"
+        ]
+      ],
+      "selinux (6.2.4)": [
+
+      ],
+      "ssl_certificate (2.1.0)": [
+
+      ]
+    }
+  }
+}
