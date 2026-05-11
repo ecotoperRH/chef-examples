@@ -1,0 +1,20 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Configures Nginx with three SSL-enabled virtual hosts, self-signed TLS certificate generation, HTTP-to-HTTPS redirects, security hardening via UFW firewall rules, Fail2Ban intrusion prevention, kernel-level sysctl hardening, and SSH hardening. Includes a multi-recipe structure, ERB-templated configs, rate-limiting zones, and a full security header suite.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Installs and enables both Memcached and Redis (with password authentication) as a caching layer. Includes a ruby_block workaround to strip deprecated Redis configuration directives from the generated config file after the redisio cookbook writes it.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Deploys a full-stack Python web application by cloning a FastAPI repository from GitHub, creating a Python 3 virtual environment, installing pip dependencies, configuring a PostgreSQL database with a dedicated user, writing a .env file with credentials, and registering a systemd service running uvicorn on port 8000.",
+    "technology": "Chef"
+  }
+]
