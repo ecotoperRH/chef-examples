@@ -1,0 +1,35 @@
+{
+  "run_list": ["recipe[nginx-multisite]", "recipe[cache]", "recipe[fastapi-tutorial]"],
+  "nginx": {
+    "sites": {
+      "test.cluster.local": {
+        "document_root": "/var/www/test.cluster.local",
+        "ssl_enabled": true
+      },
+      "ci.cluster.local": {
+        "document_root": "/var/www/ci.cluster.local", 
+        "ssl_enabled": true
+      },
+      "status.cluster.local": {
+        "document_root": "/var/www/status.cluster.local",
+        "ssl_enabled": true
+      }
+    },
+    "ssl": {
+      "certificate_path": "/etc/ssl/certs",
+      "private_key_path": "/etc/ssl/private"
+    }
+  },
+  "security": {
+    "fail2ban": {
+      "enabled": true
+    },
+    "ufw": {
+      "enabled": true
+    },
+    "ssh": {
+      "disable_root": true,
+      "password_auth": false
+    }
+  }
+}
