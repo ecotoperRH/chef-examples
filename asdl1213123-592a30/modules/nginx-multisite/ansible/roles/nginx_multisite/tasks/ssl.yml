@@ -1,0 +1,35 @@
+---
+- name: Install SSL packages
+  ansible.builtin.package:
+    name:
+      - openssl
+      - ca-certificates
+    state: present
+- name: Ensure ssl-cert group exists
+  ansible.builtin.group:
+    name: ssl-cert
+    state: present
+- name: Create SSL certificate directory
+  ansible.builtin.file:
+    path: "{{ nginx_ssl_certificate_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+- name: Create SSL private key directory
+  ansible.builtin.file:
+    path: "{{ nginx_ssl_private_key_path }}"
+    state: directory
+    owner: root
+    group: ssl-cert
+    mode: "0710"
+- name: Generate self-signed SSL certificates for each site
+  ansible.builtin.shell:
+    cmd: "openssl req -x509 -nodes -days {{ nginx_ssl_cert_days }} -newkey rsa:2048 \\\n  -keyout {{ nginx_ssl_private_key_path }}/{{ item.key }}.key \\\n  -out {{
+      nginx_ssl_certificate_path }}/{{ item.key }}.crt \\\n  -subj \"/C={{ nginx_ssl_cert_country }}/ST={{ nginx_ssl_cert_state }}/L={{ nginx_ssl_cert_locality }}/O={{
+      nginx_ssl_cert_org }}/OU={{ nginx_ssl_cert_ou }}/CN={{ item.key }}/emailAddress={{ nginx_ssl_cert_email }}\"\nchmod 640 {{ nginx_ssl_private_key_path }}/{{
+      item.key }}.key\nchown root:ssl-cert {{ nginx_ssl_private_key_path }}/{{ item.key }}.key\n"
+    creates: "{{ nginx_ssl_certificate_path }}/{{ item.key }}.crt"
+  loop: "{{ nginx_sites | dict2items }}"
+  when: item.value.ssl_enabled | bool
+  notify: Reload nginx

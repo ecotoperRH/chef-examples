@@ -1,0 +1,13 @@
+---
+- name: Include security hardening tasks
+  ansible.builtin.include_tasks:
+    file: security.yml
+- name: Include nginx installation and configuration tasks
+  ansible.builtin.include_tasks:
+    file: nginx.yml
+- name: Include SSL certificate tasks
+  ansible.builtin.include_tasks:
+    file: ssl.yml
+- name: Include virtual host site configuration tasks
+  ansible.builtin.include_tasks:
+    file: sites.yml

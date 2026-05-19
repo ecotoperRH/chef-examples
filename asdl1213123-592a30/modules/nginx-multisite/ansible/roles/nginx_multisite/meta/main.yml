@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  role_name: nginx_multisite
+  namespace: x2a
+  author: x2a
+  description: Installs and configures nginx with multiple virtual hosts, SSL, fail2ban, and security hardening
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+  galaxy_tags:
+    - nginx
+    - web
+    - ssl
+    - security
+    - fail2ban
+dependencies: []
