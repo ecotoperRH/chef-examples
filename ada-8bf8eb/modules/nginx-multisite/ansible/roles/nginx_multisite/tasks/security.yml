@@ -1,0 +1,76 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+      - openssh-server
+    state: present
+- name: Deploy fail2ban jail configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+  when: security_fail2ban_enabled
+- name: Enable and start fail2ban service
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+- name: Deploy sysctl security configuration
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload sysctl
+- name: Apply sysctl security settings
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/99-security.conf
+  changed_when: false
+- name: Configure UFW default deny policy
+  ansible.builtin.command: ufw --force default deny
+  register: ufw_default_result
+  changed_when: "'Default incoming policy changed' in ufw_default_result.stdout"
+  when: security_ufw_enabled
+- name: Allow SSH through UFW
+  ansible.builtin.command: ufw allow ssh
+  register: ufw_ssh_result
+  changed_when: "'Rules updated' in ufw_ssh_result.stdout"
+  when: security_ufw_enabled
+- name: Allow HTTP through UFW
+  ansible.builtin.command: ufw allow http
+  register: ufw_http_result
+  changed_when: "'Rules updated' in ufw_http_result.stdout"
+  when: security_ufw_enabled
+- name: Allow HTTPS through UFW
+  ansible.builtin.command: ufw allow https
+  register: ufw_https_result
+  changed_when: "'Rules updated' in ufw_https_result.stdout"
+  when: security_ufw_enabled
+- name: Enable UFW
+  ansible.builtin.command: ufw --force enable
+  register: ufw_enable_result
+  changed_when: "'Firewall is active and enabled' in ufw_enable_result.stdout"
+  when: security_ufw_enabled
+- name: Disable SSH root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    state: present
+    backup: true
+  notify: Restart ssh
+  when: security_ssh_disable_root
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    state: present
+    backup: true
+  notify: Restart ssh
+  when: not security_ssh_password_auth

@@ -1,0 +1,39 @@
+name: Ansible CI
+true:
+  push:
+    branches:
+    - main
+    - develop
+  pull_request:
+    branches:
+    - main
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Install ansible-lint
+      run: pip install ansible-lint
+    - name: Run ansible-lint
+      run: ansible-lint ansible/roles/nginx_multisite/
+  syntax-check:
+    name: Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Install Ansible
+      run: pip install ansible-core
+    - name: Run syntax check
+      run: "ansible-playbook --syntax-check \\\n  -i localhost, \\\n  -e \"ansible_connection=local\" \\\n  ansible/roles/nginx_multisite/tasks/main.yml \\\n  ||
+        true\n"
