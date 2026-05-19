@@ -1,0 +1,71 @@
+{
+  "phase": "analyze",
+  "started_at": "2026-05-19T14:14:46.865792",
+  "ended_at": "2026-05-19T14:29:37.242432",
+  "duration_seconds": 890.37664,
+  "agents": {
+    "Module Selector": {
+      "name": "Module Selector",
+      "started_at": "2026-05-19T14:14:46.869784",
+      "ended_at": "2026-05-19T14:15:00.308557",
+      "duration_seconds": 13.438773,
+      "input_tokens": 6648,
+      "output_tokens": 70,
+      "metrics": {
+        "technology": "Chef",
+        "path": "cookbooks/cache"
+      },
+      "tool_calls": {}
+    },
+    "choose_subagent": {
+      "name": "choose_subagent",
+      "started_at": "2026-05-19T14:15:00.309120",
+      "ended_at": "2026-05-19T14:29:37.241737",
+      "duration_seconds": 876.932617,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "metrics": {
+        "subagent": "ChefSubagent"
+      },
+      "tool_calls": {}
+    },
+    "Chef Report Writer": {
+      "name": "Chef Report Writer",
+      "started_at": "2026-05-19T14:19:08.365386",
+      "ended_at": "2026-05-19T14:27:07.329618",
+      "duration_seconds": 478.964232,
+      "input_tokens": 508897,
+      "output_tokens": 12152,
+      "metrics": {},
+      "tool_calls": {
+        "list_directory": 23,
+        "read_file": 27
+      }
+    },
+    "Chef Analysis Validator": {
+      "name": "Chef Analysis Validator",
+      "started_at": "2026-05-19T14:27:07.330343",
+      "ended_at": "2026-05-19T14:27:48.792846",
+      "duration_seconds": 41.462503,
+      "input_tokens": 10220,
+      "output_tokens": 1825,
+      "metrics": {},
+      "tool_calls": {}
+    },
+    "Chef Analysis Cleanup": {
+      "name": "Chef Analysis Cleanup",
+      "started_at": "2026-05-19T14:27:48.793648",
+      "ended_at": "2026-05-19T14:29:37.241111",
+      "duration_seconds": 108.447463,
+      "input_tokens": 10990,
+      "output_tokens": 8192,
+      "metrics": {},
+      "tool_calls": {}
+    }
+  },
+  "total_tool_calls": {
+    "list_directory": 23,
+    "read_file": 27
+  },
+  "summary": "Migration plan written to migration-plan-cache.md"
+}
