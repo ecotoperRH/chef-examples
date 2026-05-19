@@ -1,0 +1,71 @@
+{
+  "phase": "analyze",
+  "started_at": "2026-05-19T14:14:47.695993",
+  "ended_at": "2026-05-19T14:20:46.035626",
+  "duration_seconds": 358.339633,
+  "agents": {
+    "Module Selector": {
+      "name": "Module Selector",
+      "started_at": "2026-05-19T14:14:47.701900",
+      "ended_at": "2026-05-19T14:14:55.769331",
+      "duration_seconds": 8.067431,
+      "input_tokens": 6651,
+      "output_tokens": 76,
+      "metrics": {
+        "technology": "Chef",
+        "path": "cookbooks/nginx-multisite"
+      },
+      "tool_calls": {}
+    },
+    "choose_subagent": {
+      "name": "choose_subagent",
+      "started_at": "2026-05-19T14:14:55.769848",
+      "ended_at": "2026-05-19T14:20:46.034498",
+      "duration_seconds": 350.26465,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "metrics": {
+        "subagent": "ChefSubagent"
+      },
+      "tool_calls": {}
+    },
+    "Chef Report Writer": {
+      "name": "Chef Report Writer",
+      "started_at": "2026-05-19T14:16:00.671060",
+      "ended_at": "2026-05-19T14:18:49.690844",
+      "duration_seconds": 169.019784,
+      "input_tokens": 169857,
+      "output_tokens": 9453,
+      "metrics": {},
+      "tool_calls": {
+        "read_file": 15,
+        "list_directory": 6
+      }
+    },
+    "Chef Analysis Validator": {
+      "name": "Chef Analysis Validator",
+      "started_at": "2026-05-19T14:18:49.691687",
+      "ended_at": "2026-05-19T14:19:09.181837",
+      "duration_seconds": 19.49015,
+      "input_tokens": 10992,
+      "output_tokens": 614,
+      "metrics": {},
+      "tool_calls": {}
+    },
+    "Chef Analysis Cleanup": {
+      "name": "Chef Analysis Cleanup",
+      "started_at": "2026-05-19T14:19:09.183867",
+      "ended_at": "2026-05-19T14:20:46.033529",
+      "duration_seconds": 96.849662,
+      "input_tokens": 9471,
+      "output_tokens": 8192,
+      "metrics": {},
+      "tool_calls": {}
+    }
+  },
+  "total_tool_calls": {
+    "read_file": 15,
+    "list_directory": 6
+  },
+  "summary": "Migration plan written to migration-plan-nginx-multisite.md"
+}
