@@ -1,0 +1,74 @@
+---
+- name: Install system packages (Debian/Ubuntu)
+  ansible.builtin.package:
+    name: "{{ fastapi_packages_debian }}"
+    state: present
+  when: ansible_os_family == "Debian"
+- name: Install system packages (RedHat/CentOS)
+  ansible.builtin.package:
+    name: "{{ fastapi_packages_redhat }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+- name: Create application directory
+  ansible.builtin.file:
+    path: "{{ fastapi_app_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+- name: Clone FastAPI tutorial repository
+  ansible.builtin.git:
+    repo: "{{ fastapi_repo_url }}"
+    dest: "{{ fastapi_app_dir }}"
+    version: "{{ fastapi_repo_branch }}"
+    force: true
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ fastapi_venv_dir }}
+    creates: "{{ fastapi_venv_dir }}"
+- name: Install Python dependencies from requirements.txt
+  ansible.builtin.command:
+    cmd: "{{ fastapi_venv_dir }}/bin/pip install -r {{ fastapi_app_dir }}/requirements.txt"
+  args:
+    chdir: "{{ fastapi_app_dir }}"
+    creates: "{{ fastapi_venv_dir }}/bin/uvicorn"
+- name: Enable and start PostgreSQL service
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+- name: Provision PostgreSQL user and database
+  ansible.builtin.shell:
+    cmd: 'sudo -u postgres psql -c "CREATE USER {{ db_user }} WITH PASSWORD ''{{ db_password }}'';" || true
+
+      sudo -u postgres psql -c "CREATE DATABASE {{ db_name }} OWNER {{ db_user }};" || true
+
+      sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_user }};" || true
+
+      '
+  changed_when: false
+- name: Deploy .env configuration file
+  ansible.builtin.template:
+    src: fastapi-tutorial.env.j2
+    dest: "{{ fastapi_app_dir }}/.env"
+    owner: root
+    group: root
+    mode: "0640"
+- name: Deploy systemd unit file
+  ansible.builtin.template:
+    src: fastapi-tutorial.service.j2
+    dest: /etc/systemd/system/fastapi-tutorial.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd daemon
+    - Restart fastapi-tutorial
+- name: Reload systemd daemon before enabling service
+  ansible.builtin.systemd:
+    daemon_reload: true
+- name: Enable and start fastapi-tutorial service
+  ansible.builtin.service:
+    name: fastapi-tutorial
+    state: started
+    enabled: true
