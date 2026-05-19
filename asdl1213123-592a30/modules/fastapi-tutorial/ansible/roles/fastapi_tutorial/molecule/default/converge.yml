@@ -1,0 +1,94 @@
+- name: Converge
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Create expected application directories
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/opt/fastapi-tutorial
+    - /tmp/molecule_test/opt/fastapi-tutorial/app
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin
+    - /tmp/molecule_test/etc/systemd/system
+  - name: Create requirements.txt (simulates git clone output)
+    ansible.builtin.copy:
+      content: 'fastapi>=0.95.0
+
+        uvicorn[standard]>=0.21.0
+
+        sqlalchemy>=2.0.0
+
+        psycopg2-binary>=2.9.0
+
+        asyncpg>=0.27.0
+
+        python-dotenv>=1.0.0
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/requirements.txt
+      mode: '0644'
+  - name: Create app/__init__.py (simulates git clone output)
+    ansible.builtin.copy:
+      content: ''
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/app/__init__.py
+      mode: '0644'
+  - name: Create venv python stub
+    ansible.builtin.copy:
+      content: '#!/bin/sh exec python3 "$@" '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/python
+      mode: '0755'
+  - name: Create venv pip stub
+    ansible.builtin.copy:
+      content: '#!/bin/sh exec pip3 "$@" '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/pip
+      mode: '0755'
+  - name: Create venv uvicorn stub
+    ansible.builtin.copy:
+      content: '#!/bin/sh exec uvicorn "$@" '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/uvicorn
+      mode: '0755'
+  - name: Create .env configuration file
+    ansible.builtin.copy:
+      content: 'PROJECT_NAME="FastAPI Tutorial"
+
+        API_VERSION=1.0.0
+
+        DATABASE_URL=postgresql://fastapi:fastapi_password@localhost/fastapi_db
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      mode: '0640'
+  - name: Create systemd unit file for fastapi-tutorial
+    ansible.builtin.copy:
+      content: '[Unit]
+
+        Description=FastAPI Tutorial Service
+
+        After=network.target postgresql.service
+
+
+        [Service]
+
+        Type=simple
+
+        User=root
+
+        WorkingDirectory=/opt/fastapi-tutorial
+
+        Environment="PATH=/opt/fastapi-tutorial/venv/bin"
+
+        ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+        Restart=always
+
+
+        [Install]
+
+        WantedBy=multi-user.target
+
+        '
+      dest: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      mode: '0644'

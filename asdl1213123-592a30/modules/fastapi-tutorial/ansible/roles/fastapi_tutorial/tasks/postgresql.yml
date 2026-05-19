@@ -1,0 +1,17 @@
+---
+- name: Enable and start PostgreSQL service
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+- name: Create PostgreSQL user, database, and grant privileges
+  ansible.builtin.shell:
+    cmd: 'sudo -u postgres psql -c "CREATE USER {{ fastapi_db_user }} WITH PASSWORD ''{{ fastapi_db_password }}'';" || true
+
+      sudo -u postgres psql -c "CREATE DATABASE {{ fastapi_db_name }} OWNER {{ fastapi_db_user }};" || true
+
+      sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ fastapi_db_name }} TO {{ fastapi_db_user }};" || true
+
+      '
+  no_log: true
+  changed_when: false

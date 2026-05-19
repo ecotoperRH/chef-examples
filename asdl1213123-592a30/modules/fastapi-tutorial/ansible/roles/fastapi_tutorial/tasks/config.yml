@@ -1,0 +1,20 @@
+---
+- name: Deploy .env configuration file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ fastapi_env_file }}"
+    owner: root
+    group: root
+    mode: "{{ fastapi_env_file_mode }}"
+  no_log: true
+  notify: Restart fastapi-tutorial
+- name: Deploy systemd unit file for fastapi-tutorial
+  ansible.builtin.template:
+    src: fastapi-tutorial.service.j2
+    dest: /etc/systemd/system/fastapi-tutorial.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd daemon
+    - Restart fastapi-tutorial

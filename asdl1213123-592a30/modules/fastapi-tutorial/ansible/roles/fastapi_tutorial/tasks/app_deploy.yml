@@ -1,0 +1,22 @@
+- name: Create application directory
+  ansible.builtin.file:
+    path: '{{ fastapi_app_dir }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+- name: Clone FastAPI tutorial repository
+  ansible.builtin.git:
+    repo: '{{ fastapi_app_repo }}'
+    dest: '{{ fastapi_app_dir }}'
+    version: '{{ fastapi_app_branch }}'
+  notify: Restart fastapi-tutorial
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ fastapi_app_dir }}/venv
+    creates: '{{ fastapi_app_dir }}/venv'
+- name: Install Python dependencies
+  ansible.builtin.pip:
+    requirements: '{{ fastapi_app_dir }}/requirements.txt'
+    virtualenv: '{{ fastapi_app_dir }}/venv'
+    virtualenv_python: python3

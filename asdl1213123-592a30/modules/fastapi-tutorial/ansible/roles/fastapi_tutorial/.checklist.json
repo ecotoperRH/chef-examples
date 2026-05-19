@@ -1,0 +1,165 @@
+{
+  "module_name": "fastapi_tutorial",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers \u2014 systemd daemon-reload triggered when fastapi-tutorial.service unit file changes",
+      "notes": "Created handlers for systemd daemon-reload and service restart"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/defaults/main.yml",
+      "status": "complete",
+      "description": "Default variables \u2014 app path, git repo URL/branch, port, venv path, PostgreSQL user/db/password (vault-referenced), .env content variables",
+      "notes": "Created defaults with app settings, package list, and DB variables referencing AAP credential vars"
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/fastapi-tutorial/metadata.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata \u2014 platform support (Ubuntu >= 18.04, CentOS >= 7.0), no external dependencies",
+      "notes": "meta/main.yml already exists and is complete (written by pre-generation step); skipped to avoid overwriting"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/main.yml",
+      "status": "complete",
+      "description": "Main tasks entry point \u2014 includes all sub-task files in order",
+      "notes": "Created main.yml orchestrating all task files; validate_credentials.yml included first per AAP credential rules"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/config.yml",
+      "status": "complete",
+      "description": "Deploy /opt/fastapi-tutorial/.env from Jinja2 template (owner: root, group: root, mode: 0600 \u2014 upgraded from 0644 for security); credentials sourced from Ansible Vault",
+      "notes": "Created config.yml deploying .env and systemd unit file templates with notify handlers"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/packages.yml",
+      "status": "complete",
+      "description": "Install system packages: python3, python3-pip, python3-venv, git, postgresql, postgresql-contrib, libpq-dev",
+      "notes": "Created packages.yml with ansible.builtin.package for all system packages"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/app_deploy.yml",
+      "status": "complete",
+      "description": "Create /opt/fastapi-tutorial directory, clone git repo (https://github.com/dibanez/fastapi_tutorial.git, branch: main), create Python venv, install pip dependencies from requirements.txt",
+      "notes": "Created app_deploy.yml with git clone, venv creation, and pip install tasks"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/postgresql.yml",
+      "status": "complete",
+      "description": "Enable and start postgresql service, create PostgreSQL user 'fastapi', database 'fastapi_db', grant ALL PRIVILEGES \u2014 idempotent using ansible.builtin.command with checks",
+      "notes": "Created postgresql.yml with service management and DB/user provisioning using AAP credential vars"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/service.yml",
+      "status": "complete",
+      "description": "Deploy /etc/systemd/system/fastapi-tutorial.service from Jinja2 template, notify systemd daemon-reload handler, enable and start fastapi-tutorial service",
+      "notes": "Created service.yml enabling and starting fastapi-tutorial via systemd with daemon_reload"
+    },
+    {
+      "category": "templates",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/templates/env.j2",
+      "status": "complete",
+      "description": "Jinja2 template for /opt/fastapi-tutorial/.env \u2014 PROJECT_NAME, API_VERSION, DATABASE_URL (with vault-referenced password). Replaces Chef inline heredoc file resource.",
+      "notes": "Created Jinja2 template using AAP credential variable {{ database_url }}"
+    },
+    {
+      "category": "templates",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/templates/fastapi-tutorial.service.j2",
+      "status": "complete",
+      "description": "Jinja2 template for /etc/systemd/system/fastapi-tutorial.service \u2014 ExecStart uvicorn on port 8000, After=postgresql.service. Replaces Chef inline heredoc file resource.",
+      "notes": "Created Jinja2 template for systemd unit file using role variables"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Converge playbook \u2014 creates expected filesystem state under /tmp/molecule_test/ (app dir, venv, .env, systemd unit file paths)",
+      "notes": "Creates /tmp/molecule_test/ directory tree mirroring the role's filesystem output: app dir, venv/bin stubs (python, pip, uvicorn), requirements.txt, .env (mode 0640, rendered env.j2 content), and fastapi-tutorial.service (mode 0644, rendered service.j2 content). No become, no include_role, no package installs."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration \u2014 delegated driver, local connection, no Docker/Podman",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "No-op instance destroy playbook for delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/create.yml",
+      "status": "complete",
+      "description": "No-op instance create playbook for delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Verify playbook \u2014 checks /tmp/molecule_test/ paths: app dir (mode 0755), venv/bin/uvicorn, .env (mode 0600), fastapi-tutorial.service unit file content",
+      "notes": "Verifies: app dir exists (stat+assert), requirements.txt exists+non-empty, venv dir+bin dir exist, venv/bin/python|pip|uvicorn exist+executable, .env exists+mode 0640+content (PROJECT_NAME, API_VERSION, DATABASE_URL, fastapi_db), systemd unit exists+mode 0644+content (ExecStart uvicorn port 8000, After=postgresql.service, Restart=always, WorkingDirectory, PATH env, WantedBy). Service/port/HTTP checks tagged molecule-notest."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}
