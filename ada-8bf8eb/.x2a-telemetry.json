@@ -1,0 +1,52 @@
+{
+  "phase": "init",
+  "started_at": "2026-05-19T14:09:08.882198",
+  "ended_at": "2026-05-19T14:13:23.673428",
+  "duration_seconds": 254.79123,
+  "agents": {
+    "Migration Plan Writer": {
+      "name": "Migration Plan Writer",
+      "started_at": "2026-05-19T14:09:13.194782",
+      "ended_at": "2026-05-19T14:13:05.175504",
+      "duration_seconds": 231.980722,
+      "input_tokens": 121080,
+      "output_tokens": 7402,
+      "metrics": {},
+      "tool_calls": {
+        "read_file": 16,
+        "write_file": 1
+      }
+    },
+    "Metadata Extractor": {
+      "name": "Metadata Extractor",
+      "started_at": "2026-05-19T14:13:05.176286",
+      "ended_at": "2026-05-19T14:13:18.456483",
+      "duration_seconds": 13.280197,
+      "input_tokens": 6831,
+      "output_tokens": 358,
+      "metrics": {
+        "modules_found": 3,
+        "metadata_modules": 3
+      },
+      "tool_calls": {}
+    },
+    "Rules Generator": {
+      "name": "Rules Generator",
+      "started_at": "2026-05-19T14:13:18.457267",
+      "ended_at": "2026-05-19T14:13:23.671782",
+      "duration_seconds": 5.214515,
+      "input_tokens": 8159,
+      "output_tokens": 213,
+      "metrics": {
+        "input_rules_sections": 0,
+        "export_rules_sections": 1
+      },
+      "tool_calls": {}
+    }
+  },
+  "total_tool_calls": {
+    "read_file": 16,
+    "write_file": 1
+  },
+  "summary": "Init workflow completed successfully\nMigration plan: migration-plan.md\nMetadata file: generated-project-metadata.json (3 modules)"
+}
