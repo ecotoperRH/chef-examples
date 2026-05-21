@@ -1,0 +1,20 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Nginx installation, multi-site virtual host configuration, self-signed SSL certificate generation, and OS security hardening including fail2ban, ufw, sysctl, and SSH hardening.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Memcached and Redis installation and configuration, with Redis password authentication and a post-install config-file patch to remove deprecated directives.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Python FastAPI application deployment from GitHub, Python venv setup, PostgreSQL database and user provisioning, .env file creation, and systemd service unit management.",
+    "technology": "Chef"
+  }
+]
