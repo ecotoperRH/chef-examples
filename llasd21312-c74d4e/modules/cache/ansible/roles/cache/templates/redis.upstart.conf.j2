@@ -1,0 +1,18 @@
+description "Redis Server {{ redis_port }}"
+
+start on runlevel [23]
+stop on shutdown
+
+setuid redis
+setgid redis
+
+respawn
+
+exec /usr/bin/redis-server /etc/redis/{{ redis_port }}.conf
+
+post-stop script
+    # When stopping redis, make sure it's really stopped
+    if status redis{{ redis_port }} | grep -q "start/running"; then
+        stop redis{{ redis_port }}
+    fi
+end script

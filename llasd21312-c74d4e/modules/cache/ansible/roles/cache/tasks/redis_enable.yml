@@ -1,0 +1,21 @@
+---
+- name: Enable Redis service (Upstart)
+  ansible.builtin.service:
+    name: redis{{ redis_port }}
+    state: started
+    enabled: true
+  when: ansible_service_mgr == "upstart"
+- name: Enable Redis service (Systemd)
+  ansible.builtin.systemd:
+    name: redis{{ redis_port }}
+    state: started
+    enabled: true
+    daemon_reload: true
+  when: ansible_service_mgr == "systemd"
+- name: Enable THP disable service (Systemd)
+  ansible.builtin.systemd:
+    name: disable-transparent-hugepages
+    state: started
+    enabled: true
+    daemon_reload: true
+  when: ansible_service_mgr == "systemd"

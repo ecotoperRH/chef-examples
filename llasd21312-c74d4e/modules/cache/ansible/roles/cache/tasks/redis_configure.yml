@@ -1,0 +1,58 @@
+---
+- name: Create Redis configuration file
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: /etc/redis/{{ redis_port }}.conf
+    owner: redis
+    group: redis
+    mode: "0644"
+  notify: restart redis
+- name: Create Redis init script (Upstart)
+  ansible.builtin.template:
+    src: redis.upstart.conf.j2
+    dest: /etc/init/redis{{ redis_port }}.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: ansible_service_mgr == "upstart"
+  notify: restart redis
+- name: Create Redis systemd service file
+  ansible.builtin.template:
+    src: redis.service.j2
+    dest: /etc/systemd/system/redis{{ redis_port }}.service
+    owner: root
+    group: root
+    mode: "0644"
+  when: ansible_service_mgr == "systemd"
+  notify: restart redis
+- name: Create Redis logrotate configuration
+  ansible.builtin.template:
+    src: redis-logrotate.conf.j2
+    dest: /etc/logrotate.d/redis
+    owner: root
+    group: root
+    mode: "0644"
+- name: Set Redis overcommit memory setting
+  ansible.posix.sysctl:
+    name: vm.overcommit_memory
+    value: "1"
+    state: present
+    reload: true
+- name: Disable transparent huge pages (THP) in rc.local
+  ansible.builtin.lineinfile:
+    path: /etc/rc.local
+    line: echo never > /sys/kernel/mm/transparent_hugepage/enabled
+    insertbefore: ^exit 0
+    create: true
+    mode: "0755"
+    state: present
+  when: ansible_service_mgr != "systemd"
+- name: Create THP systemd service for Redis
+  ansible.builtin.template:
+    src: disable-transparent-hugepages.service.j2
+    dest: /etc/systemd/system/disable-transparent-hugepages.service
+    owner: root
+    group: root
+    mode: "0644"
+  when: ansible_service_mgr == "systemd"
+  notify: reload systemd

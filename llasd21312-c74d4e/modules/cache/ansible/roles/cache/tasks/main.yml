@@ -1,0 +1,30 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Include memcached tasks
+  ansible.builtin.include_tasks: memcached.yml
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    owner: redis
+    group: redis
+    mode: "0755"
+    state: directory
+    recurse: true
+- name: Include Redis installation tasks
+  ansible.builtin.include_tasks: redis_install.yml
+- name: Include Redis configuration tasks
+  ansible.builtin.include_tasks: redis_configure.yml
+- name: Fix Redis configuration
+  ansible.builtin.lineinfile:
+    path: /etc/redis/{{ redis_port }}.conf
+    regexp: "{{ item }}"
+    state: absent
+  loop:
+    - ^replica-serve-stale-data.*$
+    - ^replica-read-only.*$
+    - ^repl-ping-replica-period.*$
+    - ^client-output-buffer-limit.*$
+    - ^replica-priority.*$
+- name: Include Redis enable tasks
+  ansible.builtin.include_tasks: redis_enable.yml

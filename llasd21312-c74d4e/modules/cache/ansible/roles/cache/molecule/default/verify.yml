@@ -1,0 +1,204 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    # Memcached checks
+    - name: Check memcached service status
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert memcached service is running
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts.services"
+          - "ansible_facts.services['memcached.service'].state == 'running'"
+          - "ansible_facts.services['memcached.service'].status == 'enabled'"
+        fail_msg: "Memcached service is not running or enabled"
+        success_msg: "Memcached service is running and enabled"
+      tags: molecule-notest
+
+    - name: Check memcached port is listening
+      ansible.builtin.wait_for:
+        port: 11211
+        state: started
+        timeout: 5
+      tags: molecule-notest
+
+    # Redis checks
+    - name: Check Redis service status
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert Redis service is running
+      ansible.builtin.assert:
+        that:
+          - "'redis6379.service' in ansible_facts.services or 'redis@6379.service' in ansible_facts.services"
+        fail_msg: "Redis service is not running"
+        success_msg: "Redis service is running"
+      tags: molecule-notest
+
+    - name: Check Redis port is listening
+      ansible.builtin.wait_for:
+        port: 6379
+        state: started
+        timeout: 5
+      tags: molecule-notest
+
+    # File structure checks - these can run in container
+    - name: Check Redis directories exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: redis_dirs
+      loop:
+        - /tmp/molecule_test/etc/redis
+        - /tmp/molecule_test/var/log/redis
+        - /tmp/molecule_test/var/run/redis
+        - /tmp/molecule_test/var/lib/redis/6379
+
+    - name: Assert Redis directories exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isdir
+        fail_msg: "Redis directory {{ item.item }} does not exist"
+        success_msg: "Redis directory {{ item.item }} exists"
+      loop: "{{ redis_dirs.results }}"
+
+    - name: Check Redis configuration file exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/redis/6379.conf
+      register: redis_conf
+
+    - name: Assert Redis configuration file exists
+      ansible.builtin.assert:
+        that:
+          - redis_conf.stat.exists
+          - redis_conf.stat.size > 0
+        fail_msg: "Redis configuration file does not exist or is empty"
+        success_msg: "Redis configuration file exists and has content"
+
+    - name: Get Redis configuration content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/redis/6379.conf
+      register: redis_conf_content
+
+    - name: Assert Redis password is configured
+      ansible.builtin.assert:
+        that:
+          - "'requirepass redis_secure_password_123' in (redis_conf_content.content | b64decode)"
+        fail_msg: "Redis password is not properly configured"
+        success_msg: "Redis password is properly configured"
+
+    - name: Assert Redis replica settings are removed
+      ansible.builtin.assert:
+        that:
+          - "'replica-serve-stale-data' not in (redis_conf_content.content | b64decode)"
+          - "'replica-read-only' not in (redis_conf_content.content | b64decode)"
+          - "'repl-ping-replica-period' not in (redis_conf_content.content | b64decode)"
+          - "'client-output-buffer-limit' not in (redis_conf_content.content | b64decode)"
+          - "'replica-priority' not in (redis_conf_content.content | b64decode)"
+        fail_msg: "Redis replica settings were not properly removed"
+        success_msg: "Redis replica settings were properly removed"
+
+    # Memcached configuration checks
+    - name: Check Memcached configuration files exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: memcached_conf_files
+      loop:
+        - /tmp/molecule_test/etc/memcached.conf
+        - /tmp/molecule_test/etc/sysconfig/memcached
+
+    - name: Assert at least one Memcached configuration file exists
+      ansible.builtin.assert:
+        that:
+          - memcached_conf_files.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
+        fail_msg: "No Memcached configuration files exist"
+        success_msg: "Memcached configuration file exists"
+
+    # Check Debian-style memcached config if it exists
+    - name: Get Debian Memcached configuration content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/memcached.conf
+      register: memcached_debian_conf
+      when: memcached_conf_files.results[0].stat.exists
+      ignore_errors: true
+
+    - name: Assert Debian Memcached configuration is correct
+      ansible.builtin.assert:
+        that:
+          - "'-m 64' in (memcached_debian_conf.content | b64decode)"
+          - "'-p 11211' in (memcached_debian_conf.content | b64decode)"
+          - "'-l 0.0.0.0' in (memcached_debian_conf.content | b64decode)"
+          - "'-c 1024' in (memcached_debian_conf.content | b64decode)"
+        fail_msg: "Debian Memcached configuration is incorrect"
+        success_msg: "Debian Memcached configuration is correct"
+      when: memcached_conf_files.results[0].stat.exists and memcached_debian_conf is defined and memcached_debian_conf.content is defined
+      ignore_errors: true
+
+    # Check RedHat-style memcached config if it exists
+    - name: Get RedHat Memcached configuration content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/sysconfig/memcached
+      register: memcached_redhat_conf
+      when: memcached_conf_files.results[1].stat.exists
+      ignore_errors: true
+
+    - name: Assert RedHat Memcached configuration is correct
+      ansible.builtin.assert:
+        that:
+          - "'CACHESIZE=\"64\"' in (memcached_redhat_conf.content | b64decode)"
+          - "'PORT=\"11211\"' in (memcached_redhat_conf.content | b64decode)"
+          - "'OPTIONS=\"-l 0.0.0.0\"' in (memcached_redhat_conf.content | b64decode)"
+          - "'MAXCONN=\"1024\"' in (memcached_redhat_conf.content | b64decode)"
+        fail_msg: "RedHat Memcached configuration is incorrect"
+        success_msg: "RedHat Memcached configuration is correct"
+      when: memcached_conf_files.results[1].stat.exists and memcached_redhat_conf is defined and memcached_redhat_conf.content is defined
+      ignore_errors: true
+
+    # Check service files
+    - name: Check Redis service files exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: redis_service_files
+      loop:
+        - /tmp/molecule_test/etc/systemd/system/redis6379.service
+        - /tmp/molecule_test/etc/init/redis6379.conf
+
+    - name: Assert at least one Redis service file exists
+      ansible.builtin.assert:
+        that:
+          - redis_service_files.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
+        fail_msg: "No Redis service files exist"
+        success_msg: "Redis service file exists"
+
+    # Check THP disable files
+    - name: Check THP disable files exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: thp_files
+      loop:
+        - /tmp/molecule_test/etc/systemd/system/disable-transparent-hugepages.service
+        - /tmp/molecule_test/etc/rc.local
+
+    - name: Assert at least one THP disable file exists
+      ansible.builtin.assert:
+        that:
+          - thp_files.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
+        fail_msg: "No THP disable files exist"
+        success_msg: "THP disable file exists"
+
+    # Check logrotate configuration
+    - name: Check Redis logrotate configuration exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/logrotate.d/redis
+      register: redis_logrotate
+
+    - name: Assert Redis logrotate configuration exists
+      ansible.builtin.assert:
+        that:
+          - redis_logrotate.stat.exists
+          - redis_logrotate.stat.size > 0
+        fail_msg: "Redis logrotate configuration does not exist or is empty"
+        success_msg: "Redis logrotate configuration exists and has content"

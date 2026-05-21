@@ -1,0 +1,139 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  vars:
+    redis_password: "redis_secure_password_123"
+  tasks:
+    - name: Create expected directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /tmp/molecule_test/etc/redis
+        - /tmp/molecule_test/var/log/redis
+        - /tmp/molecule_test/var/run/redis
+        - /tmp/molecule_test/var/lib/redis/6379
+        - /tmp/molecule_test/etc/systemd/system
+        - /tmp/molecule_test/etc/init
+        - /tmp/molecule_test/etc/logrotate.d
+        - /tmp/molecule_test/etc/rc.local
+        - /tmp/molecule_test/etc/memcached.conf.d
+        - /tmp/molecule_test/etc/sysconfig
+
+    # Memcached configuration files
+    - name: Create expected memcached config file (Debian)
+      ansible.builtin.copy:
+        content: |
+          # memcached default config file
+          -m 64
+          -p 11211
+          -u memcache
+          -l 0.0.0.0
+          -c 1024
+        dest: /tmp/molecule_test/etc/memcached.conf
+        mode: "0644"
+
+    - name: Create expected memcached config file (RedHat)
+      ansible.builtin.copy:
+        content: |
+          PORT="11211"
+          USER="memcached"
+          MAXCONN="1024"
+          CACHESIZE="64"
+          OPTIONS="-l 0.0.0.0"
+        dest: /tmp/molecule_test/etc/sysconfig/memcached
+        mode: "0644"
+
+    # Redis configuration files
+    - name: Create expected Redis config file
+      ansible.builtin.copy:
+        content: |
+          # Redis configuration file
+          port 6379
+          bind 127.0.0.1
+          requirepass redis_secure_password_123
+          dir /var/lib/redis/6379
+          logfile /var/log/redis/redis_6379.log
+          pidfile /var/run/redis/redis_6379.pid
+          # Note: The following lines should be removed by the role
+          # replica-serve-stale-data yes
+          # replica-read-only yes
+          # repl-ping-replica-period 10
+          # client-output-buffer-limit normal 0 0 0
+          # replica-priority 100
+        dest: /tmp/molecule_test/etc/redis/6379.conf
+        mode: "0644"
+
+    - name: Create expected Redis systemd service file
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Redis persistent key-value database
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/bin/redis-server /etc/redis/6379.conf
+          User=redis
+          Group=redis
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /tmp/molecule_test/etc/systemd/system/redis6379.service
+        mode: "0644"
+
+    - name: Create expected Redis upstart config
+      ansible.builtin.copy:
+        content: |
+          description "Redis Server"
+          start on runlevel [23]
+          stop on runlevel [!23]
+          exec /usr/bin/redis-server /etc/redis/6379.conf
+          respawn
+        dest: /tmp/molecule_test/etc/init/redis6379.conf
+        mode: "0644"
+
+    - name: Create expected Redis logrotate config
+      ansible.builtin.copy:
+        content: |
+          /var/log/redis/*.log {
+              weekly
+              rotate 10
+              missingok
+              notifempty
+              compress
+              sharedscripts
+              postrotate
+                  /bin/kill -USR1 $(cat /var/run/redis/*.pid 2>/dev/null) 2>/dev/null || true
+              endscript
+          }
+        dest: /tmp/molecule_test/etc/logrotate.d/redis
+        mode: "0644"
+
+    - name: Create expected THP disable service file
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Disable Transparent Huge Pages (THP)
+          After=network.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/bin/sh -c "echo never > /sys/kernel/mm/transparent_hugepage/enabled"
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /tmp/molecule_test/etc/systemd/system/disable-transparent-hugepages.service
+        mode: "0644"
+
+    - name: Create expected rc.local file
+      ansible.builtin.copy:
+        content: |
+          #!/bin/sh -e
+          echo never > /sys/kernel/mm/transparent_hugepage/enabled
+          exit 0
+        dest: /tmp/molecule_test/etc/rc.local
+        mode: "0755"

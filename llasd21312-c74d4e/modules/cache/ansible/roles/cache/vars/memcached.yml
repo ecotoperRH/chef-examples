@@ -1,0 +1,5 @@
+---
+memcached_additional_options: []
+memcached_connection_timeout: 30
+memcached_verbosity: 0
+memcached_large_memory_pages: false

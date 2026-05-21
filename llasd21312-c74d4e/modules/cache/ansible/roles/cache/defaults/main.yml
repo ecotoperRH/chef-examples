@@ -1,0 +1,10 @@
+---
+redis_port: "6379"
+redis_servers:
+  - port: "6379"
+    requirepass: "{{ redis_password | default('') }}"
+memcached_memory: 64
+memcached_port: 11211
+memcached_listen_ip: 0.0.0.0
+memcached_max_connections: 1024
+memcached_user: "{{ 'memcache' if ansible_os_family == 'Debian' else 'memcached' }}"

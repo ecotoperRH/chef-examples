@@ -1,0 +1,69 @@
+---
+- name: Create Redis group
+  ansible.builtin.group:
+    name: redis
+    state: present
+    system: true
+- name: Create Redis user
+  ansible.builtin.user:
+    name: redis
+    group: redis
+    system: true
+    shell: /sbin/nologin
+    home: /var/lib/redis
+    createhome: false
+    comment: Redis Server
+- name: Update apt cache (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: true
+  when: ansible_os_family == "Debian"
+- name: Install Redis package (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: redis-server
+    state: present
+  when: ansible_os_family == "Debian"
+- name: Install Redis package (RedHat/CentOS)
+  ansible.builtin.dnf:
+    name: redis
+    state: present
+  when: ansible_os_family == "RedHat"
+- name: Create Redis directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+  loop:
+    - /var/run/redis
+    - /var/lib/redis/{{ redis_port }}
+    - /etc/redis
+- name: Set Redis user limits
+  community.general.pam_limits:
+    domain: redis
+    limit_type: "{{ item.limit_type }}"
+    limit_item: "{{ item.limit_item }}"
+    value: "{{ item.value }}"
+  loop:
+    - limit_type: soft
+      limit_item: nofile
+      value: 65536
+    - limit_type: hard
+      limit_item: nofile
+      value: 65536
+- name: Disable default Redis service (Debian/Ubuntu)
+  ansible.builtin.service:
+    name: redis-server
+    state: stopped
+    enabled: false
+  when: ansible_os_family == "Debian"
+  register: redis_debian_service
+  failed_when: redis_debian_service.failed and not 'Could not find the requested service' in redis_debian_service.msg
+- name: Disable default Redis service (RedHat/CentOS)
+  ansible.builtin.service:
+    name: redis
+    state: stopped
+    enabled: false
+  when: ansible_os_family == "RedHat"
+  register: redis_redhat_service
+  failed_when: redis_redhat_service.failed and not 'Could not find the requested service' in redis_redhat_service.msg
