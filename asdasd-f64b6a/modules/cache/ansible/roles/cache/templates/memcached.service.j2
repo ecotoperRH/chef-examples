@@ -1,0 +1,27 @@
+# {{ ansible_managed }}
+# Memcached systemd service unit
+# Managed by Ansible - do not edit manually
+
+[Unit]
+Description=memcached daemon
+After=network.target
+
+[Service]
+Type=forking
+EnvironmentFile=-/etc/default/memcached
+ExecStart=/usr/bin/memcached -m {{ memcached_memory_limit | default(64) }} \
+    -p {{ memcached_port | default(11211) }} \
+    -u {{ memcached_user | default('memcache') }} \
+    -l {{ memcached_listen | default('127.0.0.1') }} \
+    -c {{ memcached_max_connections | default(1024) }} \
+    -P /var/run/memcached/memcached.pid \
+    -d
+PIDFile=/var/run/memcached/memcached.pid
+PrivateTmp=yes
+ProtectSystem=full
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_SETGID CAP_SETUID CAP_SYS_RESOURCE
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

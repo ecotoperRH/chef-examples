@@ -1,0 +1,140 @@
+# {{ ansible_managed }}
+# Redis configuration file
+# Managed by Ansible - do not edit manually
+
+################################## NETWORK #####################################
+
+# Accept connections on the specified port
+bind 127.0.0.1
+port {{ redis_port | default(6379) }}
+
+# TCP listen() backlog
+tcp-backlog 511
+
+# Close the connection after a client is idle for N seconds (0 = disable)
+timeout 0
+
+# TCP keepalive
+tcp-keepalive 300
+
+################################# GENERAL #####################################
+
+# Run as a daemon
+daemonize no
+
+# Supervised by systemd
+supervised systemd
+
+# PID file
+pidfile /var/run/redis/redis-server.pid
+
+# Log level: debug, verbose, notice, warning
+loglevel notice
+
+# Log file location
+logfile {{ redis_logfile | default('/var/log/redis/redis-server.log') }}
+
+# Number of databases
+databases 16
+
+# Show Redis logo on startup
+always-show-logo yes
+
+################################ SNAPSHOTTING  ################################
+
+# Save the DB on disk:
+#   save <seconds> <changes>
+save 900 1
+save 300 10
+save 60 10000
+
+# Stop accepting writes if RDB snapshots fail
+stop-writes-on-bgsave-error yes
+
+# Compress string objects using LZF
+rdbcompression yes
+
+# Checksum RDB files
+rdbchecksum yes
+
+# RDB filename
+dbfilename dump.rdb
+
+# RDB/AOF directory
+dir /var/lib/redis
+
+################################## SECURITY ###################################
+
+# Require clients to issue AUTH <password> before processing commands
+requirepass {{ redis_password }}
+
+# Disable dangerous commands
+rename-command FLUSHDB ""
+rename-command FLUSHALL ""
+rename-command DEBUG ""
+
+################################### CLIENTS ####################################
+
+# Max number of connected clients
+maxclients 10000
+
+############################## MEMORY MANAGEMENT #############################
+
+# Max memory policy
+maxmemory-policy noeviction
+
+############################# LAZY FREEING ####################################
+
+lazyfree-lazy-eviction no
+lazyfree-lazy-expire no
+lazyfree-lazy-server-del no
+
+############################## APPEND ONLY FILE ###############################
+
+appendonly no
+appendfilename "appendonly.aof"
+appendfsync everysec
+no-appendfsync-on-rewrite no
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+aof-load-truncated yes
+aof-use-rdb-preamble yes
+
+################################ LUA SCRIPTING  ###############################
+
+lua-time-limit 5000
+
+################################ REDIS CLUSTER  ###############################
+
+# cluster-enabled no
+
+################################## SLOW LOG ###################################
+
+slowlog-log-slower-than 10000
+slowlog-max-len 128
+
+################################ LATENCY MONITOR ##############################
+
+latency-monitor-threshold 0
+
+############################# EVENT NOTIFICATION ##############################
+
+notify-keyspace-events ""
+
+############################### ADVANCED CONFIG ###############################
+
+hash-max-ziplist-entries 128
+hash-max-ziplist-value 64
+list-max-ziplist-size -2
+list-compress-depth 0
+set-max-intset-entries 512
+zset-max-ziplist-entries 128
+zset-max-ziplist-value 64
+hll-sparse-max-bytes 3000
+stream-node-max-bytes 4096
+stream-node-max-entries 100
+activerehashing yes
+hz 10
+dynamic-hz yes
+aof-rewrite-incremental-fsync yes
+rdb-save-incremental-fsync yes

@@ -1,0 +1,66 @@
+- name: Install Redis packages (Debian/Ubuntu)
+  ansible.builtin.package:
+    name: '{{ redis_packages_debian }}'
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+- name: Install Redis packages (RedHat/CentOS)
+  ansible.builtin.package:
+    name: '{{ redis_packages_redhat }}'
+    state: present
+  when: ansible_os_family == "RedHat"
+- name: Ensure redis group exists
+  ansible.builtin.group:
+    name: redis
+    system: true
+    state: present
+- name: Ensure redis user exists
+  ansible.builtin.user:
+    name: redis
+    group: redis
+    system: true
+    shell: /usr/sbin/nologin
+    home: /var/lib/redis
+    create_home: false
+    state: present
+- name: Create Redis config directory
+  ansible.builtin.file:
+    path: /etc/redis
+    state: directory
+    owner: root
+    group: redis
+    mode: '0750'
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: '{{ redis_log_dir }}'
+    state: directory
+    owner: '{{ redis_log_dir_owner }}'
+    group: '{{ redis_log_dir_group }}'
+    mode: '{{ redis_log_dir_mode }}'
+- name: Deploy Redis tmpfiles.d configuration
+  ansible.builtin.template:
+    src: redis-tmpfiles.conf.j2
+    dest: /etc/tmpfiles.d/redis@{{ redis_port }}.conf
+    owner: root
+    group: root
+    mode: '0644'
+- name: Deploy Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: '{{ redis_config_file }}'
+    owner: redis
+    group: redis
+    mode: '0640'
+  notify: Restart redis
+- name: Strip deprecated directives from Redis config (redisio 7.2.4 compatibility hack)
+  ansible.builtin.lineinfile:
+    path: '{{ redis_config_file }}'
+    regexp: '{{ item }}'
+    state: absent
+  loop: '{{ redis_deprecated_directives }}'
+  notify: Restart redis
+- name: Enable and start Redis service
+  ansible.builtin.service:
+    name: '{{ redis_service_name }}'
+    state: started
+    enabled: true

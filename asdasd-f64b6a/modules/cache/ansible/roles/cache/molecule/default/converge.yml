@@ -1,0 +1,166 @@
+- name: Converge
+  hosts: all
+  gather_facts: false
+  vars:
+    redis_password: molecule_test_password
+  tasks:
+  - name: Create expected directories
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/etc/systemd/system
+    - /tmp/molecule_test/etc/redis
+    - /tmp/molecule_test/etc/tmpfiles.d
+    - /tmp/molecule_test/var/lib/redis
+    - /tmp/molecule_test/var/log/redis
+    - /tmp/molecule_test/var/run/redis/6379
+  - name: Deploy memcached systemd unit file
+    ansible.builtin.copy:
+      dest: /tmp/molecule_test/etc/systemd/system/memcached.service
+      mode: '0644'
+      content: "# Managed by Ansible - do not edit manually\n[Unit]\nDescription=memcached daemon\nAfter=network.target\n\n[Service]\nType=forking\nEnvironmentFile=-/etc/default/memcached\nExecStart=/usr/bin/memcached
+        -m 64 \\\n    -p 11211 \\\n    -u memcache \\\n    -l 0.0.0.0 \\\n    -c 1024 \\\n    -P /var/run/memcached/memcached.pid \\\n    -d\nPIDFile=/var/run/memcached/memcached.pid\nPrivateTmp=yes\nProtectSystem=full\nNoNewPrivileges=yes\nCapabilityBoundingSet=CAP_SETGID
+        CAP_SETUID CAP_SYS_RESOURCE\nRestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX\n\n[Install]\nWantedBy=multi-user.target\n"
+  - name: Deploy Redis configuration file
+    ansible.builtin.copy:
+      dest: /tmp/molecule_test/etc/redis/6379.conf
+      mode: '0640'
+      content: '# Managed by Ansible - do not edit manually
+
+        bind 127.0.0.1
+
+        port 6379
+
+        tcp-backlog 511
+
+        timeout 0
+
+        tcp-keepalive 300
+
+        daemonize no
+
+        supervised systemd
+
+        pidfile /var/run/redis/redis-server.pid
+
+        loglevel notice
+
+        logfile /var/log/redis/redis-server.log
+
+        databases 16
+
+        always-show-logo yes
+
+        save 900 1
+
+        save 300 10
+
+        save 60 10000
+
+        stop-writes-on-bgsave-error yes
+
+        rdbcompression yes
+
+        rdbchecksum yes
+
+        dbfilename dump.rdb
+
+        dir /var/lib/redis
+
+        requirepass molecule_test_password
+
+        rename-command FLUSHDB ""
+
+        rename-command FLUSHALL ""
+
+        rename-command DEBUG ""
+
+        maxclients 10000
+
+        maxmemory-policy noeviction
+
+        lazyfree-lazy-eviction no
+
+        lazyfree-lazy-expire no
+
+        lazyfree-lazy-server-del no
+
+        appendonly no
+
+        appendfilename "appendonly.aof"
+
+        appendfsync everysec
+
+        no-appendfsync-on-rewrite no
+
+        auto-aof-rewrite-percentage 100
+
+        auto-aof-rewrite-min-size 64mb
+
+        aof-load-truncated yes
+
+        aof-use-rdb-preamble yes
+
+        lua-time-limit 5000
+
+        slowlog-log-slower-than 10000
+
+        slowlog-max-len 128
+
+        latency-monitor-threshold 0
+
+        notify-keyspace-events ""
+
+        hash-max-ziplist-entries 128
+
+        hash-max-ziplist-value 64
+
+        list-max-ziplist-size -2
+
+        list-compress-depth 0
+
+        set-max-intset-entries 512
+
+        zset-max-ziplist-entries 128
+
+        zset-max-ziplist-value 64
+
+        hll-sparse-max-bytes 3000
+
+        stream-node-max-bytes 4096
+
+        stream-node-max-entries 100
+
+        activerehashing yes
+
+        hz 10
+
+        dynamic-hz yes
+
+        aof-rewrite-incremental-fsync yes
+
+        rdb-save-incremental-fsync yes
+
+        '
+  - name: Ensure deprecated Redis directives are absent from config
+    ansible.builtin.lineinfile:
+      path: /tmp/molecule_test/etc/redis/6379.conf
+      regexp: '{{ item }}'
+      state: absent
+    loop:
+    - ^replica-serve-stale-data
+    - ^replica-read-only
+    - ^repl-ping-replica-period
+    - ^client-output-buffer-limit
+    - ^replica-priority
+  - name: Deploy Redis tmpfiles.d configuration
+    ansible.builtin.copy:
+      dest: /tmp/molecule_test/etc/tmpfiles.d/redis@6379.conf
+      mode: '0644'
+      content: '# Managed by Ansible - do not edit manually
+
+        d /var/run/redis/6379 0755 redis redis -
+
+        '

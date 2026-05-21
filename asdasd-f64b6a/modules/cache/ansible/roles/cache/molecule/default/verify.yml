@@ -1,0 +1,264 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    # ══════════════════════════════════════════════════════════════════════════
+    # MEMCACHED — filesystem checks
+    # ══════════════════════════════════════════════════════════════════════════
+
+    - name: Stat memcached systemd unit file
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/systemd/system/memcached.service
+      register: memcached_unit_file
+
+    - name: Assert memcached systemd unit file is present
+      ansible.builtin.assert:
+        that:
+          - memcached_unit_file.stat.exists
+          - memcached_unit_file.stat.isreg
+          - memcached_unit_file.stat.size > 0
+        fail_msg: "MISSING: /etc/systemd/system/memcached.service was not deployed"
+        success_msg: "OK: memcached.service unit file is present"
+
+    - name: Slurp memcached systemd unit file
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/systemd/system/memcached.service
+      register: memcached_unit_content
+
+    - name: Assert memcached unit file contains expected directives
+      ansible.builtin.assert:
+        that:
+          - "'[Unit]' in (memcached_unit_content.content | b64decode)"
+          - "'[Service]' in (memcached_unit_content.content | b64decode)"
+          - "'[Install]' in (memcached_unit_content.content | b64decode)"
+          - "'ExecStart' in (memcached_unit_content.content | b64decode)"
+          - "'-p 11211' in (memcached_unit_content.content | b64decode)"
+          - "'-m 64' in (memcached_unit_content.content | b64decode)"
+          - "'-c 1024' in (memcached_unit_content.content | b64decode)"
+          - "'WantedBy=multi-user.target' in (memcached_unit_content.content | b64decode)"
+        fail_msg: "memcached.service unit file is missing expected content"
+        success_msg: "OK: memcached.service unit file content is correct"
+
+    # ── Default memcached config files must be ABSENT ──────────────────────
+
+    - name: Stat /etc/memcached.conf (must be absent)
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/memcached.conf
+      register: memcached_conf_default
+
+    - name: Assert /etc/memcached.conf is absent
+      ansible.builtin.assert:
+        that:
+          - not memcached_conf_default.stat.exists
+        fail_msg: "WARNING: /etc/memcached.conf still exists — should have been removed"
+        success_msg: "OK: /etc/memcached.conf is absent"
+
+    - name: Stat /etc/sysconfig/memcached (must be absent)
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/sysconfig/memcached
+      register: memcached_sysconfig
+
+    - name: Assert /etc/sysconfig/memcached is absent
+      ansible.builtin.assert:
+        that:
+          - not memcached_sysconfig.stat.exists
+        fail_msg: "WARNING: /etc/sysconfig/memcached still exists — should have been removed"
+        success_msg: "OK: /etc/sysconfig/memcached is absent"
+
+    - name: Stat /etc/default/memcached (must be absent)
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/default/memcached
+      register: memcached_default
+
+    - name: Assert /etc/default/memcached is absent
+      ansible.builtin.assert:
+        that:
+          - not memcached_default.stat.exists
+        fail_msg: "WARNING: /etc/default/memcached still exists — should have been removed"
+        success_msg: "OK: /etc/default/memcached is absent"
+
+    # ── Memcached service checks (container-unsafe — tagged molecule-notest) ─
+
+    - name: Gather service facts for memcached
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert memcached service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts.services"
+          - "ansible_facts.services['memcached.service'].state == 'running'"
+          - "ansible_facts.services['memcached.service'].status == 'enabled'"
+        fail_msg: "memcached service is not running or not enabled"
+        success_msg: "OK: memcached service is active and enabled"
+      tags: molecule-notest
+
+    - name: Check memcached is listening on TCP 11211
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        timeout: 5
+        state: started
+      tags: molecule-notest
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # REDIS — filesystem checks
+    # ══════════════════════════════════════════════════════════════════════════
+
+    - name: Stat Redis config directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/redis
+      register: redis_config_dir
+
+    - name: Assert Redis config directory exists
+      ansible.builtin.assert:
+        that:
+          - redis_config_dir.stat.exists
+          - redis_config_dir.stat.isdir
+        fail_msg: "MISSING: /etc/redis directory was not created"
+        success_msg: "OK: /etc/redis directory exists"
+
+    - name: Stat Redis data directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/var/lib/redis
+      register: redis_data_dir
+
+    - name: Assert Redis data directory exists
+      ansible.builtin.assert:
+        that:
+          - redis_data_dir.stat.exists
+          - redis_data_dir.stat.isdir
+        fail_msg: "MISSING: /var/lib/redis directory was not created"
+        success_msg: "OK: /var/lib/redis directory exists"
+
+    - name: Stat Redis log directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/var/log/redis
+      register: redis_log_dir
+
+    - name: Assert Redis log directory exists
+      ansible.builtin.assert:
+        that:
+          - redis_log_dir.stat.exists
+          - redis_log_dir.stat.isdir
+        fail_msg: "MISSING: /var/log/redis directory was not created"
+        success_msg: "OK: /var/log/redis directory exists"
+
+    - name: Stat Redis PID directory
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/var/run/redis/6379
+      register: redis_pid_dir
+
+    - name: Assert Redis PID directory exists
+      ansible.builtin.assert:
+        that:
+          - redis_pid_dir.stat.exists
+          - redis_pid_dir.stat.isdir
+        fail_msg: "MISSING: /var/run/redis/6379 directory was not created"
+        success_msg: "OK: /var/run/redis/6379 directory exists"
+
+    # ── Redis config file ───────────────────────────────────────────────────
+
+    - name: Stat Redis config file
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/redis/6379.conf
+      register: redis_conf_file
+
+    - name: Assert Redis config file is present and non-empty
+      ansible.builtin.assert:
+        that:
+          - redis_conf_file.stat.exists
+          - redis_conf_file.stat.isreg
+          - redis_conf_file.stat.size > 0
+        fail_msg: "MISSING: /etc/redis/6379.conf was not deployed"
+        success_msg: "OK: /etc/redis/6379.conf is present"
+
+    - name: Slurp Redis config file
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/redis/6379.conf
+      register: redis_conf_content
+
+    - name: Assert Redis config contains required directives
+      ansible.builtin.assert:
+        that:
+          - "'bind 127.0.0.1' in (redis_conf_content.content | b64decode)"
+          - "'port 6379' in (redis_conf_content.content | b64decode)"
+          - "'requirepass' in (redis_conf_content.content | b64decode)"
+          - "'databases 16' in (redis_conf_content.content | b64decode)"
+          - "'save 900 1' in (redis_conf_content.content | b64decode)"
+          - "'save 300 10' in (redis_conf_content.content | b64decode)"
+          - "'save 60 10000' in (redis_conf_content.content | b64decode)"
+          - "'appendonly no' in (redis_conf_content.content | b64decode)"
+          - "'maxmemory-policy noeviction' in (redis_conf_content.content | b64decode)"
+          - "'dir /var/lib/redis' in (redis_conf_content.content | b64decode)"
+          - "'supervised systemd' in (redis_conf_content.content | b64decode)"
+        fail_msg: "Redis config file is missing one or more required directives"
+        success_msg: "OK: Redis config file contains all required directives"
+
+    - name: Assert deprecated directives are absent from Redis config (ruby_block migration check)
+      ansible.builtin.assert:
+        that:
+          - "'replica-serve-stale-data' not in (redis_conf_content.content | b64decode) or
+             not ((redis_conf_content.content | b64decode).split('\n') | select('match', '^replica-serve-stale-data') | list | length > 0)"
+          - "'replica-read-only' not in (redis_conf_content.content | b64decode) or
+             not ((redis_conf_content.content | b64decode).split('\n') | select('match', '^replica-read-only') | list | length > 0)"
+          - "'repl-ping-replica-period' not in (redis_conf_content.content | b64decode) or
+             not ((redis_conf_content.content | b64decode).split('\n') | select('match', '^repl-ping-replica-period') | list | length > 0)"
+          - "'replica-priority' not in (redis_conf_content.content | b64decode) or
+             not ((redis_conf_content.content | b64decode).split('\n') | select('match', '^replica-priority') | list | length > 0)"
+        fail_msg: "WARNING: Deprecated Redis directives found in config — ruby_block strip migration failed"
+        success_msg: "OK: No deprecated directives present in Redis config"
+
+    # ── Redis tmpfiles.d config ─────────────────────────────────────────────
+
+    - name: Stat Redis tmpfiles.d config
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/tmpfiles.d/redis@6379.conf
+      register: redis_tmpfiles_conf
+
+    - name: Assert Redis tmpfiles.d config is present
+      ansible.builtin.assert:
+        that:
+          - redis_tmpfiles_conf.stat.exists
+          - redis_tmpfiles_conf.stat.isreg
+          - redis_tmpfiles_conf.stat.size > 0
+        fail_msg: "MISSING: /etc/tmpfiles.d/redis@6379.conf was not deployed"
+        success_msg: "OK: /etc/tmpfiles.d/redis@6379.conf is present"
+
+    - name: Slurp Redis tmpfiles.d config
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/tmpfiles.d/redis@6379.conf
+      register: redis_tmpfiles_content
+
+    - name: Assert Redis tmpfiles.d config references correct path and user
+      ansible.builtin.assert:
+        that:
+          - "'/var/run/redis/6379' in (redis_tmpfiles_content.content | b64decode)"
+          - "'redis' in (redis_tmpfiles_content.content | b64decode)"
+        fail_msg: "Redis tmpfiles.d config does not contain expected path or user"
+        success_msg: "OK: Redis tmpfiles.d config content is correct"
+
+    # ── Redis service checks (container-unsafe — tagged molecule-notest) ────
+
+    - name: Assert redis@6379 service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'redis@6379.service' in ansible_facts.services or 'redis-server.service' in ansible_facts.services"
+          - >-
+            (ansible_facts.services['redis@6379.service'] is defined and
+             ansible_facts.services['redis@6379.service'].state == 'running') or
+            (ansible_facts.services['redis-server.service'] is defined and
+             ansible_facts.services['redis-server.service'].state == 'running')
+        fail_msg: "Redis service (redis@6379 or redis-server) is not running"
+        success_msg: "OK: Redis service is active and enabled"
+      tags: molecule-notest
+
+    - name: Check Redis is listening on 127.0.0.1:6379
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        timeout: 5
+        state: started
+      tags: molecule-notest

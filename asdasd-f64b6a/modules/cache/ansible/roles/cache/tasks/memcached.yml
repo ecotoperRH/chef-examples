@@ -1,0 +1,27 @@
+---
+- name: Install Memcached packages (Debian/Ubuntu)
+  ansible.builtin.package:
+    name: "{{ memcached_packages }}"
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+- name: Install Memcached packages (RedHat/CentOS)
+  ansible.builtin.package:
+    name: memcached
+    state: present
+  when: ansible_os_family == "RedHat"
+- name: Deploy Memcached systemd service unit
+  ansible.builtin.template:
+    src: memcached.service.j2
+    dest: /etc/systemd/system/memcached.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd daemon
+    - Restart memcached
+- name: Enable and start Memcached service
+  ansible.builtin.service:
+    name: "{{ memcached_service_name }}"
+    state: started
+    enabled: true

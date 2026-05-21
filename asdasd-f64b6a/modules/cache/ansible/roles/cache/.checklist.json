@@ -1,0 +1,141 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/metadata.rb",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata derived from cookbook metadata.rb",
+      "notes": "galaxy_info with platforms Ubuntu/EL, min_ansible_version 2.10"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for service restarts (memcached, redis@6379)",
+      "notes": "Restart redis, restart memcached, reload systemd daemon"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Main entry-point recipe: installs memcached and redis packages, manages users/groups/directories, deploys systemd units, enables and starts services, removes legacy config files",
+      "notes": "Orchestrates validate_credentials \u2192 memcached \u2192 redis task files"
+    },
+    {
+      "category": "attributes",
+      "source_path": "cookbooks/cache/attributes/default.rb",
+      "target_path": "ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Cache cookbook default attributes \u2192 Ansible role defaults (memcached and redis config vars, vault_redis_password)",
+      "notes": "All Chef node attributes mapped to Ansible defaults; OS-family package lists included"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/memcached/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/memcached.yml",
+      "status": "complete",
+      "description": "Memcached tasks: install package, remove legacy config files, deploy systemd unit, enable and start service",
+      "notes": "Package install (Debian/RedHat), systemd unit deploy, service enable"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/redis.yml",
+      "status": "complete",
+      "description": "Redis tasks: install package, create redis user/group, create directories (/etc/redis, /var/lib/redis, /var/log/redis, /var/run/redis/6379), deploy config and systemd unit, enable and start service",
+      "notes": "Package install, log dir, config template, lineinfile strip of deprecated directives (ruby_block migration), service enable"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/redisio/templates/redis.conf.erb",
+      "target_path": "ansible/roles/cache/templates/redis.conf.j2",
+      "status": "complete",
+      "description": "Redis configuration template \u2014 clean version without stripped directives (replica-serve-stale-data, replica-read-only, repl-ping-replica-period, client-output-buffer-limit, replica-priority); uses vault_redis_password for requirepass",
+      "notes": "Migrated all Redis config directives; redis_password injected via AAP credential type"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/memcached/templates/memcached.service.erb",
+      "target_path": "ansible/roles/cache/templates/memcached.service.j2",
+      "status": "complete",
+      "description": "Memcached custom systemd unit template \u2014 replaces OS default service; includes platform-conditional security flags and instance parameters (memory, connections, port, ulimit)",
+      "notes": "Systemd unit with hardened security options; all params templated via defaults"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Verify playbook \u2014 checks /tmp/molecule_test/ paths for memcached.service, /etc/redis/6379.conf, tmpfiles config, directory ownership/permissions, absence of legacy config files, and absence of stripped Redis directives",
+      "notes": "Translates all pre-flight checks: stat+assert for memcached.service unit, Redis 6379.conf, tmpfiles.d config, and all directories; slurp+assert for config content correctness; assert deprecated directives absent (ruby_block migration); absence checks for /etc/memcached.conf, /etc/sysconfig/memcached, /etc/default/memcached. Service/port checks tagged molecule-notest."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/create.yml",
+      "status": "complete",
+      "description": "No-op instance create for delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Converge playbook \u2014 creates expected filesystem state under /tmp/molecule_test/ (memcached.service unit, redis config, directories)",
+      "notes": "Creates /tmp/molecule_test/ directories and files mirroring role outputs: memcached.service unit, Redis 6379.conf (with deprecated directives stripped via lineinfile), tmpfiles.d config, and all required directories (etc/redis, var/lib/redis, var/log/redis, var/run/redis/6379). Stub redis_password variable provided for credential validation bypass."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration \u2014 delegated driver, local connection",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "No-op instance destroy for delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}
