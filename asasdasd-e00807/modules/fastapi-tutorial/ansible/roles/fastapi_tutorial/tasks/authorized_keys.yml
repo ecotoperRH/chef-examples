@@ -1,0 +1,14 @@
+---
+- name: Ensure authorized keys directory exists
+  ansible.builtin.file:
+    path: "{{ authorized_keys_path }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+- name: Download organization's approved keys
+  ansible.builtin.get_url:
+    url: "{{ authorized_keys_url }}"
+    dest: "{{ authorized_keys_path }}/{{ authorized_keys_file }}"
+    mode: "0644"
+    force: true

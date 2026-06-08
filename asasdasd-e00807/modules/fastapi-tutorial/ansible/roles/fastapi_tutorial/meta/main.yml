@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  role_name: fastapi_tutorial
+  namespace: x2a
+  author: Ansible Migration Team
+  description: Deploys a FastAPI Python web application with PostgreSQL database
+  license: Apache-2.0
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+  galaxy_tags:
+    - fastapi
+    - python
+    - web
+    - postgresql
+dependencies: []

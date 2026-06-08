@@ -1,0 +1,17 @@
+---
+project_name: FastAPI Tutorial
+api_version: 1.0.0
+app_path: /opt/fastapi-tutorial
+app_repo: https://github.com/dibanez/fastapi_tutorial.git
+app_branch: main
+app_host: 0.0.0.0
+app_port: 8000
+service_user: root
+system_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - git
+  - postgresql
+  - postgresql-contrib
+  - libpq-dev

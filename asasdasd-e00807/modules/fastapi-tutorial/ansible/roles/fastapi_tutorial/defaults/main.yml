@@ -1,0 +1,19 @@
+---
+username: fastapi
+password: fastapi_password
+database_name: fastapi_db
+host: localhost
+use_redis: false
+redis_password: ""
+project_name: FastAPI Tutorial
+api_version: 1.0.0
+app_host: 0.0.0.0
+app_port: 8000
+app_path: /opt/fastapi-tutorial
+app_repo: https://github.com/dibanez/fastapi_tutorial.git
+app_branch: main
+service_user: root
+service_name: fastapi-tutorial
+authorized_keys_path: /opt/allowed_keys
+authorized_keys_url: https://github.com/eloycoto.keys
+authorized_keys_file: eloycoto.keys

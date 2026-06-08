@@ -1,0 +1,14 @@
+[Unit]
+Description=FastAPI Tutorial Service
+After=network.target postgresql.service{% if use_redis | bool %} redis.service{% endif %}
+
+[Service]
+Type=simple
+User={{ service_user | default('root') }}
+WorkingDirectory={{ app_path }}
+Environment="PATH={{ app_path }}/venv/bin"
+ExecStart={{ app_path }}/venv/bin/uvicorn app.main:app --host {{ app_host | default('0.0.0.0') }} --port {{ app_port | default(8000) }}
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
