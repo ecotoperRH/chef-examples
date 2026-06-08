@@ -1,0 +1,14 @@
+---
+- name: Create allowed_keys directory
+  ansible.builtin.file:
+    path: /opt/allowed_keys
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+- name: Download organization's approved keys
+  ansible.builtin.get_url:
+    url: https://github.com/eloycoto.keys
+    dest: /opt/allowed_keys/eloycoto.keys
+    mode: "0644"
+    force: true

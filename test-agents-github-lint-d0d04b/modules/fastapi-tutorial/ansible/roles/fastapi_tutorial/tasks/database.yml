@@ -1,0 +1,30 @@
+---
+- name: Ensure PostgreSQL service is enabled and started
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+- name: Check if database user exists
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ username }}'"
+  register: user_exists
+  changed_when: false
+  no_log: true
+- name: Create database user
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "CREATE USER {{ username }} WITH PASSWORD '{{ password }}';"
+  when: user_exists.stdout != "1"
+  no_log: true
+- name: Check if database exists
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='{{ database_name }}'"
+  register: db_exists
+  changed_when: false
+- name: Create database
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "CREATE DATABASE {{ database_name }} OWNER {{ username }};"
+  when: db_exists.stdout != "1"
+- name: Grant privileges on database
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ database_name }} TO {{ username }};"
+  changed_when: false

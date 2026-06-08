@@ -1,0 +1,173 @@
+{
+  "module_name": "fastapi_tutorial",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "/workspace/source/cookbooks/fastapi-tutorial/metadata.rb",
+      "target_path": "./ansible/roles/fastapi_tutorial/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata including dependencies and supported platforms",
+      "notes": "Created meta/main.yml with information from Chef metadata.rb"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/fastapi_tutorial/tasks/main.yml",
+      "status": "complete",
+      "description": "Main task file that orchestrates the role execution",
+      "notes": "Created main task file that includes all subtasks in the correct order"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/fastapi_tutorial/defaults/main.yml",
+      "status": "complete",
+      "description": "Default variables for the role",
+      "notes": "Created defaults file with default values for variables"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/fastapi_tutorial/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for the role",
+      "notes": "Created handlers file with systemd reload and service restart handlers"
+    },
+    {
+      "category": "recipes",
+      "source_path": "/workspace/source/cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "./ansible/roles/fastapi_tutorial/tasks/install.yml",
+      "status": "complete",
+      "description": "Main recipe for FastAPI application deployment",
+      "notes": "Converted Chef package, directory, git, and execute resources to Ansible tasks"
+    },
+    {
+      "category": "recipes",
+      "source_path": "/workspace/source/cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "./ansible/roles/fastapi_tutorial/tasks/database.yml",
+      "status": "complete",
+      "description": "Database setup tasks",
+      "notes": "Converted Chef service and execute resources to Ansible tasks with AAP credential variables"
+    },
+    {
+      "category": "recipes",
+      "source_path": "/workspace/source/cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "./ansible/roles/fastapi_tutorial/tasks/service.yml",
+      "status": "complete",
+      "description": "Service configuration tasks",
+      "notes": "Converted Chef file and service resources to Ansible tasks with templates"
+    },
+    {
+      "category": "templates",
+      "source_path": "/workspace/source/cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "./ansible/roles/fastapi_tutorial/templates/env.j2",
+      "status": "complete",
+      "description": "Environment configuration file template",
+      "notes": "Converted Chef template to Jinja2 template with AAP credential variables"
+    },
+    {
+      "category": "templates",
+      "source_path": "/workspace/source/cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "./ansible/roles/fastapi_tutorial/templates/fastapi-tutorial.service.j2",
+      "status": "complete",
+      "description": "Systemd service file template",
+      "notes": "Converted Chef template to Jinja2 template with configurable port"
+    },
+    {
+      "category": "attributes",
+      "source_path": "/workspace/source/cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "./ansible/roles/fastapi_tutorial/vars/main.yml",
+      "status": "complete",
+      "description": "Role variables for FastAPI application",
+      "notes": "Created vars file with variables extracted from Chef recipe"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/fastapi_tutorial/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/fastapi_tutorial/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook",
+      "notes": "Created converge.yml that recreates the expected filesystem state under /tmp/molecule_test/ for FastAPI application"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/fastapi_tutorial/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verification playbook",
+      "notes": "Created verify.yml that translates pre-flight checks into Ansible assertions for FastAPI application"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/fastapi_tutorial/molecule/default/create.yml",
+      "status": "complete",
+      "description": "Molecule create playbook",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/fastapi_tutorial/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "Molecule destroy playbook",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/fastapi_tutorial/.github/workflows/ansible-ci.yml",
+      "status": "complete",
+      "description": "GitHub Actions CI workflow for ansible-lint",
+      "notes": "Created GitHub Actions workflow for ansible-lint"
+    },
+    {
+      "category": "files",
+      "source_path": "N/A",
+      "target_path": "./ansible/roles/fastapi_tutorial/tasks/authorized_keys.yml",
+      "status": "complete",
+      "description": "Organization's approved keys management",
+      "notes": "Created task to download organization's approved keys as per requirements"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}

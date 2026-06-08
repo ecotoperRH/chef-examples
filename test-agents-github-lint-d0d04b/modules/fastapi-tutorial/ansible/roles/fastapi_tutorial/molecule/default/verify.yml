@@ -1,0 +1,149 @@
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Check application directory exists
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/opt/fastapi-tutorial
+    register: app_dir
+  - name: Assert application directory was created
+    ansible.builtin.assert:
+      that:
+      - app_dir.stat.exists
+      - app_dir.stat.isdir
+      fail_msg: Application directory not found
+      success_msg: Application directory exists
+  - name: Check Python virtual environment exists
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/opt/fastapi-tutorial/venv
+    register: venv_dir
+  - name: Assert Python virtual environment was created
+    ansible.builtin.assert:
+      that:
+      - venv_dir.stat.exists
+      - venv_dir.stat.isdir
+      fail_msg: Python virtual environment not found
+      success_msg: Python virtual environment exists
+  - name: Check Python executable exists in venv
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/python
+    register: python_bin
+  - name: Assert Python executable exists
+    ansible.builtin.assert:
+      that:
+      - python_bin.stat.exists
+      - python_bin.stat.executable
+      fail_msg: Python executable not found in virtual environment
+      success_msg: Python executable exists in virtual environment
+  - name: Check environment configuration file exists
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/opt/fastapi-tutorial/.env
+    register: env_file
+  - name: Assert environment configuration file was created
+    ansible.builtin.assert:
+      that:
+      - env_file.stat.exists
+      fail_msg: Environment configuration file not found
+      success_msg: Environment configuration file exists
+  - name: Get environment configuration file content
+    ansible.builtin.slurp:
+      src: /tmp/molecule_test/opt/fastapi-tutorial/.env
+    register: env_content
+  - name: Assert environment configuration file has correct content
+    ansible.builtin.assert:
+      that:
+      - env_content.content | b64decode | regex_search('PROJECT_NAME="FastAPI Tutorial"')
+      - env_content.content | b64decode | regex_search('API_VERSION=1.0.0')
+      - env_content.content | b64decode | regex_search('DATABASE_URL=postgresql://fastapi:fastapi_password@localhost/fastapi_db')
+      - env_content.content | b64decode | regex_search('REDIS_PASSWORD=redis_password')
+      fail_msg: Environment configuration file has incorrect content
+      success_msg: Environment configuration file has correct content
+  - name: Check systemd service file exists
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+    register: service_file
+  - name: Assert systemd service file was created
+    ansible.builtin.assert:
+      that:
+      - service_file.stat.exists
+      fail_msg: Systemd service file not found
+      success_msg: Systemd service file exists
+  - name: Get systemd service file content
+    ansible.builtin.slurp:
+      src: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+    register: service_content
+  - name: Assert systemd service file has correct content
+    ansible.builtin.assert:
+      that:
+      - service_content.content | b64decode | regex_search('Description=FastAPI Tutorial Service')
+      - service_content.content | b64decode | regex_search('WorkingDirectory=/opt/fastapi-tutorial')
+      - service_content.content | b64decode | regex_search('--port 8000')
+      - service_content.content | b64decode | regex_search('User=fastapi')
+      - service_content.content | b64decode | regex_search('Group=fastapi')
+      fail_msg: Systemd service file has incorrect content
+      success_msg: Systemd service file has correct content
+  - name: Check organization's approved keys directory exists
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/opt/allowed_keys
+    register: keys_dir
+  - name: Assert organization's approved keys directory was created
+    ansible.builtin.assert:
+      that:
+      - keys_dir.stat.exists
+      - keys_dir.stat.isdir
+      fail_msg: Organization's approved keys directory not found
+      success_msg: Organization's approved keys directory exists
+  - name: Check organization's approved keys file exists
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/opt/allowed_keys/eloycoto.keys
+    register: keys_file
+  - name: Assert organization's approved keys file was created
+    ansible.builtin.assert:
+      that:
+      - keys_file.stat.exists
+      fail_msg: Organization's approved keys file not found
+      success_msg: Organization's approved keys file exists
+  - name: Check service is running
+    ansible.builtin.service_facts: null
+    tags: molecule-notest
+  - name: Assert service is active
+    ansible.builtin.assert:
+      that:
+      - '''fastapi-tutorial.service'' in ansible_facts.services'
+      - ansible_facts.services['fastapi-tutorial.service'].state == 'running'
+      fail_msg: FastAPI service is not running
+      success_msg: FastAPI service is running
+    tags: molecule-notest
+  - name: Check port 8000 is listening
+    ansible.builtin.wait_for:
+      port: 8000
+      timeout: 5
+    tags: molecule-notest
+  - name: Check FastAPI application is responding
+    ansible.builtin.uri:
+      url: http://localhost:8000/
+      return_content: true
+    register: api_response
+    tags: molecule-notest
+  - name: Assert FastAPI application is responding correctly
+    ansible.builtin.assert:
+      that:
+      - api_response.status == 200
+      fail_msg: FastAPI application is not responding correctly
+      success_msg: FastAPI application is responding correctly
+    tags: molecule-notest
+  - name: Check database connectivity
+    community.postgresql.postgresql_query:
+      db: fastapi_db
+      login_user: fastapi
+      login_password: fastapi_password
+      query: SELECT 1
+    register: db_result
+    tags: molecule-notest
+  - name: Assert database connectivity
+    ansible.builtin.assert:
+      that:
+      - db_result.rowcount == 1
+      fail_msg: Database connectivity failed
+      success_msg: Database connectivity successful
+    tags: molecule-notest

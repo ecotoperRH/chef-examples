@@ -1,0 +1,11 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Install required packages and setup application
+  ansible.builtin.include_tasks: install.yml
+- name: Setup PostgreSQL database
+  ansible.builtin.include_tasks: database.yml
+- name: Configure and start FastAPI service
+  ansible.builtin.include_tasks: service.yml
+- name: Setup authorized keys
+  ansible.builtin.include_tasks: authorized_keys.yml

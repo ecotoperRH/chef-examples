@@ -1,0 +1,10 @@
+---
+fastapi_app_dir: /opt/fastapi-tutorial
+fastapi_repo_url: https://github.com/dibanez/fastapi_tutorial.git
+fastapi_repo_branch: main
+fastapi_port: 8000
+username: fastapi
+password: fastapi_password
+host: localhost
+database_name: fastapi_db
+redis_password: redis_password
