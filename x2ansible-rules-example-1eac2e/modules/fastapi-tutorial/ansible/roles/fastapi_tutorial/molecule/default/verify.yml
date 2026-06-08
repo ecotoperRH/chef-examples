@@ -1,0 +1,139 @@
+- name: Verify
+  hosts: all
+  gather_facts: false
+  vars:
+    fastapi_app_dir: /tmp/molecule_test/opt/fastapi-tutorial
+    python_venv_path: /tmp/molecule_test/opt/fastapi-tutorial/venv
+    fastapi_service_name: fastapi-tutorial
+  tasks:
+  - name: Check application directory exists
+    ansible.builtin.stat:
+      path: '{{ fastapi_app_dir }}'
+    register: app_dir
+  - name: Assert application directory was created
+    ansible.builtin.assert:
+      that:
+      - app_dir.stat.exists
+      - app_dir.stat.isdir
+      fail_msg: Application directory not found
+      success_msg: Application directory exists
+  - name: Check Python virtual environment exists
+    ansible.builtin.stat:
+      path: '{{ python_venv_path }}'
+    register: venv_dir
+  - name: Assert Python virtual environment was created
+    ansible.builtin.assert:
+      that:
+      - venv_dir.stat.exists
+      - venv_dir.stat.isdir
+      fail_msg: Python virtual environment not found
+      success_msg: Python virtual environment exists
+  - name: Check environment file exists
+    ansible.builtin.stat:
+      path: '{{ fastapi_app_dir }}/.env'
+    register: env_file
+  - name: Assert environment file was created
+    ansible.builtin.assert:
+      that:
+      - env_file.stat.exists
+      - env_file.stat.size > 0
+      fail_msg: Environment file not found or empty
+      success_msg: Environment file exists
+  - name: Get environment file content
+    ansible.builtin.slurp:
+      path: '{{ fastapi_app_dir }}/.env'
+    register: env_content
+    when: env_file.stat.exists
+  - name: Assert environment file contains required variables
+    ansible.builtin.assert:
+      that:
+      - env_decoded.find('PROJECT_NAME') != -1
+      - env_decoded.find('API_VERSION') != -1
+      - env_decoded.find('DATABASE_URL') != -1
+      - env_decoded.find('postgresql://fastapi:fastapi_password@localhost/fastapi_db') != -1
+      fail_msg: Environment file missing required variables
+      success_msg: Environment file contains required variables
+    vars:
+      env_decoded: '{{ env_content.content | b64decode }}'
+    when: env_file.stat.exists
+  - name: Check systemd service file exists
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/etc/systemd/system/{{ fastapi_service_name }}.service
+    register: service_file
+  - name: Assert systemd service file was created
+    ansible.builtin.assert:
+      that:
+      - service_file.stat.exists
+      - service_file.stat.size > 0
+      fail_msg: Systemd service file not found or empty
+      success_msg: Systemd service file exists
+  - name: Get systemd service file content
+    ansible.builtin.slurp:
+      path: /tmp/molecule_test/etc/systemd/system/{{ fastapi_service_name }}.service
+    register: service_content
+    when: service_file.stat.exists
+  - name: Assert systemd service file contains required configuration
+    ansible.builtin.assert:
+      that:
+      - service_decoded.find('ExecStart=') != -1
+      - service_decoded.find('WorkingDirectory=') != -1
+      fail_msg: Systemd service file missing required configuration
+      success_msg: Systemd service file contains required configuration
+    vars:
+      service_decoded: '{{ service_content.content | b64decode }}'
+    when: service_file.stat.exists
+  - name: Check application main file exists
+    ansible.builtin.stat:
+      path: '{{ fastapi_app_dir }}/app/main.py'
+    register: app_file
+  - name: Assert application main file was created
+    ansible.builtin.assert:
+      that:
+      - app_file.stat.exists
+      - app_file.stat.size > 0
+      fail_msg: Application main file not found or empty
+      success_msg: Application main file exists
+  - name: Check PostgreSQL service is running
+    ansible.builtin.service_facts: null
+    tags: molecule-notest
+  - name: Assert PostgreSQL service is active
+    ansible.builtin.assert:
+      that:
+      - '''postgresql.service'' in ansible_facts.services'
+      - ansible_facts.services['postgresql.service'].state == 'running'
+      fail_msg: PostgreSQL service not running
+      success_msg: PostgreSQL service is running
+    tags: molecule-notest
+  - name: Check FastAPI service is running
+    ansible.builtin.service_facts: null
+    tags: molecule-notest
+  - name: Assert FastAPI service is active
+    ansible.builtin.assert:
+      that:
+      - '''fastapi-tutorial.service'' in ansible_facts.services'
+      - ansible_facts.services['fastapi-tutorial.service'].state == 'running'
+      fail_msg: FastAPI service not running
+      success_msg: FastAPI service is running
+    tags: molecule-notest
+  - name: Check FastAPI port is listening
+    ansible.builtin.wait_for:
+      port: 8000
+      timeout: 5
+    tags: molecule-notest
+  - name: Check FastAPI application health
+    ansible.builtin.uri:
+      url: http://localhost:8000/
+      status_code: 200
+    tags: molecule-notest
+  - name: Check FastAPI documentation endpoint
+    ansible.builtin.uri:
+      url: http://localhost:8000/docs
+      status_code: 200
+    tags: molecule-notest
+  - name: Check database connectivity
+    community.postgresql.postgresql_query:
+      db: fastapi_db
+      login_user: fastapi
+      login_password: fastapi_password
+      query: SELECT 1
+    tags: molecule-notest

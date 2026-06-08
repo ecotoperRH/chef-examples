@@ -1,0 +1,30 @@
+---
+fastapi_app_dir: /opt/fastapi-tutorial
+fastapi_repo_url: https://github.com/dibanez/fastapi_tutorial.git
+fastapi_repo_branch: main
+fastapi_app_port: 8000
+fastapi_app_host: 0.0.0.0
+python_venv_path: "{{ fastapi_app_dir }}/venv"
+python_requirements_file: "{{ fastapi_app_dir }}/requirements.txt"
+postgresql_service_name: postgresql
+postgresql_db_name: "{{ database_name | default('fastapi_db') }}"
+postgresql_user: "{{ username | default('fastapi') }}"
+postgresql_password: "{{ password | default('fastapi_password') }}"
+postgresql_host: "{{ host | default('localhost') }}"
+fastapi_env_vars:
+  PROJECT_NAME: FastAPI Tutorial
+  API_VERSION: 1.0.0
+  DATABASE_URL: postgresql://{{ postgresql_user }}:{{ postgresql_password }}@{{ postgresql_host }}/{{ postgresql_db_name }}
+fastapi_system_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - git
+  - postgresql
+  - postgresql-contrib
+  - libpq-dev
+  - python3-psycopg2
+fastapi_service_name: fastapi-tutorial
+fastapi_service_user: root
+fastapi_service_group: root
+fastapi_service_restart: always

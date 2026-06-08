@@ -1,0 +1,100 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Install required system packages
+  ansible.builtin.package:
+    name: "{{ fastapi_system_packages }}"
+    state: present
+- name: Create service group
+  ansible.builtin.group:
+    name: "{{ fastapi_service_group }}"
+    state: present
+  when: fastapi_service_group != "root"
+- name: Create service user
+  ansible.builtin.user:
+    name: "{{ fastapi_service_user }}"
+    group: "{{ fastapi_service_group }}"
+    system: true
+    state: present
+  when: fastapi_service_user != "root"
+- name: Create application directory
+  ansible.builtin.file:
+    path: "{{ fastapi_app_dir }}"
+    state: directory
+    owner: "{{ fastapi_service_user }}"
+    group: "{{ fastapi_service_group }}"
+    mode: "0755"
+- name: Clone FastAPI tutorial repository
+  ansible.builtin.git:
+    repo: "{{ fastapi_repo_url }}"
+    dest: "{{ fastapi_app_dir }}"
+    version: "{{ fastapi_repo_branch }}"
+    update: true
+- name: Set ownership of application files
+  ansible.builtin.file:
+    path: "{{ fastapi_app_dir }}"
+    state: directory
+    owner: "{{ fastapi_service_user }}"
+    group: "{{ fastapi_service_group }}"
+    recurse: true
+    mode: "0755"
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ python_venv_path }}
+    creates: "{{ python_venv_path }}"
+- name: Install Python dependencies
+  ansible.builtin.pip:
+    requirements: "{{ python_requirements_file }}"
+    virtualenv: "{{ python_venv_path }}"
+    state: present
+- name: Ensure PostgreSQL service is enabled and started
+  ansible.builtin.service:
+    name: "{{ postgresql_service_name }}"
+    state: started
+    enabled: true
+- name: Create PostgreSQL user
+  community.postgresql.postgresql_user:
+    name: "{{ postgresql_user }}"
+    password: "{{ postgresql_password }}"
+    state: present
+  become: true
+  become_user: postgres
+- name: Create PostgreSQL database
+  community.postgresql.postgresql_db:
+    name: "{{ postgresql_db_name }}"
+    owner: "{{ postgresql_user }}"
+    state: present
+  become: true
+  become_user: postgres
+- name: Create environment configuration file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ fastapi_app_dir }}/.env"
+    owner: "{{ fastapi_service_user }}"
+    group: "{{ fastapi_service_group }}"
+    mode: "0644"
+  notify: Restart FastAPI service
+- name: Include Redis role from eloy.redis collection
+  ansible.builtin.include_role:
+    name: eloy.redis.redis
+  vars:
+    redis_requirepass: "{{ redis_password | default('redispassword') }}"
+    redis_port: 6379
+    redis_maxmemory: 256mb
+    redis_maxmemory_policy: allkeys-lru
+- name: Create systemd service file
+  ansible.builtin.template:
+    src: fastapi-tutorial.service.j2
+    dest: /etc/systemd/system/{{ fastapi_service_name }}.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+- name: Ensure systemd is reloaded
+  ansible.builtin.systemd:
+    daemon_reload: true
+- name: Enable and start the FastAPI service
+  ansible.builtin.service:
+    name: "{{ fastapi_service_name }}"
+    state: started
+    enabled: true

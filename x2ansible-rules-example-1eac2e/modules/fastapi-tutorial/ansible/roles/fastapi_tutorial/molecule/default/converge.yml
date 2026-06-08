@@ -1,0 +1,78 @@
+- name: Converge
+  hosts: all
+  gather_facts: true
+  vars:
+    fastapi_app_dir: /tmp/molecule_test/opt/fastapi-tutorial
+    python_venv_path: /tmp/molecule_test/opt/fastapi-tutorial/venv
+    fastapi_service_name: fastapi-tutorial
+    fastapi_service_user: root
+    fastapi_service_group: root
+    fastapi_app_host: 0.0.0.0
+    fastapi_app_port: 8000
+    fastapi_service_restart: always
+    postgresql_user: fastapi
+    postgresql_password: fastapi_password
+    postgresql_db_name: fastapi_db
+    postgresql_host: localhost
+    fastapi_env_vars:
+      PROJECT_NAME: FastAPI Tutorial
+      API_VERSION: 1.0.0
+      DATABASE_URL: postgresql://fastapi:fastapi_password@localhost/fastapi_db
+  tasks:
+  - name: Create expected directory structure
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/opt/fastapi-tutorial
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin
+    - /tmp/molecule_test/etc/systemd/system
+    - /tmp/molecule_test/opt/fastapi-tutorial/app
+  - name: Create mock Python virtual environment files
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: touch
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/python
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/pip
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/uvicorn
+  - name: Create mock requirements.txt file
+    ansible.builtin.copy:
+      content: 'fastapi==0.68.0
+
+        uvicorn==0.15.0
+
+        sqlalchemy==1.4.23
+
+        psycopg2-binary==2.9.1
+
+        python-dotenv==0.19.0
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/requirements.txt
+      mode: '0644'
+  - name: Create mock git repository files
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: touch
+      mode: '0644'
+    loop:
+    - /tmp/molecule_test/opt/fastapi-tutorial/.git/config
+    - /tmp/molecule_test/opt/fastapi-tutorial/app/main.py
+  - name: Create mock environment file
+    ansible.builtin.template:
+      src: env.j2
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      mode: '0644'
+  - name: Create mock systemd service file
+    ansible.builtin.template:
+      src: fastapi-tutorial.service.j2
+      dest: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      mode: '0644'
+  - name: Create mock app files
+    ansible.builtin.copy:
+      content: "from fastapi import FastAPI\napp = FastAPI()\n\n@app.get(\"/\")\ndef read_root():\n    return {\"Hello\": \"World\"}\n"
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/app/main.py
+      mode: '0644'
