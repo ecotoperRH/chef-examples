@@ -1,0 +1,16 @@
+- name: Configure Nginx with multiple sites
+  hosts: webservers
+  become: true
+  roles:
+  - role: nginx_multisite
+    vars:
+      nginx_sites:
+        test.cluster.local:
+          document_root: /opt/server/test
+          ssl_enabled: true
+        ci.cluster.local:
+          document_root: /opt/server/ci
+          ssl_enabled: true
+        status.cluster.local:
+          document_root: /opt/server/status
+          ssl_enabled: true

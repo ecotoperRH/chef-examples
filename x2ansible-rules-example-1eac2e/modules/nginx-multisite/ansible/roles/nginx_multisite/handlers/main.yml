@@ -1,0 +1,26 @@
+---
+- name: Reload Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+  become: true
+- name: Restart Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+  become: true
+- name: Restart fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted
+  become: true
+- name: Reload sysctl
+  ansible.builtin.command:
+    cmd: sysctl -p /etc/sysctl.d/99-security.conf
+  become: true
+  changed_when: false
+- name: Restart SSH
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+  become: true

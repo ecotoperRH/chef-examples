@@ -1,0 +1,39 @@
+---
+nginx_worker_processes: auto
+nginx_worker_connections: 768
+nginx_client_max_body_size: 1M
+security_fail2ban_enabled: true
+security_ufw_enabled: true
+security_ssh_disable_root: true
+security_ssh_password_auth: false
+nginx_sites:
+  test.cluster.local:
+    server_name: test.cluster.local
+    document_root: /opt/server/test
+    ssl_certificate: /etc/ssl/certs/test.cluster.local.crt
+    ssl_certificate_key: /etc/ssl/private/test.cluster.local.key
+  ci.cluster.local:
+    server_name: ci.cluster.local
+    document_root: /opt/server/ci
+    ssl_certificate: /etc/ssl/certs/ci.cluster.local.crt
+    ssl_certificate_key: /etc/ssl/private/ci.cluster.local.key
+  status.cluster.local:
+    server_name: status.cluster.local
+    document_root: /opt/server/status
+    ssl_certificate: /etc/ssl/certs/status.cluster.local.crt
+    ssl_certificate_key: /etc/ssl/private/status.cluster.local.key
+sysctl_security_settings:
+  net.ipv4.conf.all.rp_filter: 1
+  net.ipv4.conf.default.rp_filter: 1
+  net.ipv4.conf.all.accept_redirects: 0
+  net.ipv4.conf.default.accept_redirects: 0
+  net.ipv4.conf.all.secure_redirects: 0
+  net.ipv4.conf.default.secure_redirects: 0
+  net.ipv4.conf.all.accept_source_route: 0
+  net.ipv4.conf.default.accept_source_route: 0
+  net.ipv4.conf.all.send_redirects: 0
+  net.ipv4.conf.default.send_redirects: 0
+  net.ipv4.conf.all.log_martians: 1
+  net.ipv4.conf.default.log_martians: 1
+  net.ipv4.icmp_echo_ignore_broadcasts: 1
+  net.ipv4.icmp_ignore_bogus_error_responses: 1

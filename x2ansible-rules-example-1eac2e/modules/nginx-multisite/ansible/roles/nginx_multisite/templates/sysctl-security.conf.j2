@@ -1,0 +1,45 @@
+# IP Spoofing protection
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# Disable IP source routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+
+# Ignore ICMP broadcasts
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+# Disable ICMP redirects
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
+
+# Don't act as a router
+net.ipv4.ip_forward = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+
+# Protect against TCP SYN flood attacks
+net.ipv4.tcp_syncookies = 1
+
+# Protect against martian packets
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1
+
+# Increase system file descriptor limit
+fs.file-max = 65535
+
+# Increase TCP max buffer size
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+
+# Increase number of incoming connections backlog
+net.core.netdev_max_backlog = 4096
+net.core.somaxconn = 4096
+
+# Reuse TIME_WAIT sockets
+net.ipv4.tcp_tw_reuse = 1
+
+# Decrease TIME_WAIT seconds
+net.ipv4.tcp_fin_timeout = 15
