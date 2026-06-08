@@ -1,0 +1,39 @@
+---
+- name: Install nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+- name: Configure nginx.conf
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+  notify: Reload nginx
+- name: Configure security.conf
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    mode: "0644"
+  notify: Reload nginx
+- name: Enable and start nginx service
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+- name: Create document root directories for sites
+  ansible.builtin.file:
+    path: "{{ item.value.document_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+    recurse: true
+  loop: "{{ nginx_sites | dict2items }}"
+- name: Deploy index.html files for sites
+  ansible.builtin.copy:
+    src: "{{ item.key.split('.')[0] }}/index.html"
+    dest: "{{ item.value.document_root }}/index.html"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+  loop: "{{ nginx_sites | dict2items }}"
