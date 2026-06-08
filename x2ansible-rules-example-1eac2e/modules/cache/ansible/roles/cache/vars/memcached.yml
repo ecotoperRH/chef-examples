@@ -1,0 +1,12 @@
+---
+memcached_version:
+memcached_memory: 64
+memcached_port: 11211
+memcached_udp_port: 11211
+memcached_listen: 0.0.0.0
+memcached_maxconn: 1024
+memcached_max_object_size: 1m
+memcached_experimental_options: []
+memcached_extra_cli_options: []
+memcached_ulimit: 1024
+memcached_logfilepath: /var/log/memcached

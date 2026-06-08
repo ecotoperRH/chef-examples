@@ -1,0 +1,13 @@
+---
+- name: Fix Redis configuration file
+  ansible.builtin.lineinfile:
+    path: "{{ redis_default_settings.config_file }}"
+    regexp: "{{ item }}"
+    state: absent
+  loop:
+    - ^replica-serve-stale-data.*$
+    - ^replica-read-only.*$
+    - ^repl-ping-replica-period.*$
+    - ^client-output-buffer-limit.*$
+    - ^replica-priority.*$
+  notify: Restart redis

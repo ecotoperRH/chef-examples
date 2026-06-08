@@ -1,0 +1,13 @@
+[Unit]
+Description=Redis (%i) persistent key-value database
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart={{ redis_bin_path }}/redis-server /etc/redis/%i.conf --daemonize no
+User=redis
+Group=redis
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

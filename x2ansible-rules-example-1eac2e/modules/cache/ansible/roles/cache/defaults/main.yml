@@ -1,0 +1,27 @@
+---
+memcached_user: memcache
+memcached_port: 11211
+memcached_listen_address: 0.0.0.0
+memcached_memory: 64
+memcached_max_connections: 1024
+memcached_log_file: /var/log/memcached.log
+memcached_options: ""
+redis_port: 6379
+redis_bind: 0.0.0.0
+redis_password: "{{ redis_password | default('redis_secure_password_123') }}"
+redis_requirepass: "{{ redis_password }}"
+redis_maxmemory: 64mb
+redis_maxmemory_policy: allkeys-lru
+redis_dir: /var/lib/redis
+redis_logfile: /var/log/redis/redis-server.log
+redis_log_dir: /var/log/redis
+redis_base_piddir: /var/run/redis
+redis_appendonly: "no"
+redis_appendfsync: everysec
+redis_bin_path: /usr/bin
+redis_conf_path: /etc/redis
+redis_job_control: "{% if ansible_service_mgr == 'systemd' %}systemd{% else %}initd{% endif %}"
+redis_default_settings:
+  configdir: "{{ redis_conf_path }}"
+  config_file: "{{ redis_conf_path }}/redis.conf"
+  service_name: "{% if redis_job_control == 'systemd' %}redis@{{ redis_port }}{% else %}redis{% endif %}"

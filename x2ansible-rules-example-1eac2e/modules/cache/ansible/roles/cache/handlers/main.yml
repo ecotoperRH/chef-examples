@@ -1,0 +1,9 @@
+---
+- name: Restart memcached
+  ansible.builtin.service:
+    name: memcached
+    state: restarted
+- name: Restart redis
+  ansible.builtin.service:
+    name: "{{ 'redis@6379' if redis_job_control == 'systemd' else 'redis' }}"
+    state: restarted

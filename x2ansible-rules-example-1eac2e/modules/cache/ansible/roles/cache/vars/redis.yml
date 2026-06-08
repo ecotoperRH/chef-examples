@@ -1,0 +1,162 @@
+---
+redis_package_bin_path: /usr/bin
+redis_config_dir: /etc/redis
+redis_default_package_install: false
+redis_platform_settings:
+  debian:
+    shell: /bin/false
+    homedir: /var/lib/redis
+    package_name: redis-server
+  rhel:
+    shell: /bin/sh
+    homedir: /var/lib/redis
+    package_name: redis
+  fedora:
+    shell: /bin/sh
+    homedir: /var/lib/redis
+    package_name: redis
+  freebsd:
+    shell: /bin/sh
+    homedir: /var/lib/redis
+    package_name: redis
+    package_bin_path: /usr/local/bin
+    config_dir: /usr/local/etc/redis
+    default_package_install: true
+  default:
+    shell: /bin/sh
+    homedir: /redis
+    package_name: redis
+redis_config_template_cookbook: redisio
+redis_config_template_source: redis.conf.erb
+redis_safe_install: true
+redis_package_install: "{{ redis_platform_settings[ansible_os_family | lower].default_package_install | default(redis_default_package_install) }}"
+redis_package_name: "{{ redis_platform_settings[ansible_os_family | lower].package_name | default('redis') }}"
+redis_bypass_setup: false
+redis_mirror: http://download.redis.io/releases/
+redis_base_name: redis-
+redis_artifact_type: tar.gz
+redis_base_piddir: /var/run/redis
+redis_version: "{{ null if redis_package_install else '3.2.11' }}"
+redis_install_dir:
+redis_job_control: "{{ 'systemd' if ansible_service_mgr == 'systemd' else 'rcinit' if ansible_os_family == 'FreeBSD' else 'initd' }}"
+redis_initd_required_start: []
+redis_initd_required_stop: []
+redis_default_settings:
+  user: redis
+  group: redis
+  permissions: "0644"
+  homedir: "{{ redis_platform_settings[ansible_os_family | lower].homedir | default('/var/lib/redis') }}"
+  shell: "{{ redis_platform_settings[ansible_os_family | lower].shell | default('/bin/sh') }}"
+  systemuser: true
+  uid:
+  ulimit: 0
+  configdir: "{{ redis_platform_settings[ansible_os_family | lower].config_dir | default('/etc/redis') }}"
+  name:
+  tcpbacklog: "511"
+  address:
+  databases: "16"
+  backuptype: rdb
+  datadir: /var/lib/redis
+  unixsocket:
+  unixsocketperm:
+  timeout: "0"
+  keepalive: "0"
+  loglevel: notice
+  logfile:
+  syslogenabled: "yes"
+  syslogfacility: local0
+  shutdown_save: false
+  save:
+  stopwritesonbgsaveerror: "yes"
+  rdbcompression: "yes"
+  rdbchecksum: "yes"
+  dbfilename:
+  replicaof:
+  protected_mode:
+  masterauth:
+  replicaservestaledata: "yes"
+  replicareadonly: "yes"
+  repldisklesssync: "no"
+  repldisklesssyncdelay: "5"
+  replpingreplicaperiod: "10"
+  repltimeout: "60"
+  repldisabletcpnodelay: "no"
+  replbacklogsize: 1mb
+  replbacklogttl: 3600
+  replicapriority: "100"
+  requirepass:
+  rename_commands:
+  maxclients: 10000
+  maxmemory:
+  maxmemorypolicy:
+  maxmemorysamples:
+  appendfilename:
+  appendfsync: everysec
+  noappendfsynconrewrite: "no"
+  aofrewritepercentage: "100"
+  aofrewriteminsize: 64mb
+  aofloadtruncated: "yes"
+  luatimelimit: "5000"
+  slowloglogslowerthan: "10000"
+  slowlogmaxlen: "1024"
+  notifykeyspaceevents: ""
+  hashmaxziplistentries: "512"
+  hashmaxziplistvalue: "64"
+  setmaxintsetentries: "512"
+  zsetmaxziplistentries: "128"
+  zsetmaxziplistvalue: "64"
+  hllsparsemaxbytes: "3000"
+  activerehasing: "yes"
+  clientoutputbufferlimit:
+    - - normal
+      - 0
+      - 0
+      - 0
+    - - replica
+      - 256mb
+      - 64mb
+      - 60
+    - - pubsub
+      - 32mb
+      - 8mb
+      - 60
+  hz: "10"
+  aofrewriteincrementalfsync: "yes"
+  clusterenabled: "no"
+  clusterconfigfile:
+  clusternodetimeout: 5000
+  clusterport:
+  includes:
+  aclfile:
+  data_bag_name:
+  data_bag_item:
+  data_bag_key:
+  minreplicastowrite:
+  minreplicasmaxlag:
+  breadcrumb: true
+  tlsport:
+  tlscertfile:
+  tlskeyfile:
+  tlskeyfilepass:
+  tlsclientcertfile:
+  tlsclientkeyfile:
+  tlsclientkeyfilepass:
+  tlsdhparamsfile:
+  tlscacertfile:
+  tlscacertdir:
+  tlsauthclients:
+  tlsreplication:
+  tlscluster:
+  tlsprotocols:
+  tlsciphers:
+  tlsciphersuites:
+  tlspreferserverciphers:
+  tlssessioncaching:
+  tlssessioncachesize:
+  tlssessioncachetimeout:
+redis_bin_path: "{{ redis_package_bin_path if redis_package_install else '/usr/local/bin' }}"
+redis_ulimit_pam_su_template_cookbook:
+redis_ulimit_users: {}
+redis_ulimit_security_limits_directory: /etc/security/limits.d
+redis_ulimit_overriding_sudo_file_name: sudo
+redis_ulimit_overriding_sudo_file_cookbook:

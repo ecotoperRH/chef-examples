@@ -1,0 +1,16 @@
+---
+- name: Include memcached tasks
+  ansible.builtin.include_tasks: memcached.yml
+  tags:
+    - memcached
+    - cache
+- name: Include redis tasks
+  ansible.builtin.include_tasks: redis.yml
+  tags:
+    - redis
+    - cache
+- name: Include redis fix tasks
+  ansible.builtin.include_tasks: redis_fix.yml
+  tags:
+    - redis
+    - cache
