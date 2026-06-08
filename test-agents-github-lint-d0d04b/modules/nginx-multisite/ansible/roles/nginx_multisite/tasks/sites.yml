@@ -1,26 +1,37 @@
 ---
-- name: Configure nginx sites
+- name: Create document root directories
+  ansible.builtin.file:
+    path: "{{ item.document_root }}"
+    state: directory
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
+    mode: "0755"
+  loop: "{{ nginx_sites }}"
+- name: Configure Nginx sites
   ansible.builtin.template:
     src: site.conf.j2
-    dest: /etc/nginx/sites-available/{{ item.key }}
+    dest: /etc/nginx/sites-available/{{ item.server_name }}.conf
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
     mode: "0644"
-  vars:
-    server_name: "{{ item.key }}"
-    document_root: "{{ item.value.document_root }}"
-    ssl_enabled: "{{ item.value.ssl_enabled | default(false) }}"
-    cert_file: "{{ nginx_ssl_certificate_path }}/{{ item.key }}.crt"
-    key_file: "{{ nginx_ssl_private_key_path }}/{{ item.key }}.key"
-  loop: "{{ nginx_sites | dict2items }}"
+  loop: "{{ nginx_sites }}"
   notify: Reload nginx
-- name: Enable nginx sites
+- name: Enable Nginx sites
   ansible.builtin.file:
-    src: /etc/nginx/sites-available/{{ item.key }}
-    dest: /etc/nginx/sites-enabled/{{ item.key }}
+    src: /etc/nginx/sites-available/{{ item.server_name }}.conf
+    dest: /etc/nginx/sites-enabled/{{ item.server_name }}.conf
     state: link
-  loop: "{{ nginx_sites | dict2items }}"
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
+  loop: "{{ nginx_sites }}"
   notify: Reload nginx
-- name: Remove default nginx site
-  ansible.builtin.file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  notify: Reload nginx
+- name: Create default index.html for sites
+  ansible.builtin.copy:
+    content: "<!DOCTYPE html>\n<html>\n<head>\n    <title>Welcome to {{ item.server_name }}</title>\n</head>\n<body>\n    <h1>Welcome to {{ item.server_name }}</h1>\n\
+      \    <p>This site is running on Nginx.</p>\n</body>\n</html>\n"
+    dest: "{{ item.document_root }}/index.html"
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
+    mode: "0644"
+  loop: "{{ nginx_sites }}"
+  when: item.create_default_index | default(true)

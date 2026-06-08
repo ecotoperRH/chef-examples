@@ -1,9 +1,19 @@
 ---
-- name: Apply security configurations
-  ansible.builtin.include_tasks: security.yml
-- name: Install and configure nginx
-  ansible.builtin.include_tasks: nginx.yml
-- name: Configure SSL certificates
+- name: Include validation tasks
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Install Nginx and dependencies
+  ansible.builtin.include_tasks: install.yml
+- name: Configure Nginx
+  ansible.builtin.include_tasks: configure.yml
+- name: Configure SSL
   ansible.builtin.include_tasks: ssl.yml
-- name: Configure nginx sites
+  when: ssl_enabled | bool
+- name: Configure sites
   ansible.builtin.include_tasks: sites.yml
+- name: Configure security
+  ansible.builtin.include_tasks: security.yml
+- name: Ensure Nginx service is running and enabled
+  ansible.builtin.service:
+    name: "{{ nginx_service_name }}"
+    state: started
+    enabled: true

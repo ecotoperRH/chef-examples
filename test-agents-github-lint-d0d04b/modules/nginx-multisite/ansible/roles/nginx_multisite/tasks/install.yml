@@ -1,0 +1,20 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+- name: Install Nginx
+  ansible.builtin.package:
+    name: "{{ nginx_package_name }}"
+    state: present
+- name: Install fail2ban
+  ansible.builtin.package:
+    name: fail2ban
+    state: present
+  when: enable_fail2ban | bool
+- name: Install firewall package
+  ansible.builtin.package:
+    name: ufw
+    state: present
+  when: enable_firewall | bool and ansible_os_family == "Debian"

@@ -1,20 +1,24 @@
 ---
 galaxy_info:
-  author: Migration Tool
-  description: Migrated to modern Ansible
-  galaxy_tags: []
-  license: Apache-2.0
-  min_ansible_version: "2.10"
-  namespace: x2a
+  role_name: nginx_multisite
+  author: Ansible Automation Team
+  description: Installs and configures Nginx with multiple sites and security hardening
+  company: Example Corp
+  license: MIT
+  min_ansible_version: "2.9"
+  standalone: true
   platforms:
     - name: Ubuntu
       versions:
         - bionic
         - focal
-    - name: EL
+    - name: Debian
       versions:
-        - "7"
-        - "8"
-        - "9"
-        - "10"
-  role_name: nginx_multisite
+        - buster
+        - bullseye
+  galaxy_tags:
+    - nginx
+    - web
+    - security
+    - multisite
+dependencies: []

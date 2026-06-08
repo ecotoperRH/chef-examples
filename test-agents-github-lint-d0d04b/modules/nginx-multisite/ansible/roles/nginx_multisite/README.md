@@ -1,51 +1,72 @@
 # Nginx Multisite Role
 
-This Ansible role installs and configures Nginx for hosting multiple websites with optional SSL support.
+This Ansible role installs and configures Nginx with support for multiple sites and security hardening.
 
 ## Requirements
 
-- Debian/Ubuntu based system
 - Ansible 2.9 or higher
+- Debian/Ubuntu Linux distribution
 
 ## Role Variables
 
+Available variables are listed below, along with default values (see `defaults/main.yml`):
+
 ```yaml
+# Nginx package and service settings
+nginx_package_name: nginx
+nginx_service_name: nginx
+nginx_user: www-data
+nginx_group: www-data
+
+# Default site configuration
+default_server_name: example.com
+default_document_root: /var/www/html
+ssl_enabled: false
+cert_file: /etc/ssl/certs/ssl-cert-snakeoil.pem
+key_file: /etc/ssl/private/ssl-cert-snakeoil.key
+
 # Security settings
-security_ssh_disable_root: true
-security_ssh_password_auth: false
+enable_fail2ban: true
+enable_firewall: true
+allowed_ports:
+  - 22
+  - 80
+  - 443
 
-# SSL paths
-nginx_ssl_certificate_path: /etc/ssl/certs
-nginx_ssl_private_key_path: /etc/ssl/private
+# Nginx performance settings
+worker_processes: auto
+worker_connections: 768
+keepalive_timeout: 65
 
-# Site configuration
+# Sites configuration
 nginx_sites:
-  example.com:
-    document_root: /var/www/example.com
-    ssl_enabled: true
-  test.example.com:
-    document_root: /var/www/test.example.com
-    ssl_enabled: false
+  - server_name: "{{ default_server_name }}"
+    document_root: "{{ default_document_root }}"
+    ssl_enabled: "{{ ssl_enabled }}"
+    cert_file: "{{ cert_file }}"
+    key_file: "{{ key_file }}"
 ```
 
 ## Dependencies
 
-None
+None.
 
 ## Example Playbook
 
 ```yaml
 - hosts: webservers
+  vars:
+    nginx_sites:
+      - server_name: "example.com"
+        document_root: "/var/www/example"
+        ssl_enabled: true
+        cert_file: "/etc/letsencrypt/live/example.com/fullchain.pem"
+        key_file: "/etc/letsencrypt/live/example.com/privkey.pem"
+      - server_name: "test.example.com"
+        document_root: "/var/www/test"
+        ssl_enabled: false
   roles:
-    - role: nginx_multisite
-      vars:
-        nginx_sites:
-          mysite.example.com:
-            document_root: /var/www/mysite
-            ssl_enabled: true
-          blog.example.com:
-            document_root: /var/www/blog
-            ssl_enabled: false
+    - nginx_multisite
 ```
 
 ## License
@@ -54,4 +75,4 @@ MIT
 
 ## Author Information
 
-Created by Ansible Migration Assistant
+Ansible Automation Team

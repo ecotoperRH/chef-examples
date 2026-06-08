@@ -1,39 +1,12 @@
 ---
-- name: Install nginx
-  ansible.builtin.package:
-    name: nginx
-    state: present
-- name: Configure nginx.conf
-  ansible.builtin.template:
-    src: nginx.conf.j2
-    dest: /etc/nginx/nginx.conf
-    mode: "0644"
-  notify: Reload nginx
-- name: Configure nginx security settings
-  ansible.builtin.template:
-    src: security.conf.j2
-    dest: /etc/nginx/conf.d/security.conf
-    mode: "0644"
-  notify: Reload nginx
-- name: Enable and start nginx
-  ansible.builtin.service:
-    name: nginx
-    enabled: true
-    state: started
-- name: Create document root directories for each site
-  ansible.builtin.file:
-    path: "{{ item.value.document_root }}"
-    owner: www-data
-    group: www-data
-    mode: "0755"
-    state: directory
-    recurse: true
-  loop: "{{ nginx_sites | dict2items }}"
-- name: Copy index.html files for each site
-  ansible.builtin.copy:
-    src: "{{ item.key.split('.')[0] }}/index.html"
-    dest: "{{ item.value.document_root }}/index.html"
-    owner: www-data
-    group: www-data
-    mode: "0644"
-  loop: "{{ nginx_sites | dict2items }}"
+- name: Include install tasks
+  ansible.builtin.include_tasks: install.yml
+- name: Include configure tasks
+  ansible.builtin.include_tasks: configure.yml
+- name: Include security tasks
+  ansible.builtin.include_tasks: security.yml
+- name: Include SSL tasks
+  ansible.builtin.include_tasks: ssl.yml
+  when: ssl_enabled | bool
+- name: Include sites tasks
+  ansible.builtin.include_tasks: sites.yml

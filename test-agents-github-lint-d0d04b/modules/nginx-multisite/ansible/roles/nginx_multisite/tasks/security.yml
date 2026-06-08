@@ -1,93 +1,62 @@
 ---
-- name: Install security packages
-  ansible.builtin.package:
-    name:
-      - fail2ban
-      - ufw
-      - openssh-server
-    state: present
-- name: Enable and start fail2ban
-  ansible.builtin.service:
-    name: fail2ban
-    enabled: true
-    state: started
 - name: Configure fail2ban
   ansible.builtin.template:
     src: fail2ban.jail.local.j2
     dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
     mode: "0644"
+  when: enable_fail2ban | bool
   notify: Restart fail2ban
-- name: Set UFW default deny policy
-  ansible.builtin.command: ufw --force default deny
-  register: ufw_default_deny
-  changed_when: ufw_default_deny.rc == 0
-  failed_when: ufw_default_deny.rc != 0
-  check_mode: false
-  args:
-    creates: /var/lib/ansible/ufw_default_deny
-- name: Allow SSH through UFW
-  ansible.builtin.command: ufw allow ssh
-  register: ufw_allow_ssh
-  changed_when: ufw_allow_ssh.rc == 0
-  failed_when: ufw_allow_ssh.rc != 0
-  check_mode: false
-  args:
-    creates: /var/lib/ansible/ufw_allow_ssh
-- name: Allow HTTP through UFW
-  ansible.builtin.command: ufw allow http
-  register: ufw_allow_http
-  changed_when: ufw_allow_http.rc == 0
-  failed_when: ufw_allow_http.rc != 0
-  check_mode: false
-  args:
-    creates: /var/lib/ansible/ufw_allow_http
-- name: Allow HTTPS through UFW
-  ansible.builtin.command: ufw allow https
-  register: ufw_allow_https
-  changed_when: ufw_allow_https.rc == 0
-  failed_when: ufw_allow_https.rc != 0
-  check_mode: false
-  args:
-    creates: /var/lib/ansible/ufw_allow_https
-- name: Enable UFW
-  ansible.builtin.command: ufw --force enable
-  register: ufw_enable
-  changed_when: ufw_enable.rc == 0
-  failed_when: ufw_enable.rc != 0
-  check_mode: false
-  args:
-    creates: /var/lib/ansible/ufw_enable
-- name: Configure sysctl security settings
-  ansible.builtin.template:
-    src: sysctl-security.conf.j2
-    dest: /etc/sysctl.d/99-security.conf
-    mode: "0644"
-  notify: Reload sysctl
-- name: Disable root SSH login
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: ^#?PermitRootLogin
-    line: PermitRootLogin no
-  when: security_ssh_disable_root | default(true)
-  notify: Restart SSH
-- name: Disable SSH password authentication
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: ^#?PasswordAuthentication
-    line: PasswordAuthentication no
-  when: not security_ssh_password_auth | default(false)
-  notify: Restart SSH
-- name: Create directory for organization's approved keys
+- name: Ensure fail2ban service is running and enabled
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: enable_fail2ban | bool
+- name: Ensure approved keys directory exists
   ansible.builtin.file:
     path: /opt/allowed_keys
     state: directory
+    owner: root
+    group: root
     mode: "0755"
-    owner: root
-    group: root
 - name: Copy organization's approved keys
-  ansible.builtin.copy:
-    src: eloycoto.keys
+  ansible.builtin.get_url:
+    url: https://github.com/eloycoto.keys
     dest: /opt/allowed_keys/eloycoto.keys
-    mode: "0644"
     owner: root
     group: root
+    mode: "0644"
+- name: Configure firewall - Allow SSH
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+  when: enable_firewall | bool and ansible_os_family == "Debian"
+- name: Configure firewall - Allow HTTP
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+  when: enable_firewall | bool and ansible_os_family == "Debian"
+- name: Configure firewall - Allow HTTPS
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+  when: enable_firewall | bool and ansible_os_family == "Debian"
+- name: Configure firewall - Allow additional ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+  loop: "{{ allowed_ports }}"
+  when:
+    - enable_firewall | bool
+    - ansible_os_family == "Debian"
+    - item not in ['22', '80', '443']
+- name: Enable firewall
+  community.general.ufw:
+    state: enabled
+    policy: deny
+  when: enable_firewall | bool and ansible_os_family == "Debian"
