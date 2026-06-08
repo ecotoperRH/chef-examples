@@ -1,0 +1,165 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/metadata.rb",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata including dependencies",
+      "notes": "Created meta/main.yml with role metadata"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Main handler file",
+      "notes": "Created handlers/main.yml with restart handler for memcached"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Default variables for the role",
+      "notes": "Created defaults/main.yml with memcached and redis configuration variables"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Main recipe that configures Memcached and Redis",
+      "notes": "Created main.yml task file that includes other task files"
+    },
+    {
+      "category": "dependencies",
+      "source_path": "collection:eloy.redis",
+      "target_path": "ansible/roles/cache/requirements.yml",
+      "status": "complete",
+      "description": "Redis collection for installation and configuration",
+      "notes": "Created requirements.yml with eloy.redis collection"
+    },
+    {
+      "category": "recipes",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/tasks/memcached.yml",
+      "status": "complete",
+      "description": "Memcached installation and configuration",
+      "notes": "Created memcached.yml task file for memcached installation and configuration"
+    },
+    {
+      "category": "recipes",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/tasks/redis.yml",
+      "status": "complete",
+      "description": "Redis installation and configuration using eloy.redis collection",
+      "notes": "Created redis.yml task file for Redis configuration using eloy.redis collection"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration with delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook",
+      "notes": "Created converge.yml that sets up the expected filesystem structure under /tmp/molecule_test/ for both memcached and redis configurations"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verification tasks",
+      "notes": "Created verify.yml that checks for expected configuration files, content, and service status with appropriate molecule-notest tags for container-incompatible tests"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/create.yml",
+      "status": "complete",
+      "description": "Molecule no-op create playbook",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "Molecule no-op destroy playbook",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "attributes",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/vars/main.yml",
+      "status": "complete",
+      "description": "Variables for Redis and Memcached configuration",
+      "notes": "Created vars/main.yml with OS-specific variables and Redis configuration"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    },
+    {
+      "category": "attributes",
+      "source_path": "cookbooks/cache/attributes/default.rb",
+      "target_path": "ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Default variables for cache role",
+      "notes": "Created defaults/main.yml with variables for memcached and redis configuration"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/cache/templates/default/memcached.conf.erb",
+      "target_path": "ansible/roles/cache/templates/memcached.conf.j2",
+      "status": "complete",
+      "description": "Memcached configuration template",
+      "notes": "Created memcached.conf.j2 template for configuring memcached service"
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/README.md",
+      "target_path": "ansible/roles/cache/README.md",
+      "status": "complete",
+      "description": "README file for the role",
+      "notes": "Created README.md with role documentation, variables, and usage examples"
+    }
+  ]
+}

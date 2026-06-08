@@ -1,0 +1,19 @@
+---
+memcached_enabled: true
+memcached_service_name: memcached
+memcached_port: 11211
+memcached_memory: 64
+memcached_connections: 1024
+memcached_listen_address: 127.0.0.1
+redis_enabled: true
+redis_user: redis
+redis_group: redis
+redis_port: 6379
+redis_password: "{{ lookup('env', 'REDIS_PASSWORD') | default('') }}"
+redis_databases: 16
+redis_datadir: /var/lib/redis
+redis_logdir: /var/log/redis
+redis_logfile: "{{ redis_logdir }}/redis-server.log"
+redis_config_lines_to_remove:
+  - ^bind 127.0.0.1 ::1$
+  - ^protected-mode yes$

@@ -1,0 +1,26 @@
+---
+- name: Install memcached
+  ansible.builtin.package:
+    name: "{{ memcached_packages[ansible_os_family] }}"
+    state: present
+- name: Ensure memcached user exists
+  ansible.builtin.user:
+    name: memcache
+    system: true
+    create_home: false
+    shell: /sbin/nologin
+    state: present
+  when: ansible_os_family == 'Debian'
+- name: Configure memcached
+  ansible.builtin.template:
+    src: memcached.conf.j2
+    dest: "{{ ansible_os_family == 'Debian' | ternary('/etc/memcached.conf', '/etc/sysconfig/memcached') }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart memcached
+- name: Ensure memcached service is enabled and running
+  ansible.builtin.service:
+    name: "{{ memcached_service_name }}"
+    state: started
+    enabled: true

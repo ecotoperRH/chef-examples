@@ -1,0 +1,47 @@
+---
+- name: Ensure Redis user and group exist
+  ansible.builtin.group:
+    name: "{{ redis_group }}"
+    state: present
+  register: redis_group_created
+- name: Ensure Redis user exists
+  ansible.builtin.user:
+    name: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    system: true
+    create_home: false
+    shell: /sbin/nologin
+    state: present
+  register: redis_user_created
+- name: Ensure Redis data directory exists
+  ansible.builtin.file:
+    path: "{{ redis_datadir }}"
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+    state: directory
+    recurse: true
+- name: Ensure Redis log directory exists
+  ansible.builtin.file:
+    path: "{{ redis_logdir }}"
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+    state: directory
+    recurse: true
+- name: Include Redis role from eloy.redis collection
+  ansible.builtin.include_role:
+    name: eloy.redis.redis
+  vars:
+    redis_port: "{{ redis_port }}"
+    redis_requirepass: "{{ redis_password }}"
+    redis_databases: "{{ redis_databases }}"
+    redis_datadir: "{{ redis_datadir }}"
+    redis_logfile: "{{ redis_logfile }}"
+- name: Fix Redis configuration
+  ansible.builtin.lineinfile:
+    path: /etc/redis/{{ redis_port }}.conf
+    regexp: "{{ item }}"
+    state: absent
+  loop: "{{ redis_config_lines_to_remove }}"
+  notify: Restart redis
