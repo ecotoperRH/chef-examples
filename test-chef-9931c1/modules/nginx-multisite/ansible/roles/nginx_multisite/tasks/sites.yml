@@ -1,0 +1,39 @@
+---
+- name: Create document root directories for sites
+  ansible.builtin.file:
+    path: "{{ item.value.document_root }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ nginx_sites | dict2items }}"
+- name: Copy static files for test site
+  ansible.builtin.copy:
+    src: test/index.html
+    dest: "{{ nginx_sites['test.cluster.local'].document_root }}/index.html"
+    mode: "0644"
+  when: "'test.cluster.local' in nginx_sites"
+- name: Copy static files for CI site
+  ansible.builtin.copy:
+    src: ci/index.html
+    dest: "{{ nginx_sites['ci.cluster.local'].document_root }}/index.html"
+    mode: "0644"
+  when: "'ci.cluster.local' in nginx_sites"
+- name: Copy static files for status site
+  ansible.builtin.copy:
+    src: status/index.html
+    dest: "{{ nginx_sites['status.cluster.local'].document_root }}/index.html"
+    mode: "0644"
+  when: "'status.cluster.local' in nginx_sites"
+- name: Configure nginx virtual hosts
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item.key }}.conf
+    mode: "0644"
+  loop: "{{ nginx_sites | dict2items }}"
+  notify: Reload nginx
+- name: Enable nginx virtual hosts
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item.key }}.conf
+    dest: /etc/nginx/sites-enabled/{{ item.key }}.conf
+    state: link
+  loop: "{{ nginx_sites | dict2items }}"
+  notify: Reload nginx

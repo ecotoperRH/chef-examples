@@ -1,0 +1,245 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    # Verify nginx configuration files
+    - name: Check if nginx.conf exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/nginx.conf
+      register: nginx_conf
+
+    - name: Assert nginx.conf exists
+      ansible.builtin.assert:
+        that:
+          - nginx_conf.stat.exists
+          - nginx_conf.stat.isreg
+        fail_msg: "nginx.conf file not found"
+        success_msg: "nginx.conf file exists"
+
+    - name: Check if security.conf exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/conf.d/security.conf
+      register: security_conf
+
+    - name: Assert security.conf exists
+      ansible.builtin.assert:
+        that:
+          - security_conf.stat.exists
+          - security_conf.stat.isreg
+        fail_msg: "security.conf file not found"
+        success_msg: "security.conf file exists"
+
+    # Verify site configurations
+    - name: Check if site configurations exist
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/nginx/sites-available/{{ item }}.conf"
+      register: site_configs
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert site configurations exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+        fail_msg: "Site configuration {{ item.item }} not found"
+        success_msg: "Site configuration {{ item.item }} exists"
+      loop: "{{ site_configs.results }}"
+
+    # Verify site symlinks
+    - name: Check if site symlinks exist
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/nginx/sites-enabled/{{ item }}.conf"
+      register: site_symlinks
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert site symlinks exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.islnk
+        fail_msg: "Site symlink {{ item.item }} not found"
+        success_msg: "Site symlink {{ item.item }} exists"
+      loop: "{{ site_symlinks.results }}"
+
+    # Verify SSL certificates
+    - name: Check if SSL certificates exist
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/ssl/certs/{{ item }}.crt"
+      register: ssl_certs
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert SSL certificates exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+        fail_msg: "SSL certificate for {{ item.item }} not found"
+        success_msg: "SSL certificate for {{ item.item }} exists"
+      loop: "{{ ssl_certs.results }}"
+
+    # Verify SSL private keys
+    - name: Check if SSL private keys exist
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/ssl/private/{{ item }}.key"
+      register: ssl_keys
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert SSL private keys exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+        fail_msg: "SSL private key for {{ item.item }} not found"
+        success_msg: "SSL private key for {{ item.item }} exists"
+      loop: "{{ ssl_keys.results }}"
+
+    # Verify document roots
+    - name: Check if document roots exist
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/opt/server/{{ item.split('.')[0] }}"
+      register: doc_roots
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert document roots exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isdir
+        fail_msg: "Document root for {{ item.item }} not found"
+        success_msg: "Document root for {{ item.item }} exists"
+      loop: "{{ doc_roots.results }}"
+
+    # Verify index.html files
+    - name: Check if index.html files exist
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/opt/server/{{ item.split('.')[0] }}/index.html"
+      register: index_files
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert index.html files exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+        fail_msg: "index.html for {{ item.item }} not found"
+        success_msg: "index.html for {{ item.item }} exists"
+      loop: "{{ index_files.results }}"
+
+    # Verify fail2ban configuration
+    - name: Check if fail2ban jail.local exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/fail2ban/jail.local
+      register: fail2ban_conf
+
+    - name: Assert fail2ban jail.local exists
+      ansible.builtin.assert:
+        that:
+          - fail2ban_conf.stat.exists
+          - fail2ban_conf.stat.isreg
+        fail_msg: "fail2ban jail.local not found"
+        success_msg: "fail2ban jail.local exists"
+
+    # Verify sysctl security configuration
+    - name: Check if sysctl security configuration exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/sysctl.d/99-security.conf
+      register: sysctl_conf
+
+    - name: Assert sysctl security configuration exists
+      ansible.builtin.assert:
+        that:
+          - sysctl_conf.stat.exists
+          - sysctl_conf.stat.isreg
+        fail_msg: "sysctl security configuration not found"
+        success_msg: "sysctl security configuration exists"
+
+    # Verify SSH configuration
+    - name: Check if SSH configuration exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssh/sshd_config
+      register: ssh_conf
+
+    - name: Assert SSH configuration exists
+      ansible.builtin.assert:
+        that:
+          - ssh_conf.stat.exists
+          - ssh_conf.stat.isreg
+        fail_msg: "SSH configuration not found"
+        success_msg: "SSH configuration exists"
+
+    # The following tests would normally be run but are tagged with molecule-notest
+    # since they can't run in a container environment
+
+    # Check nginx service
+    - name: Check if nginx service is running
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert nginx service is running
+      ansible.builtin.assert:
+        that:
+          - "'nginx.service' in ansible_facts.services"
+          - "ansible_facts.services['nginx.service'].state == 'running'"
+        fail_msg: "nginx service is not running"
+        success_msg: "nginx service is running"
+      tags: molecule-notest
+
+    # Check fail2ban service
+    - name: Check if fail2ban service is running
+      ansible.builtin.assert:
+        that:
+          - "'fail2ban.service' in ansible_facts.services"
+          - "ansible_facts.services['fail2ban.service'].state == 'running'"
+        fail_msg: "fail2ban service is not running"
+        success_msg: "fail2ban service is running"
+      tags: molecule-notest
+
+    # Check HTTP port
+    - name: Check if HTTP port is listening
+      ansible.builtin.wait_for:
+        port: 80
+        timeout: 5
+      tags: molecule-notest
+
+    # Check HTTPS port
+    - name: Check if HTTPS port is listening
+      ansible.builtin.wait_for:
+        port: 443
+        timeout: 5
+      tags: molecule-notest
+
+    # Check HTTP to HTTPS redirect
+    - name: Check HTTP to HTTPS redirect for test site
+      ansible.builtin.uri:
+        url: "http://test.cluster.local"
+        follow_redirects: none
+        status_code: 301
+      register: redirect_result
+      tags: molecule-notest
+
+    - name: Assert HTTP redirects to HTTPS
+      ansible.builtin.assert:
+        that:
+          - "redirect_result.location.startswith('https://')"
+        fail_msg: "HTTP does not redirect to HTTPS"
+        success_msg: "HTTP redirects to HTTPS correctly"
+      tags: molecule-notest

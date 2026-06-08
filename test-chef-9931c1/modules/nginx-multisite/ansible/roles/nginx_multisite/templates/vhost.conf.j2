@@ -1,0 +1,31 @@
+server {
+    listen 80;
+    server_name {{ item.key }};
+
+    # Redirect all HTTP requests to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+{% if item.value.ssl_enabled | default(false) %}
+    listen 443 ssl;
+    ssl_certificate {{ nginx_ssl_certificate_path }}/{{ item.key }}.crt;
+    ssl_certificate_key {{ nginx_ssl_private_key_path }}/{{ item.key }}.key;
+{% else %}
+    listen 80;
+{% endif %}
+    server_name {{ item.key }};
+
+    root {{ item.value.document_root }};
+    index index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Additional security headers
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+}
