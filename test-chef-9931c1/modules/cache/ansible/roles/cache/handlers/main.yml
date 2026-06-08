@@ -1,0 +1,21 @@
+---
+- name: restart memcached
+  ansible.builtin.service:
+    name: memcached
+    state: restarted
+  become: true
+- name: restart redis
+  ansible.builtin.service:
+    name: "{{ redis_service_name }}"
+    state: restarted
+  become: true
+  when: redis_job_control != 'rcinit'
+- name: restart redis rcinit
+  ansible.builtin.command: /usr/local/etc/rc.d/redis{{ redis_name }} restart
+  become: true
+  when: redis_job_control == 'rcinit'
+  listen: restart redis
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+  become: true

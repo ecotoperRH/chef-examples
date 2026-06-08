@@ -1,0 +1,34 @@
+---
+memcached_memory: 64
+memcached_listen_ip: 127.0.0.1
+memcached_port: 11211
+memcached_user: memcache
+memcached_config_file: /etc/memcached.conf
+redis_use_collection: false
+redis_service_name: redis-server
+redis_bind_interface: 127.0.0.1
+redis_port: 6379
+redis_maxmemory: 256mb
+redis_maxmemory_policy: allkeys-lru
+redis_save_to_disk: true
+redis_save_periods:
+  - - 900
+    - 1
+  - - 300
+    - 10
+  - - 60
+    - 10000
+redis_job_control: systemd
+redis_name: "{{ redis_port }}"
+redis_user: redis
+redis_group: redis
+redis_bin_path: /usr/bin
+redis_configdir: /etc/redis
+redis_piddir: /var/run/redis
+redis_limit_nofile: 10240
+redis_ulimit: 10240
+redis_required_start: $network
+redis_required_stop: $network
+redis_requirepass: redis_secure_password_123
+redis_password: "{{ redis_requirepass }}"
+redis_shutdown_save: true

@@ -1,0 +1,24 @@
+---
+- name: Install memcached package
+  ansible.builtin.package:
+    name: memcached
+    state: present
+- name: Ensure memcached user exists
+  ansible.builtin.user:
+    name: "{{ memcached_user }}"
+    system: true
+    shell: /bin/false
+    createhome: false
+- name: Create memcached configuration
+  ansible.builtin.template:
+    src: memcached.conf.j2
+    dest: "{{ memcached_config_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart memcached
+- name: Ensure memcached service is enabled and running
+  ansible.builtin.service:
+    name: memcached
+    state: started
+    enabled: true

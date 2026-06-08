@@ -1,0 +1,29 @@
+---
+- name: Enable and start Redis systemd services
+  ansible.builtin.service:
+    name: redis@{{ item.port }}
+    state: started
+    enabled: true
+  loop: "{{ redis_servers | default([{'port': '6379'}]) }}"
+  when: redis_job_control == 'systemd'
+- name: Enable and start Redis init services
+  ansible.builtin.service:
+    name: redis{{ item.port }}
+    state: started
+    enabled: true
+  loop: "{{ redis_servers | default([{'port': '6379'}]) }}"
+  when: redis_job_control == 'initd'
+- name: Enable and start Redis upstart services
+  ansible.builtin.service:
+    name: redis{{ item.port }}
+    state: started
+    enabled: true
+  loop: "{{ redis_servers | default([{'port': '6379'}]) }}"
+  when: redis_job_control == 'upstart'
+- name: Enable and start Redis rcinit services
+  ansible.builtin.service:
+    name: redis{{ item.port }}
+    state: started
+    enabled: true
+  loop: "{{ redis_servers | default([{'port': '6379'}]) }}"
+  when: redis_job_control == 'rcinit'

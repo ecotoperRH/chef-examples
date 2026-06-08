@@ -1,0 +1,129 @@
+---
+- name: Install Memcached
+  ansible.builtin.package:
+    name: memcached
+    state: present
+  become: true
+
+- name: Configure Memcached
+  ansible.builtin.template:
+    src: memcached.conf.j2
+    dest: /etc/memcached.conf
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: restart memcached
+
+- name: Ensure Memcached service is enabled and running
+  ansible.builtin.service:
+    name: memcached
+    state: started
+    enabled: true
+  become: true
+
+- name: Configure Redis using custom tasks
+  when: not redis_use_collection | bool
+  block:
+    - name: Install Redis
+      ansible.builtin.package:
+        name: redis-server
+        state: present
+      become: true
+
+    - name: Create Redis log directory
+      ansible.builtin.file:
+        path: /var/log/redis
+        owner: redis
+        group: redis
+        mode: "0755"
+        state: directory
+        recurse: true
+      become: true
+
+    - name: Configure Redis
+      ansible.builtin.template:
+        src: redis.conf.j2
+        dest: /etc/redis/{{ redis_port }}.conf
+        owner: redis
+        group: redis
+        mode: "0640"
+      become: true
+      notify: restart redis
+
+    - name: Configure Redis service (systemd)
+      when: redis_job_control == 'systemd'
+      ansible.builtin.template:
+        src: redis@.service.j2
+        dest: /etc/systemd/system/redis@.service
+        owner: root
+        group: root
+        mode: "0644"
+      become: true
+      notify: restart redis
+
+    - name: Configure Redis service (init)
+      when: redis_job_control == 'initd'
+      ansible.builtin.template:
+        src: redis.init.j2
+        dest: /etc/init.d/redis{{ redis_name }}
+        owner: root
+        group: root
+        mode: "0755"
+      become: true
+      notify: restart redis
+
+    - name: Configure Redis service (upstart)
+      when: redis_job_control == 'upstart'
+      ansible.builtin.template:
+        src: redis.upstart.conf.j2
+        dest: /etc/init/redis{{ redis_name }}.conf
+        owner: root
+        group: root
+        mode: "0644"
+      become: true
+      notify: restart redis
+
+    - name: Configure Redis service (rcinit)
+      when: redis_job_control == 'rcinit'
+      ansible.builtin.template:
+        src: redis.rcinit.j2
+        dest: /usr/local/etc/rc.d/redis{{ redis_name }}
+        owner: root
+        group: wheel
+        mode: "0755"
+      become: true
+      notify: restart redis
+
+    - name: Fix Redis configuration
+      ansible.builtin.lineinfile:
+        path: /etc/redis/{{ redis_port }}.conf
+        regexp: "{{ item }}"
+        state: absent
+      with_items:
+        - ^replica-serve-stale-data.*$
+        - ^replica-read-only.*$
+        - ^repl-ping-replica-period.*$
+        - ^client-output-buffer-limit.*$
+        - ^replica-priority.*$
+      become: true
+      notify: restart redis
+
+    - name: Ensure Redis service is enabled and running
+      ansible.builtin.service:
+        name: "{{ redis_service_name }}"
+        state: started
+        enabled: true
+      become: true
+
+- name: Set Redis collection flag
+  when: redis_use_collection | bool
+  ansible.builtin.set_fact:
+    redis_collection_enabled: true
+
+- name: Configure Redis using collection
+  when: redis_collection_enabled is defined and redis_collection_enabled
+  block:
+    - name: Install Redis using collection
+      ansible.builtin.debug:
+        msg: Using Redis collection role eloy.redis

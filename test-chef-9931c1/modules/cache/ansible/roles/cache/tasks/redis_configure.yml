@@ -1,0 +1,74 @@
+---
+- name: Install Redis package
+  ansible.builtin.package:
+    name: redis-server
+    state: present
+- name: Ensure Redis user exists
+  ansible.builtin.user:
+    name: "{{ redis_user }}"
+    system: true
+    shell: /bin/false
+    home: /var/lib/redis
+    createhome: true
+- name: Ensure Redis group exists
+  ansible.builtin.group:
+    name: "{{ redis_group }}"
+    system: true
+- name: Create Redis directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+    state: directory
+    recurse: true
+  loop:
+    - /var/log/redis
+    - /var/lib/redis
+    - "{{ redis_piddir }}"
+    - "{{ redis_configdir }}"
+- name: Create Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ redis_configdir }}/{{ item.port }}.conf"
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0640"
+  loop: "{{ redis_servers | default([{'port': '6379'}]) }}"
+  notify: restart redis
+- name: Configure systemd service for Redis
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /etc/systemd/system/redis@.service
+    owner: root
+    group: root
+    mode: "0644"
+  when: redis_job_control == 'systemd'
+  notify: reload systemd
+- name: Configure init script for Redis
+  ansible.builtin.template:
+    src: redis.init.j2
+    dest: /etc/init.d/redis{{ item.port }}
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ redis_servers | default([{'port': '6379'}]) }}"
+  when: redis_job_control == 'initd'
+- name: Configure upstart script for Redis
+  ansible.builtin.template:
+    src: redis.upstart.conf.j2
+    dest: /etc/init/redis{{ item.port }}.conf
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ redis_servers | default([{'port': '6379'}]) }}"
+  when: redis_job_control == 'upstart'
+- name: Configure rcinit script for Redis
+  ansible.builtin.template:
+    src: redis.rcinit.j2
+    dest: /usr/local/etc/rc.d/redis{{ item.port }}
+    owner: root
+    group: wheel
+    mode: "0755"
+  loop: "{{ redis_servers | default([{'port': '6379'}]) }}"
+  when: redis_job_control == 'rcinit'

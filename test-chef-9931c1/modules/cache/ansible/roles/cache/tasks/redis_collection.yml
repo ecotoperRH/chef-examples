@@ -1,0 +1,4 @@
+---
+- name: Import Redis collection role
+  ansible.builtin.import_role:
+    name: eloy.redis

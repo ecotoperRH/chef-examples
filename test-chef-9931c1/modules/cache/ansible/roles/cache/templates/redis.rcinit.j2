@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# PROVIDE: redis
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+
+# Add the following lines to /etc/rc.conf to enable redis:
+# redis_enable="YES"
+# redis_config="/etc/redis/{{ redis_port }}.conf" (optional)
+
+. /etc/rc.subr
+
+name="redis"
+rcvar="redis_enable"
+
+load_rc_config $name
+
+: ${redis_enable="NO"}
+: ${redis_user="{{ redis_user }}"}
+: ${redis_config="/etc/redis/{{ redis_port }}.conf"}
+: ${redis_pidfile="{{ redis_piddir }}/redis_{{ redis_port }}.pid"}
+
+command="{{ redis_bin_path }}/redis-server"
+command_args="${redis_config}"
+pidfile="${redis_pidfile}"
+
+required_files="${redis_config}"
+
+start_cmd="redis_start"
+stop_cmd="redis_stop"
+
+redis_start()
+{
+    echo "Starting ${name}."
+    /usr/sbin/daemon -u ${redis_user} -p ${pidfile} ${command} ${command_args}
+}
+
+redis_stop()
+{
+    echo "Stopping ${name}."
+    {{ redis_bin_path }}/redis-cli -p {{ redis_port }} {% if redis_requirepass %}--pass {{ redis_requirepass }}{% endif %} shutdown
+}
+
+run_rc_command "$1"

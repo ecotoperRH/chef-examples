@@ -1,0 +1,17 @@
+description "redis server"
+
+start on runlevel [23]
+stop on shutdown
+
+pre-start script
+    mkdir -p {{ redis_piddir }}
+    mkdir -p {{ redis_dir }}
+    chown {{ redis_user }}:{{ redis_group }} {{ redis_piddir }}
+    chown {{ redis_user }}:{{ redis_group }} {{ redis_dir }}
+end script
+
+exec sudo -u {{ redis_user }} {{ redis_bin_path }}/redis-server /etc/redis/{{ redis_port }}.conf
+
+post-stop script
+    rm -f {{ redis_piddir }}/redis_{{ redis_port }}.pid
+end script

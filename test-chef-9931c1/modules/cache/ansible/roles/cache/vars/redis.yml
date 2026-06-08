@@ -1,0 +1,137 @@
+---
+redis_platform_settings:
+  debian:
+    package_name: redis-server
+    default_package_install: true
+    config_dir: /etc/redis
+    homedir: /var/lib/redis
+    shell: /bin/false
+    package_bin_path: /usr/bin
+  redhat:
+    package_name: redis
+    default_package_install: true
+    config_dir: /etc/redis
+    homedir: /var/lib/redis
+    shell: /bin/false
+    package_bin_path: /usr/bin
+  freebsd:
+    package_name: redis
+    default_package_install: true
+    config_dir: /usr/local/etc/redis
+    homedir: /var/db/redis
+    shell: /usr/sbin/nologin
+    package_bin_path: /usr/local/bin
+redis_default_settings:
+  install_from_source: false
+  source_version: 7.0.5
+  source_dir: /tmp/redis-source
+  source_configure_command: ./configure
+  source_make_command: make
+  source_make_install_command: make install
+  source_cleanup: true
+  package_install: "{{ redis_platform_settings[ansible_os_family | lower].default_package_install | default(false) }}"
+  package_name: "{{ redis_platform_settings[ansible_os_family | lower].package_name | default('redis') }}"
+  service_enabled: true
+  service_state: started
+  service_type: "{{ 'systemd' if ansible_service_mgr == 'systemd' else ('rcinit' if ansible_os_family | lower == 'freebsd' else 'initd') }}"
+  user: redis
+  group: redis
+  uid:
+  gid:
+  homedir: "{{ redis_platform_settings[ansible_os_family | lower].homedir | default('/var/lib/redis') }}"
+  shell: "{{ redis_platform_settings[ansible_os_family | lower].shell | default('/bin/sh') }}"
+  config_dir: "{{ redis_platform_settings[ansible_os_family | lower].config_dir | default('/etc/redis') }}"
+  datadir: /var/lib/redis
+  logdir: /var/log/redis
+  address: 127.0.0.1
+  tcpbacklog: 511
+  unixsocket:
+  unixsocketperm:
+  timeout: 0
+  keepalive: 300
+  tlsport:
+  tlscertfile:
+  tlskeyfile:
+  tlskeyfilepass:
+  tlscacertfile:
+  tlscacertdir:
+  tlsauthclients:
+  tlsreplication:
+  tlscluster:
+  tlsprotocols:
+  tlsciphers:
+  tlsciphersuites:
+  tlspreferserverciphers:
+  tlssessioncaching:
+  tlssessioncachesize:
+  tlssessioncachetimeout:
+  loglevel: notice
+  databases: 16
+  save:
+    - 900 1
+    - 300 10
+    - 60 10000
+  stopwritesonbgsaveerror: "yes"
+  rdbcompression: "yes"
+  rdbchecksum: "yes"
+  dbfilename:
+  replicaof:
+  masterauth:
+  replicaservestaledata: "yes"
+  replicareadonly: "yes"
+  repldisklesssync: "no"
+  repldisklesssyncdelay: 5
+  replpingreplicaperiod: 10
+  repltimeout: 60
+  repldisabletcpnodelay: "no"
+  replbacklogsize: 1mb
+  replbacklogttl: 3600
+  replicapriority: 100
+  minreplicastowrite:
+  minreplicasmaxlag:
+  requirepass:
+  rename_commands: {}
+  aclfile:
+  maxclients: 10000
+  maxmemory:
+  maxmemorypolicy:
+  maxmemorysamples: 5
+  appendonly: "no"
+  appendfilename:
+  appendfsync: everysec
+  noappendfsynconrewrite: "no"
+  aofrewritepercentage: 100
+  aofrewriteminsize: 64mb
+  aofloadtruncated: "yes"
+  aofrewriteincrementalfsync: "yes"
+  luatimelimit: 5000
+  slowloglogslowerthan: 10000
+  slowlogmaxlen: 128
+  notifykeyspaceevents: ""
+  hashmaxziplistentries: 512
+  hashmaxziplistvalue: 64
+  setmaxintsetentries: 512
+  zsetmaxziplistentries: 128
+  zsetmaxziplistvalue: 64
+  hllsparsemaxbytes: 3000
+  activerehasing: "yes"
+  hz: 10
+  clientoutputbufferlimit:
+    - - normal
+      - "0"
+      - "0"
+      - "0"
+    - - replica
+      - 256mb
+      - 64mb
+      - "60"
+    - - pubsub
+      - 32mb
+      - 8mb
+      - "60"
+  includes: []
+  clusterenabled: "no"
+  clusterconfigfile:
+  clusternodetimeout: 15000
+  clusterport:
+  bin_path: "{{ redis_platform_settings[ansible_os_family | lower].package_bin_path | default('/usr/bin') if redis_package_install else '/usr/local/bin' }}"

@@ -1,0 +1,255 @@
+# Redis configuration file example
+
+# Note on units: when memory size is needed, it is possible to specify
+# it in the usual form of 1k 5GB 4M and so forth:
+#
+# 1k => 1000 bytes
+# 1kb => 1024 bytes
+# 1m => 1000000 bytes
+# 1mb => 1024*1024 bytes
+# 1g => 1000000000 bytes
+# 1gb => 1024*1024*1024 bytes
+
+################################## NETWORK #####################################
+
+# By default, if no "bind" configuration directive is specified, Redis listens
+# for connections from all the network interfaces available on the server.
+# It is possible to listen to just one or multiple selected interfaces using
+# the "bind" configuration directive, followed by one or more IP addresses.
+bind {{ redis_bind_interface }}
+
+# Protected mode is a layer of security protection, in order to avoid that
+# Redis instances left open on the internet are accessed and exploited.
+protected-mode {{ redis_protected_mode | default('yes') }}
+
+# Accept connections on the specified port, default is 6379.
+port {{ redis_port }}
+
+# TCP listen() backlog.
+tcp-backlog 511
+
+# Close the connection after a client is idle for N seconds (0 to disable)
+timeout 0
+
+# TCP keepalive.
+tcp-keepalive 300
+
+################################# GENERAL #####################################
+
+# By default Redis does not run as a daemon. Use 'yes' if you need it.
+daemonize yes
+
+# If you run Redis from upstart or systemd, Redis can interact with your
+# supervision tree. Options:
+#   supervised no      - no supervision interaction
+#   supervised upstart - signal upstart by putting Redis into SIGSTOP mode
+#   supervised systemd - signal systemd by writing READY=1 to $NOTIFY_SOCKET
+#   supervised auto    - detect upstart or systemd method based on
+#                        UPSTART_JOB or NOTIFY_SOCKET environment variables
+# Note: these supervision methods only signal "process is ready."
+#       They do not enable continuous liveness pings back to your supervisor.
+supervised {{ redis_supervised | default('no') }}
+
+# If a pid file is specified, Redis writes it where specified at startup
+# and removes it at exit.
+pidfile {{ redis_piddir }}/redis_{{ redis_port }}.pid
+
+# Specify the server verbosity level.
+# This can be one of:
+# debug (a lot of information, useful for development/testing)
+# verbose (many rarely useful info, but not a mess like the debug level)
+# notice (moderately verbose, what you want in production probably)
+# warning (only very important / critical messages are logged)
+loglevel notice
+
+# Specify the log file name. Also the empty string can be used to force
+# Redis to log on the standard output. Note that if you use standard
+# output for logging but daemonize, logs will be sent to /dev/null
+logfile {{ redis_logfile }}
+
+# To enable logging to the system logger, just set 'syslog-enabled' to yes,
+# and optionally update the other syslog parameters to suit your needs.
+# syslog-enabled no
+
+# Specify the syslog identity.
+# syslog-ident redis
+
+# Specify the syslog facility. Must be USER or between LOCAL0-LOCAL7.
+# syslog-facility local0
+
+# Set the number of databases. The default database is DB 0, you can select
+# a different one on a per-connection basis using SELECT <dbid> where
+# dbid is a number between 0 and 'databases'-1
+databases 16
+
+################################ SNAPSHOTTING  ################################
+#
+# Save the DB on disk:
+#
+#   save <seconds> <changes>
+#
+#   Will save the DB if both the given number of seconds and the given
+#   number of write operations against the DB occurred.
+#
+#   In the example below the behaviour will be to save:
+#   after 900 sec (15 min) if at least 1 key changed
+#   after 300 sec (5 min) if at least 10 keys changed
+#   after 60 sec if at least 10000 keys changed
+#
+#   Note: you can disable saving completely by commenting out all "save" lines.
+#
+#   It is also possible to remove all the previously configured save
+#   points by adding a save directive with a single empty string argument
+#   like in the following example:
+#
+#   save ""
+
+{% if redis_save_to_disk %}
+{% for save_period in redis_save_periods %}
+save {{ save_period[0] }} {{ save_period[1] }}
+{% endfor %}
+{% else %}
+save ""
+{% endif %}
+
+# By default Redis will stop accepting writes if RDB snapshots are enabled
+# (at least one save point) and the latest background save failed.
+# This will make the user aware (in a hard way) that data is not persisting
+# on disk properly, otherwise chances are that no one will notice and some
+# disaster will happen.
+#
+# If the background saving process will start working again Redis will
+# automatically allow writes again.
+#
+# However if you have setup your proper monitoring of the Redis server
+# and persistence, you may want to disable this feature so that Redis will
+# continue to work as usual even if there are problems with disk,
+# permissions, and so forth.
+stop-writes-on-bgsave-error yes
+
+# Compress string objects using LZF when dump .rdb databases?
+# For default that's set to 'yes' as it's almost always a win.
+# If you want to save some CPU in the saving child set it to 'no' but
+# the dataset will likely be bigger if you have compressible values or keys.
+rdbcompression yes
+
+# Since version 5 of RDB a CRC64 checksum is placed at the end of the file.
+# This makes the format more resistant to corruption but there is a performance
+# hit to pay (around 10%) when saving and loading RDB files, so you can disable it
+# for maximum performances.
+#
+# RDB files created with checksum disabled have a checksum of zero that will
+# tell the loading code to skip the check.
+rdbchecksum yes
+
+# The filename where to dump the DB
+dbfilename dump.rdb
+
+# The working directory.
+#
+# The DB will be written inside this directory, with the filename specified
+# above using the 'dbfilename' configuration directive.
+#
+# The Append Only File will also be created inside this directory.
+#
+# Note that you must specify a directory here, not a file name.
+dir {{ redis_dir }}
+
+################################## SECURITY ###################################
+
+# Require clients to issue AUTH <PASSWORD> before processing any other
+# commands.  This might be useful in environments in which you do not trust
+# others with access to the host running redis-server.
+#
+# This should stay commented out for backward compatibility and because most
+# people do not need auth (e.g. they run their own servers).
+#
+# Warning: since Redis is pretty fast an outside user can try up to
+# 150k passwords per second against a good box. This means that you should
+# use a very strong password otherwise it will be very easy to break.
+#
+{% if redis_requirepass %}
+requirepass {{ redis_requirepass }}
+{% else %}
+# requirepass foobared
+{% endif %}
+
+################################### LIMITS ####################################
+
+# Set the max number of connected clients at the same time. By default
+# this limit is set to 10000 clients, however if the Redis server is not
+# able to configure the process file limit to allow for the specified limit
+# the max number of allowed clients is set to the current file limit
+# minus 32 (as Redis reserves a few file descriptors for internal uses).
+#
+# Once the limit is reached Redis will close all the new connections sending
+# an error 'max number of clients reached'.
+#
+# maxclients 10000
+
+# Don't use more memory than the specified amount of bytes.
+# When the memory limit is reached Redis will try to remove keys
+# according to the eviction policy selected (see maxmemory-policy below)
+#
+# If Redis can't remove keys according to the policy, or if the policy is
+# set to 'noeviction', Redis will start to reply with errors to commands
+# that would use more memory, like SET, LPUSH, and so on, and will continue
+# to reply to read-only commands like GET.
+#
+# This option is usually useful when using Redis as an LRU or LFU cache, or to
+# set a hard memory limit for an instance (using the 'noeviction' policy).
+#
+# WARNING: If you have replicas attached to an instance with maxmemory on,
+# the size of the output buffers needed to feed the replicas are subtracted
+# from the used memory count, so that network problems / resyncs will
+# not trigger a loop where keys are evicted, and in turn the output
+# buffer of replicas is full with DELs of keys evicted triggering the deletion
+# of more keys, and so forth until the database is completely emptied.
+#
+# In short... if you have replicas attached it is suggested that you set a lower
+# limit for maxmemory so that there is some free RAM on the system for replica
+# output buffers (but this is not needed if the policy is 'noeviction').
+#
+maxmemory {{ redis_maxmemory }}
+
+# MAXMEMORY POLICY: how Redis will select what to remove when maxmemory
+# is reached. You can select among five behaviors:
+#
+# volatile-lru -> Evict using approximated LRU among the keys with an expire set.
+# allkeys-lru -> Evict any key using approximated LRU.
+# volatile-lfu -> Evict using approximated LFU among the keys with an expire set.
+# allkeys-lfu -> Evict any key using approximated LFU.
+# volatile-random -> Remove a random key among the ones with an expire set.
+# allkeys-random -> Remove a random key, any key.
+# volatile-ttl -> Remove the key with the nearest expire time (minor TTL)
+# noeviction -> Don't evict anything, just return an error on write operations.
+#
+# LRU means Least Recently Used
+# LFU means Least Frequently Used
+#
+# Both LRU, LFU and volatile-ttl are implemented using approximated
+# randomized algorithms.
+#
+# Note: with any of the above policies, Redis will return an error on write
+#       operations, when there are no suitable keys for eviction.
+#
+#       At the date of writing these commands are: set setnx setex append
+#       incr decr rpush lpush rpushx lpushx linsert lset rpoplpush sadd
+#       sinter sinterstore sunion sunionstore sdiff sdiffstore zadd zincrby
+#       zunionstore zinterstore hset hsetnx hmset hincrby incrby decrby
+#       getset mset msetnx exec sort
+#
+# The default is:
+#
+maxmemory-policy {{ redis_maxmemory_policy }}
+
+# LRU, LFU and minimal TTL algorithms are not precise algorithms but approximated
+# algorithms (in order to save memory), so you can tune it for speed or
+# accuracy. For default Redis will check five keys and pick the one that was
+# used less recently, you can change the sample size using the following
+# configuration directive.
+#
+# The default of 5 produces good enough results. 10 Approximates very closely
+# true LRU but costs more CPU. 3 is faster but not very accurate.
+#
+# maxmemory-samples 5

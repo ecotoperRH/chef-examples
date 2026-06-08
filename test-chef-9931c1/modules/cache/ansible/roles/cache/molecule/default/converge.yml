@@ -1,0 +1,152 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Create expected directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /tmp/molecule_test/etc
+        - /tmp/molecule_test/etc/redis
+        - /tmp/molecule_test/var/log/redis
+        - /tmp/molecule_test/etc/systemd/system
+        - /tmp/molecule_test/etc/init.d
+        - /tmp/molecule_test/etc/init
+        - /tmp/molecule_test/usr/local/etc/rc.d
+
+    - name: Create Memcached configuration file
+      ansible.builtin.copy:
+        content: |
+          # memcached default config file
+          -m 64
+          -p 11211
+          -u memcache
+          -l 127.0.0.1
+          -c 1024
+          -I 1m
+        dest: /tmp/molecule_test/etc/memcached.conf
+        mode: "0644"
+
+    - name: Create Redis configuration file
+      ansible.builtin.copy:
+        content: |
+          # Redis configuration file
+          port 6379
+          bind 127.0.0.1
+          dir /var/lib/redis
+          logfile /var/log/redis/redis_6379.log
+          pidfile /var/run/redis/redis_6379.pid
+          requirepass redis_secure_password_123
+          maxmemory 256mb
+          maxmemory-policy allkeys-lru
+          save 900 1
+          save 300 10
+          save 60 10000
+        dest: /tmp/molecule_test/etc/redis/6379.conf
+        mode: "0640"
+
+    - name: Create Redis systemd service file
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Redis persistent key-value database
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/bin/redis-server /etc/redis/6379.conf
+          ExecStop=/usr/bin/redis-cli -h 127.0.0.1 -p 6379 -a redis_secure_password_123 shutdown
+          User=redis
+          Group=redis
+          LimitNOFILE=10240
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /tmp/molecule_test/etc/systemd/system/redis@.service
+        mode: "0644"
+
+    - name: Create Redis init script
+      ansible.builtin.copy:
+        content: |
+          #!/bin/sh
+          # Redis init script
+          # chkconfig: 2345 86 14
+          # description: Redis is a persistent key-value database
+          
+          REDISPORT=6379
+          EXEC=/usr/bin/redis-server
+          CLIEXEC=/usr/bin/redis-cli
+          PIDFILE=/var/run/redis/redis_6379.pid
+          CONF="/etc/redis/6379.conf"
+          REDISPASS="redis_secure_password_123"
+          
+          case "$1" in
+              start)
+                  echo "Starting Redis server..."
+                  $EXEC $CONF
+                  ;;
+              stop)
+                  echo "Stopping Redis server..."
+                  $CLIEXEC -h 127.0.0.1 -p $REDISPORT -a $REDISPASS shutdown
+                  ;;
+              *)
+                  echo "Usage: /etc/init.d/redis6379 {start|stop}"
+                  exit 1
+          esac
+          exit 0
+        dest: /tmp/molecule_test/etc/init.d/redis6379
+        mode: "0755"
+
+    - name: Create Redis upstart config
+      ansible.builtin.copy:
+        content: |
+          description "Redis Server"
+          
+          start on runlevel [2345]
+          stop on runlevel [016]
+          
+          respawn
+          
+          setuid redis
+          setgid redis
+          
+          exec /usr/bin/redis-server /etc/redis/6379.conf
+        dest: /tmp/molecule_test/etc/init/redis6379.conf
+        mode: "0644"
+
+    - name: Create Redis rcinit script
+      ansible.builtin.copy:
+        content: |
+          #!/bin/sh
+          # Redis rc script
+          
+          redis_start()
+          {
+              /usr/bin/redis-server /etc/redis/6379.conf
+          }
+          
+          redis_stop()
+          {
+              /usr/bin/redis-cli -h 127.0.0.1 -p 6379 -a redis_secure_password_123 shutdown
+          }
+          
+          case "$1" in
+              start)
+                  redis_start
+                  ;;
+              stop)
+                  redis_stop
+                  ;;
+              restart)
+                  redis_stop
+                  redis_start
+                  ;;
+              *)
+                  echo "Usage: $0 {start|stop|restart}"
+                  exit 1
+          esac
+          exit 0
+        dest: /tmp/molecule_test/usr/local/etc/rc.d/redis6379
+        mode: "0755"
