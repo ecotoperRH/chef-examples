@@ -1,0 +1,97 @@
+---
+- name: Install nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+- name: Configure nginx
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart nginx
+- name: Install SSL packages
+  ansible.builtin.package:
+    name:
+      - openssl
+      - ca-certificates
+    state: present
+- name: Create ssl-cert group
+  ansible.builtin.group:
+    name: ssl-cert
+    state: present
+- name: Create SSL certificate directory
+  ansible.builtin.file:
+    path: "{{ ssl_certificate_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    state: directory
+- name: Create SSL private key directory
+  ansible.builtin.file:
+    path: "{{ ssl_private_key_path }}"
+    owner: root
+    group: ssl-cert
+    mode: "0710"
+    state: directory
+- name: Generate self-signed SSL certificates for sites
+  ansible.builtin.shell: 'openssl req -x509 -nodes -days 365 -newkey rsa:2048 \ -keyout {{ ssl_private_key_path }}/{{ item.key }}.key \ -out {{ ssl_certificate_path
+    }}/{{ item.key }}.crt \ -subj "/C=US/ST=Example/L=Example/O=Example Org/OU=IT/CN={{ item.key }}/emailAddress=admin@example.com" chmod 640 {{ ssl_private_key_path
+    }}/{{ item.key }}.key chown root:ssl-cert {{ ssl_private_key_path }}/{{ item.key }}.key '
+  args:
+    creates: "{{ ssl_certificate_path }}/{{ item.key }}.crt"
+  loop: "{{ nginx_sites | dict2items }}"
+  when: item.value.ssl_enabled | bool
+  notify: Reload nginx
+- name: Create site configuration files
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item.key }}
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ nginx_sites | dict2items }}"
+  notify: Reload nginx
+- name: Enable site configurations
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item.key }}
+    dest: /etc/nginx/sites-enabled/{{ item.key }}
+    state: link
+  loop: "{{ nginx_sites | dict2items }}"
+  notify: Reload nginx
+- name: Create document root directories
+  ansible.builtin.file:
+    path: "{{ item.value.document_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+  loop: "{{ nginx_sites | dict2items }}"
+- name: Copy website files
+  ansible.builtin.copy:
+    src: "{{ item.key.split('.')[0] }}/"
+    dest: "{{ item.value.document_root }}/"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+  loop: "{{ nginx_sites | dict2items }}"
+- name: Install fail2ban package
+  ansible.builtin.package:
+    name: fail2ban
+    state: present
+  when: security.fail2ban.enabled | bool
+- name: Configure fail2ban
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: "0644"
+  when: security.fail2ban.enabled | bool
+  notify: Restart fail2ban
+- name: Ensure nginx service is running and enabled
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

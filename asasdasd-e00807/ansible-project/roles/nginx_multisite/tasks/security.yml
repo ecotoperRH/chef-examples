@@ -1,0 +1,68 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+    state: present
+- name: Enable and start fail2ban service
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+- name: Configure fail2ban jail
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+  notify: Restart fail2ban
+- name: Set UFW default deny policy
+  ansible.builtin.command:
+    cmd: ufw --force default deny
+  changed_when: false
+  register: ufw_default_deny
+  failed_when: ufw_default_deny.rc != 0 and "already" not in ufw_default_deny.stderr
+- name: Allow SSH through UFW
+  ansible.builtin.command:
+    cmd: ufw allow ssh
+  changed_when: false
+  register: ufw_allow_ssh
+  failed_when: ufw_allow_ssh.rc != 0 and "already" not in ufw_allow_ssh.stderr
+- name: Allow HTTP through UFW
+  ansible.builtin.command:
+    cmd: ufw allow http
+  changed_when: false
+  register: ufw_allow_http
+  failed_when: ufw_allow_http.rc != 0 and "already" not in ufw_allow_http.stderr
+- name: Allow HTTPS through UFW
+  ansible.builtin.command:
+    cmd: ufw allow https
+  changed_when: false
+  register: ufw_allow_https
+  failed_when: ufw_allow_https.rc != 0 and "already" not in ufw_allow_https.stderr
+- name: Enable UFW
+  ansible.builtin.command:
+    cmd: ufw --force enable
+  changed_when: false
+  register: ufw_enable
+  failed_when: ufw_enable.rc != 0 and "already" not in ufw_enable.stderr
+- name: Configure system security via sysctl
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+  notify: Reload sysctl
+- name: Disable root login in SSH
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+  when: security.ssh.disable_root | bool
+  notify: Restart ssh
+- name: Disable password authentication in SSH
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+  when: not security.ssh.password_auth | bool
+  notify: Restart ssh
