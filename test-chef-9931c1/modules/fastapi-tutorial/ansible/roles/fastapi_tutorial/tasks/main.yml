@@ -1,0 +1,118 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Check if Python 3 is installed
+  ansible.builtin.command:
+    cmd: which python3
+  register: python3_check
+  changed_when: false
+  failed_when: false
+- name: Fail if Python 3 is not installed
+  ansible.builtin.fail:
+    msg: Python 3 is required but not installed
+  when: python3_check.rc != 0
+- name: Install required system packages
+  ansible.builtin.package:
+    name: "{{ fastapi_system_packages }}"
+    state: present
+- name: Create service group
+  ansible.builtin.group:
+    name: "{{ fastapi_service_group }}"
+    state: present
+  when: fastapi_service_group != "root"
+- name: Create service user
+  ansible.builtin.user:
+    name: "{{ fastapi_service_user }}"
+    group: "{{ fastapi_service_group }}"
+    system: true
+    state: present
+  when: fastapi_service_user != "root"
+- name: Create application directory
+  ansible.builtin.file:
+    path: "{{ fastapi_app_dir }}"
+    state: directory
+    owner: "{{ fastapi_service_user }}"
+    group: "{{ fastapi_service_group }}"
+    mode: "0755"
+- name: Clone FastAPI tutorial repository
+  ansible.builtin.git:
+    repo: "{{ fastapi_repo_url }}"
+    dest: "{{ fastapi_app_dir }}"
+    version: "{{ fastapi_repo_branch }}"
+    update: true
+- name: Set ownership of application files
+  ansible.builtin.file:
+    path: "{{ fastapi_app_dir }}"
+    state: directory
+    owner: "{{ fastapi_service_user }}"
+    group: "{{ fastapi_service_group }}"
+    recurse: true
+    mode: "0755"
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ fastapi_venv_path }}
+    creates: "{{ fastapi_venv_path }}"
+- name: Set ownership of virtual environment
+  ansible.builtin.file:
+    path: "{{ fastapi_venv_path }}"
+    state: directory
+    owner: "{{ fastapi_service_user }}"
+    group: "{{ fastapi_service_group }}"
+    recurse: true
+    mode: "0755"
+- name: Install Python dependencies
+  ansible.builtin.command:
+    cmd: "{{ fastapi_venv_path }}/bin/pip install -r {{ fastapi_app_dir }}/requirements.txt"
+    chdir: "{{ fastapi_app_dir }}"
+  register: pip_result
+  changed_when: pip_result.rc == 0 and "Successfully installed" in pip_result.stdout
+- name: Ensure PostgreSQL service is enabled and started
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+- name: Check if database user exists
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ fastapi_db_user }}';"
+  register: db_user_exists
+  changed_when: false
+  no_log: true
+- name: Create database user
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "CREATE USER {{ fastapi_db_user }} WITH PASSWORD '{{ fastapi_db_password }}';"
+  no_log: true
+  when: db_user_exists.stdout != "1"
+- name: Check if database exists
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='{{ fastapi_db_name }}';"
+  register: db_exists
+  changed_when: false
+- name: Create database
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "CREATE DATABASE {{ fastapi_db_name }} OWNER {{ fastapi_db_user }};"
+  when: db_exists.stdout != "1"
+- name: Grant privileges to database user
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ fastapi_db_name }} TO {{ fastapi_db_user }};"
+  when: db_exists.stdout != "1"
+- name: Create environment configuration file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ fastapi_app_dir }}/.env"
+    owner: "{{ fastapi_service_user }}"
+    group: "{{ fastapi_service_group }}"
+    mode: "0644"
+  notify: Restart FastAPI service
+- name: Create systemd service file
+  ansible.builtin.template:
+    src: fastapi-tutorial.service.j2
+    dest: /etc/systemd/system/{{ fastapi_service_name }}.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd daemon
+- name: Ensure FastAPI service is enabled and started
+  ansible.builtin.systemd:
+    name: "{{ fastapi_service_name }}"
+    state: started
+    enabled: true

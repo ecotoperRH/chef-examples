@@ -1,0 +1,90 @@
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+  - name: Create expected directory structure
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/opt/fastapi-tutorial
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin
+    - /tmp/molecule_test/etc/systemd/system
+  - name: Create mock Python virtual environment files
+    ansible.builtin.file:
+      path: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/{{ item }}
+      state: touch
+      mode: '0755'
+    loop:
+    - python
+    - pip
+    - uvicorn
+  - name: Create mock requirements.txt file
+    ansible.builtin.copy:
+      content: 'fastapi==0.68.0
+
+        uvicorn==0.15.0
+
+        sqlalchemy==1.4.23
+
+        psycopg2-binary==2.9.1
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/requirements.txt
+      mode: '0644'
+  - name: Create mock environment configuration file
+    ansible.builtin.copy:
+      content: 'PROJECT_NAME="FastAPI Tutorial"
+
+        API_VERSION=1.0.0
+
+        DATABASE_URL=postgresql://fastapi:fastapi_password@localhost/fastapi_db
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      mode: '0644'
+  - name: Create mock systemd service file
+    ansible.builtin.copy:
+      content: '[Unit]
+
+        Description=FastAPI Tutorial Service
+
+        After=network.target postgresql.service
+
+
+        [Service]
+
+        Type=simple
+
+        User=root
+
+        WorkingDirectory=/tmp/molecule_test/opt/fastapi-tutorial
+
+        Environment="PATH=/tmp/molecule_test/opt/fastapi-tutorial/venv/bin"
+
+        ExecStart=/tmp/molecule_test/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+        Restart=always
+
+
+        [Install]
+
+        WantedBy=multi-user.target
+
+        '
+      dest: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      mode: '0644'
+  - name: Create mock git repository files
+    ansible.builtin.file:
+      path: /tmp/molecule_test/opt/fastapi-tutorial/{{ item }}
+      state: directory
+      mode: '0755'
+    loop:
+    - .git
+    - app
+  - name: Create mock app files
+    ansible.builtin.copy:
+      content: "from fastapi import FastAPI\napp = FastAPI()\n\n@app.get(\"/\")\ndef read_root():\n    return {\"Hello\": \"World\"}\n"
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/app/main.py
+      mode: '0644'
