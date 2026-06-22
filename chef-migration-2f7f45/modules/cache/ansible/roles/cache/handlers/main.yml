@@ -1,0 +1,9 @@
+---
+- name: restart memcached
+  ansible.builtin.service:
+    name: memcached
+    state: restarted
+- name: restart redis
+  ansible.builtin.service:
+    name: "{{ 'redis-server' if ansible_os_family == 'Debian' else 'redis' }}"
+    state: restarted

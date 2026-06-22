@@ -1,0 +1,36 @@
+---
+- name: Ensure memcached user exists
+  ansible.builtin.user:
+    name: "{{ memcached_user }}"
+    system: true
+    state: present
+  when: ansible_os_family != 'FreeBSD'
+- name: Install memcached package
+  ansible.builtin.package:
+    name: memcached
+    state: present
+- name: Ensure memcached log directory exists
+  ansible.builtin.file:
+    path: "{{ '/var/log' }}"
+    state: directory
+    mode: "0755"
+- name: Ensure memcached pid directory exists
+  ansible.builtin.file:
+    path: /var/run/memcached
+    state: directory
+    owner: "{{ memcached_user }}"
+    group: "{{ memcached_group | default(memcached_user) }}"
+    mode: "0755"
+- name: Create memcached configuration file
+  ansible.builtin.template:
+    src: memcached.conf.j2
+    dest: "{{ '/etc/memcached.conf' if ansible_os_family == 'Debian' else '/etc/sysconfig/memcached' }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart memcached
+- name: Ensure memcached service is enabled and running
+  ansible.builtin.service:
+    name: memcached
+    state: started
+    enabled: true

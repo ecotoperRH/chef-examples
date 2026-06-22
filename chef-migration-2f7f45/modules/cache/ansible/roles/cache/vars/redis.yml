@@ -1,0 +1,16 @@
+---
+redis_package_name: "{{ 'redis-server' if ansible_os_family == 'Debian' else 'redis' }}"
+redis_user: redis
+redis_group: redis
+redis_homedir: /var/lib/redis
+redis_shell: "{{ '/bin/false' if ansible_os_family == 'Debian' else '/bin/sh' }}"
+redis_config_dir: "{{ '/etc/redis' if ansible_os_family != 'FreeBSD' else '/usr/local/etc/redis' }}"
+redis_datadir: /var/lib/redis
+redis_logdir: /var/log/redis
+redis_port: 6379
+redis_bind: 127.0.0.1
+redis_databases: 16
+redis_maxclients: 10000
+redis_loglevel: notice
+redis_timeout: 0
+redis_keepalive: 0

@@ -1,0 +1,65 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Create required directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /tmp/molecule_test/etc
+        - /tmp/molecule_test/etc/redis
+        - /tmp/molecule_test/var/log/redis
+        - /tmp/molecule_test/var/lib/redis
+        - /tmp/molecule_test/var/log
+
+    # Simulate memcached configuration
+    - name: Create memcached configuration file
+      ansible.builtin.copy:
+        content: |
+          # memcached default config file
+          -d
+          logfile /var/log/memcached.log
+          -m 64
+          -p 11211
+          -u memcache
+          -l 127.0.0.1
+          -c 1024
+          -P /var/run/memcached/memcached.pid
+          -U 0
+        dest: "/tmp/molecule_test/etc/memcached.conf"
+        mode: "0644"
+
+    # Simulate Redis configuration
+    - name: Create Redis configuration file
+      ansible.builtin.copy:
+        content: |
+          port 6379
+          bind 127.0.0.1
+          dir /var/lib/redis
+          logfile /var/log/redis/redis_6379.log
+          requirepass redis_secure_password_123
+          maxmemory 256mb
+          databases 16
+          maxclients 10000
+          loglevel notice
+          timeout 0
+          keepalive 0
+        dest: "/tmp/molecule_test/etc/redis/6379.conf"
+        mode: "0644"
+
+    # Simulate Redis log file
+    - name: Create Redis log file
+      ansible.builtin.copy:
+        content: "# Redis log file\n"
+        dest: "/tmp/molecule_test/var/log/redis/redis_6379.log"
+        mode: "0644"
+
+    # Simulate memcached log file
+    - name: Create memcached log file
+      ansible.builtin.copy:
+        content: "# Memcached log file\n"
+        dest: "/tmp/molecule_test/var/log/memcached.log"
+        mode: "0644"

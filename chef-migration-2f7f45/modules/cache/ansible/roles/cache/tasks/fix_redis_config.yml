@@ -1,0 +1,18 @@
+---
+- name: Check if Redis configuration file exists
+  ansible.builtin.stat:
+    path: /etc/redis/{{ redis_port }}.conf
+  register: redis_conf_file
+- name: Fix Redis configuration file
+  ansible.builtin.lineinfile:
+    path: /etc/redis/{{ redis_port }}.conf
+    regexp: "{{ item }}"
+    state: absent
+  loop:
+    - ^replica-serve-stale-data.*$
+    - ^replica-read-only.*$
+    - ^repl-ping-replica-period.*$
+    - ^client-output-buffer-limit.*$
+    - ^replica-priority.*$
+  notify: restart redis
+  when: redis_conf_file.stat.exists

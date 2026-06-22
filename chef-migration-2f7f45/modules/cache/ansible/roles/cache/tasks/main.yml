@@ -1,0 +1,33 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Include memcached tasks
+  ansible.builtin.include_tasks: memcached.yml
+- name: Ensure Redis user and group exist
+  ansible.builtin.user:
+    name: redis
+    group: redis
+    system: true
+    create_home: true
+    home: "{{ redis_homedir | default('/var/lib/redis') }}"
+    shell: "{{ redis_shell | default('/bin/false') }}"
+    state: present
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+    recurse: true
+- name: Include Redis role from eloy.redis collection
+  ansible.builtin.include_role:
+    name: eloy.redis.redis
+  vars:
+    redis_port: "{{ redis_port }}"
+    redis_requirepass: "{{ redis_password }}"
+    redis_dir: "{{ redis_dir }}"
+    redis_logfile: "{{ redis_logfile }}"
+    redis_maxmemory: "{{ redis_maxmemory }}"
+- name: Include fix Redis config tasks
+  ansible.builtin.include_tasks: fix_redis_config.yml
