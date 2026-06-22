@@ -1,0 +1,7 @@
+{
+  "policies": {
+    "nginx-multisite-policy": {
+      "revision_id": "be1f84ba30da9db6fe5c1961d51d1ac626790fc3ed9cb78022ad1a8d9a5b1bef"
+    }
+  }
+}
