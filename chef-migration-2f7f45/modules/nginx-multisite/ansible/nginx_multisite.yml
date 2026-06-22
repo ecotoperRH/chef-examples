@@ -1,0 +1,18 @@
+- name: Configure Nginx for multiple websites
+  hosts: webservers
+  become: true
+  vars:
+    nginx_sites:
+    - name: example.com
+      document_root: /var/www/example.com
+      ssl_enabled: true
+    - name: test.com
+      document_root: /var/www/test.com
+      ssl_enabled: false
+    fail2ban_enabled: true
+    fail2ban_bantime: 3600
+    fail2ban_findtime: 600
+    fail2ban_maxretry: 3
+    ssh_disable_root: true
+  roles:
+  - nginx_multisite

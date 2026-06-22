@@ -1,0 +1,47 @@
+---
+- name: Install Nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+  notify: Restart nginx
+- name: Create Nginx configuration directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/nginx/sites-available
+    - /etc/nginx/sites-enabled
+    - /etc/nginx/conf.d
+- name: Configure Nginx main configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: nginx -t -c %s
+  notify: Reload nginx
+- name: Enable Nginx service
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+- name: Configure kernel parameters for web server
+  ansible.builtin.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop:
+    - key: net.core.somaxconn
+      value: "65536"
+    - key: net.ipv4.ip_local_port_range
+      value: 1024 65000
+    - key: net.ipv4.tcp_max_syn_backlog
+      value: "65536"
+    - key: net.ipv4.tcp_tw_reuse
+      value: "1"
+  notify: Apply sysctl settings

@@ -1,0 +1,24 @@
+---
+- name: Copy fail2ban jail configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+- name: Ensure fail2ban filters directory exists
+  ansible.builtin.file:
+    path: /etc/fail2ban/filter.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+- name: Create fail2ban filter for nginx rate limiting
+  ansible.builtin.copy:
+    content: "[Definition]\nfailregex = limiting requests, excess:.* by zone.*client: <HOST>\nignoreregex =\n"
+    dest: /etc/fail2ban/filter.d/nginx-limit-req.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban

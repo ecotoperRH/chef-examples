@@ -1,0 +1,21 @@
+---
+nginx_sites:
+  - name: test.cluster.local
+    document_root: /opt/server/test
+    ssl_enabled: true
+  - name: ci.cluster.local
+    document_root: /opt/server/ci
+    ssl_enabled: true
+  - name: status.cluster.local
+    document_root: /opt/server/status
+    ssl_enabled: true
+ssl_enabled: true
+ssl_provider: letsencrypt
+ssl_certificate_path: /etc/ssl/certs
+ssl_private_key_path: /etc/ssl/private
+fail2ban_enabled: true
+fail2ban_bantime: 3600
+fail2ban_findtime: 600
+fail2ban_maxretry: 3
+ssh_disable_root: true
+ssh_password_auth: false

@@ -1,0 +1,65 @@
+---
+- name: Install fail2ban
+  ansible.builtin.package:
+    name: fail2ban
+    state: present
+  when: fail2ban_enabled | default(true) | bool
+  notify: Restart fail2ban
+- name: Configure fail2ban
+  ansible.builtin.template:
+    src: fail2ban/jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: "0644"
+  when: fail2ban_enabled | default(true) | bool
+  notify: Restart fail2ban
+- name: Enable fail2ban service
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: fail2ban_enabled | default(true) | bool
+- name: Configure SSH security
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - regexp: ^PermitRootLogin
+      line: PermitRootLogin no
+    - regexp: ^PasswordAuthentication
+      line: PasswordAuthentication no
+  when: ssh_disable_root | default(true) | bool
+  notify: Restart ssh
+- name: Install UFW
+  ansible.builtin.package:
+    name: ufw
+    state: present
+- name: Configure UFW default policies
+  community.general.ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - direction: incoming
+      policy: deny
+    - direction: outgoing
+      policy: allow
+- name: Allow SSH through UFW
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+- name: Allow HTTP through UFW
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+- name: Allow HTTPS through UFW
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled

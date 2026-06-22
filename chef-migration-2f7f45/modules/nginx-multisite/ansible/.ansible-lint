@@ -1,0 +1,20 @@
+---
+# .ansible-lint configuration file
+
+# Skip specific rules
+skip_list:
+  - 'R301'  # Skip rule for using short module names
+
+# Enable specific rules
+enable_list:
+  - 'yaml'
+  - 'jinja[spacing]'
+  - 'no-log-password'
+  - 'no-same-owner'
+
+# Exclude paths from linting
+exclude_paths:
+  - .git/
+  - .github/
+  - .venv/
+  - venv/
