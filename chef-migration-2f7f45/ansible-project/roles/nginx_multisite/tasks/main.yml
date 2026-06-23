@@ -1,0 +1,23 @@
+---
+- name: Include credential validation tasks
+  ansible.builtin.import_tasks: validate_credentials.yml
+  tags:
+    - always
+- name: Install Nginx and configure
+  ansible.builtin.import_tasks: nginx.yml
+  tags:
+    - nginx
+    - install
+- name: Configure security settings
+  ansible.builtin.import_tasks: security.yml
+  tags:
+    - security
+- name: Configure SSL
+  ansible.builtin.import_tasks: ssl.yml
+  when: ssl_enabled | default(true) | bool
+  tags:
+    - ssl
+- name: Configure Nginx sites
+  ansible.builtin.import_tasks: sites.yml
+  tags:
+    - sites

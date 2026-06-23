@@ -1,0 +1,36 @@
+---
+- name: Ensure SSL directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ ssl_certificate_path }}"
+    - "{{ ssl_private_key_path }}"
+- name: Install SSL dependencies
+  ansible.builtin.package:
+    name:
+      - openssl
+      - python3-openssl
+    state: present
+- name: Install certbot for Let's Encrypt
+  ansible.builtin.package:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+  when: ssl_provider == 'letsencrypt'
+- name: Generate self-signed SSL certificates
+  community.crypto.openssl_certificate:
+    path: "{{ ssl_certificate_path }}/{{ item.name }}.crt"
+    privatekey_path: "{{ ssl_private_key_path }}/{{ item.name }}.key"
+    provider: selfsigned
+    selfsigned_not_after: +365d
+    common_name: "{{ item.name }}"
+  loop: "{{ nginx_sites }}"
+  when:
+    - ssl_provider == 'self-signed'
+    - item.ssl_enabled | default(true) | bool
+  notify: Reload nginx

@@ -1,0 +1,47 @@
+server {
+    listen 80;
+    server_name {{ item.name }};
+    root {{ item.document_root }};
+    index index.html index.htm;
+
+    access_log /var/log/nginx/{{ item.name }}_access.log;
+    error_log /var/log/nginx/{{ item.name }}_error.log;
+
+{% if item.ssl_enabled | default(true) | bool %}
+    # Redirect HTTP to HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name {{ item.name }};
+    root {{ item.document_root }};
+    index index.html index.htm;
+
+    access_log /var/log/nginx/{{ item.name }}_ssl_access.log;
+    error_log /var/log/nginx/{{ item.name }}_ssl_error.log;
+
+    ssl_certificate {{ ssl_certificate_path }}/{{ item.name }}.crt;
+    ssl_certificate_key {{ ssl_private_key_path }}/{{ item.name }}.key;
+
+{% else %}
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+{% endif %}
+
+{% if item.ssl_enabled | default(true) | bool %}
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-XSS-Protection "1; mode=block";
+    add_header X-Content-Type-Options "nosniff";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+}
+{% endif %}

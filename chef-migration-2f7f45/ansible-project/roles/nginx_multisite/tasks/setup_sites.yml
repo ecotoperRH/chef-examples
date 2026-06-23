@@ -1,0 +1,58 @@
+---
+- name: Create document root directories for sites
+  ansible.builtin.file:
+    path: /opt/server/{{ item }}
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+  loop:
+    - ci
+    - status
+    - test
+- name: Copy default site content for CI site
+  ansible.builtin.copy:
+    src: ci/index.html
+    dest: /opt/server/ci/index.html
+    owner: www-data
+    group: www-data
+    mode: "0644"
+- name: Copy default site content for Status site
+  ansible.builtin.copy:
+    src: status/index.html
+    dest: /opt/server/status/index.html
+    owner: www-data
+    group: www-data
+    mode: "0644"
+- name: Copy default site content for Test site
+  ansible.builtin.copy:
+    src: test/index.html
+    dest: /opt/server/test/index.html
+    owner: www-data
+    group: www-data
+    mode: "0644"
+- name: Create virtual host configurations
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item.name }}
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - name: ci.cluster.local
+      document_root: /opt/server/ci
+    - name: status.cluster.local
+      document_root: /opt/server/status
+    - name: test.cluster.local
+      document_root: /opt/server/test
+  notify: Reload nginx
+- name: Enable virtual host configurations
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item }}
+    dest: /etc/nginx/sites-enabled/{{ item }}
+    state: link
+  loop:
+    - ci.cluster.local
+    - status.cluster.local
+    - test.cluster.local
+  notify: Reload nginx
