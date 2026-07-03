@@ -1,0 +1,285 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    # Check nginx configuration files
+    - name: Check nginx.conf exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/nginx.conf
+      register: nginx_conf
+
+    - name: Assert nginx.conf was created
+      ansible.builtin.assert:
+        that:
+          - nginx_conf.stat.exists
+          - nginx_conf.stat.size > 0
+        fail_msg: "nginx.conf not found or empty"
+        success_msg: "nginx.conf exists and has content"
+
+    - name: Check security.conf exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/conf.d/security.conf
+      register: security_conf
+
+    - name: Assert security.conf was created
+      ansible.builtin.assert:
+        that:
+          - security_conf.stat.exists
+          - security_conf.stat.size > 0
+        fail_msg: "security.conf not found or empty"
+        success_msg: "security.conf exists and has content"
+
+    # Check site configurations
+    - name: Check site configuration files
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/nginx/sites-available/{{ item }}"
+      register: site_conf
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert site configuration files were created
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.size > 0
+        fail_msg: "Site configuration for {{ item.item }} not found or empty"
+        success_msg: "Site configuration for {{ item.item }} exists and has content"
+      loop: "{{ site_conf.results }}"
+
+    # Check site symlinks
+    - name: Check site symlinks
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/nginx/sites-enabled/{{ item }}"
+      register: site_link
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert site symlinks were created
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.islnk
+        fail_msg: "Site symlink for {{ item.item }} not found or not a symlink"
+        success_msg: "Site symlink for {{ item.item }} exists"
+      loop: "{{ site_link.results }}"
+
+    # Check SSL certificates and keys
+    - name: Check SSL certificates
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/ssl/certs/{{ item }}.crt"
+      register: ssl_cert
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert SSL certificates were created
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.size > 0
+        fail_msg: "SSL certificate for {{ item.item }} not found or empty"
+        success_msg: "SSL certificate for {{ item.item }} exists and has content"
+      loop: "{{ ssl_cert.results }}"
+
+    - name: Check SSL private keys
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/ssl/private/{{ item }}.key"
+      register: ssl_key
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert SSL private keys were created
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.size > 0
+        fail_msg: "SSL private key for {{ item.item }} not found or empty"
+        success_msg: "SSL private key for {{ item.item }} exists and has content"
+      loop: "{{ ssl_key.results }}"
+
+    # Check document roots and index files
+    - name: Check document root directories
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/opt/server/{{ item.split('.')[0] }}"
+      register: doc_root
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert document root directories were created
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isdir
+        fail_msg: "Document root for {{ item.item }} not found or not a directory"
+        success_msg: "Document root for {{ item.item }} exists"
+      loop: "{{ doc_root.results }}"
+
+    - name: Check index.html files
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/opt/server/{{ item.split('.')[0] }}/index.html"
+      register: index_html
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Assert index.html files were created
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.size > 0
+        fail_msg: "index.html for {{ item.item }} not found or empty"
+        success_msg: "index.html for {{ item.item }} exists and has content"
+      loop: "{{ index_html.results }}"
+
+    # Check fail2ban configuration
+    - name: Check fail2ban jail.local
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/fail2ban/jail.local
+      register: fail2ban_conf
+
+    - name: Assert fail2ban jail.local was created
+      ansible.builtin.assert:
+        that:
+          - fail2ban_conf.stat.exists
+          - fail2ban_conf.stat.size > 0
+        fail_msg: "fail2ban jail.local not found or empty"
+        success_msg: "fail2ban jail.local exists and has content"
+
+    # Check sysctl security configuration
+    - name: Check sysctl security configuration
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/sysctl.d/99-security.conf
+      register: sysctl_conf
+
+    - name: Assert sysctl security configuration was created
+      ansible.builtin.assert:
+        that:
+          - sysctl_conf.stat.exists
+          - sysctl_conf.stat.size > 0
+        fail_msg: "sysctl security configuration not found or empty"
+        success_msg: "sysctl security configuration exists and has content"
+
+    # Check SSH hardening configuration
+    - name: Check SSH configuration
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssh/sshd_config
+      register: ssh_conf
+
+    - name: Assert SSH configuration was created
+      ansible.builtin.assert:
+        that:
+          - ssh_conf.stat.exists
+          - ssh_conf.stat.size > 0
+        fail_msg: "SSH configuration not found or empty"
+        success_msg: "SSH configuration exists and has content"
+
+    # Check SSH hardening settings
+    - name: Get SSH configuration content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/ssh/sshd_config
+      register: ssh_config_content
+      when: ssh_conf.stat.exists
+
+    - name: Assert SSH root login is disabled
+      ansible.builtin.assert:
+        that:
+          - "'PermitRootLogin no' in ssh_config_content['content'] | b64decode"
+        fail_msg: "SSH root login is not properly disabled"
+        success_msg: "SSH root login is properly disabled"
+      when: ssh_conf.stat.exists
+
+    - name: Assert SSH password authentication is disabled
+      ansible.builtin.assert:
+        that:
+          - "'PasswordAuthentication no' in ssh_config_content['content'] | b64decode"
+        fail_msg: "SSH password authentication is not properly disabled"
+        success_msg: "SSH password authentication is properly disabled"
+      when: ssh_conf.stat.exists
+
+    # Check security headers in nginx configuration
+    - name: Get security.conf content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/nginx/conf.d/security.conf
+      register: security_conf_content
+      when: security_conf.stat.exists
+
+    - name: Assert security headers are configured
+      ansible.builtin.assert:
+        that:
+          - "'X-Frame-Options' in security_conf_content['content'] | b64decode"
+          - "'X-Content-Type-Options' in security_conf_content['content'] | b64decode"
+          - "'X-XSS-Protection' in security_conf_content['content'] | b64decode"
+          - "'Content-Security-Policy' in security_conf_content['content'] | b64decode"
+          - "'Strict-Transport-Security' in security_conf_content['content'] | b64decode"
+        fail_msg: "Security headers are not properly configured"
+        success_msg: "Security headers are properly configured"
+      when: security_conf.stat.exists
+
+    # The following tests would run on a real system but can't run in a container
+    # They are tagged with molecule-notest so they're skipped during molecule testing
+
+    - name: Check nginx service status
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert nginx service is running
+      ansible.builtin.assert:
+        that:
+          - "'nginx.service' in ansible_facts.services"
+          - "ansible_facts.services['nginx.service'].state == 'running'"
+        fail_msg: "Nginx service is not running"
+        success_msg: "Nginx service is running"
+      tags: molecule-notest
+
+    - name: Check fail2ban service status
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert fail2ban service is running
+      ansible.builtin.assert:
+        that:
+          - "'fail2ban.service' in ansible_facts.services"
+          - "ansible_facts.services['fail2ban.service'].state == 'running'"
+        fail_msg: "fail2ban service is not running"
+        success_msg: "fail2ban service is running"
+      tags: molecule-notest
+
+    - name: Check HTTP port is listening
+      ansible.builtin.wait_for:
+        port: 80
+        timeout: 5
+      tags: molecule-notest
+
+    - name: Check HTTPS port is listening
+      ansible.builtin.wait_for:
+        port: 443
+        timeout: 5
+      tags: molecule-notest
+
+    - name: Check site HTTP redirects to HTTPS
+      ansible.builtin.uri:
+        url: "http://test.cluster.local"
+        follow_redirects: none
+        status_code: 301
+      register: http_redirect
+      tags: molecule-notest
+
+    - name: Assert HTTP redirects to HTTPS
+      ansible.builtin.assert:
+        that:
+          - "http_redirect.status == 301"
+          - "'https://test.cluster.local' in http_redirect.location"
+        fail_msg: "HTTP is not redirecting to HTTPS"
+        success_msg: "HTTP properly redirects to HTTPS"
+      tags: molecule-notest

@@ -1,0 +1,26 @@
+---
+- name: Create site configuration files
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item.key }}
+    mode: "0644"
+  vars:
+    server_name: "{{ item.key }}"
+    document_root: "{{ item.value.document_root }}"
+    ssl_enabled: "{{ item.value.ssl_enabled }}"
+    cert_file: "{{ nginx.ssl.certificate_path }}/{{ item.key }}.crt"
+    key_file: "{{ nginx.ssl.private_key_path }}/{{ item.key }}.key"
+  loop: "{{ nginx.sites | dict2items }}"
+  notify: Reload nginx
+- name: Create symlinks to enable sites
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item.key }}
+    dest: /etc/nginx/sites-enabled/{{ item.key }}
+    state: link
+  loop: "{{ nginx.sites | dict2items }}"
+  notify: Reload nginx
+- name: Remove default site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
