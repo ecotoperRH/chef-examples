@@ -1,0 +1,69 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+      - openssh-server
+    state: present
+- name: Enable and start fail2ban service
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+- name: Configure fail2ban
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+  notify: Restart fail2ban
+- name: Set UFW default deny policy
+  ansible.builtin.command:
+    cmd: ufw --force default deny
+  register: ufw_default_deny
+  changed_when: "'Skipping' not in ufw_default_deny.stderr and 'already' not in ufw_default_deny.stderr"
+  failed_when: false
+- name: Allow SSH through UFW
+  ansible.builtin.command:
+    cmd: ufw allow ssh
+  register: ufw_allow_ssh
+  changed_when: "'Skipping' not in ufw_allow_ssh.stderr and 'already' not in ufw_allow_ssh.stderr"
+  failed_when: false
+- name: Allow HTTP through UFW
+  ansible.builtin.command:
+    cmd: ufw allow http
+  register: ufw_allow_http
+  changed_when: "'Skipping' not in ufw_allow_http.stderr and 'already' not in ufw_allow_http.stderr"
+  failed_when: false
+- name: Allow HTTPS through UFW
+  ansible.builtin.command:
+    cmd: ufw allow https
+  register: ufw_allow_https
+  changed_when: "'Skipping' not in ufw_allow_https.stderr and 'already' not in ufw_allow_https.stderr"
+  failed_when: false
+- name: Enable UFW
+  ansible.builtin.command:
+    cmd: ufw --force enable
+  register: ufw_enable
+  changed_when: "'Skipping' not in ufw_enable.stderr and 'already' not in ufw_enable.stderr"
+  failed_when: false
+- name: Configure system security settings
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+  notify: Reload sysctl
+- name: Disable root login if configured
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin.*
+    line: PermitRootLogin no
+  when: security.ssh.disable_root | bool
+  notify: Restart ssh
+- name: Disable password authentication if configured
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication.*
+    line: PasswordAuthentication no
+  when: not security.ssh.password_auth | bool
+  notify: Restart ssh
