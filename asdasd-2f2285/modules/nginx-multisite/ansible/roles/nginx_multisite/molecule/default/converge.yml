@@ -1,0 +1,200 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    # Create base directories
+    - name: Create base directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /tmp/molecule_test/etc/nginx
+        - /tmp/molecule_test/etc/nginx/sites-available
+        - /tmp/molecule_test/etc/nginx/sites-enabled
+        - /tmp/molecule_test/etc/nginx/conf.d
+        - /tmp/molecule_test/etc/fail2ban
+        - /tmp/molecule_test/etc/sysctl.d
+        - /tmp/molecule_test/etc/ssl/certs
+        - /tmp/molecule_test/etc/ssl/private
+        - /tmp/molecule_test/etc/ssh
+        - /tmp/molecule_test/opt/server/test
+        - /tmp/molecule_test/opt/server/ci
+        - /tmp/molecule_test/opt/server/status
+
+    # Create mock configuration files
+    - name: Create mock nginx.conf
+      ansible.builtin.copy:
+        content: |
+          # Mock nginx.conf for testing
+          user www-data;
+          worker_processes auto;
+          pid /run/nginx.pid;
+          events {
+            worker_connections 768;
+          }
+          http {
+            include /etc/nginx/mime.types;
+            include /etc/nginx/conf.d/*.conf;
+            include /etc/nginx/sites-enabled/*;
+          }
+        dest: /tmp/molecule_test/etc/nginx/nginx.conf
+        mode: "0644"
+
+    - name: Create mock security.conf
+      ansible.builtin.copy:
+        content: |
+          # Mock security.conf for testing
+          server_tokens off;
+          add_header X-Frame-Options SAMEORIGIN;
+          add_header X-Content-Type-Options nosniff;
+          add_header X-XSS-Protection "1; mode=block";
+        dest: /tmp/molecule_test/etc/nginx/conf.d/security.conf
+        mode: "0644"
+
+    - name: Create mock fail2ban jail.local
+      ansible.builtin.copy:
+        content: |
+          # Mock fail2ban jail.local for testing
+          [DEFAULT]
+          bantime = 3600
+          findtime = 600
+          maxretry = 5
+          
+          [sshd]
+          enabled = true
+          
+          [nginx-http-auth]
+          enabled = true
+        dest: /tmp/molecule_test/etc/fail2ban/jail.local
+        mode: "0644"
+
+    - name: Create mock sysctl security config
+      ansible.builtin.copy:
+        content: |
+          # Mock sysctl security config for testing
+          net.ipv4.conf.all.rp_filter=1
+          net.ipv4.conf.default.rp_filter=1
+          net.ipv4.conf.all.accept_redirects=0
+          net.ipv4.conf.default.accept_redirects=0
+          net.ipv4.conf.all.secure_redirects=0
+          net.ipv4.conf.default.secure_redirects=0
+          net.ipv4.conf.all.accept_source_route=0
+          net.ipv4.conf.default.accept_source_route=0
+          net.ipv4.conf.all.send_redirects=0
+          net.ipv4.conf.default.send_redirects=0
+          net.ipv4.icmp_echo_ignore_broadcasts=1
+          net.ipv4.tcp_syncookies=1
+          net.ipv4.conf.all.log_martians=1
+          net.ipv4.conf.default.log_martians=1
+        dest: /tmp/molecule_test/etc/sysctl.d/99-security.conf
+        mode: "0644"
+
+    - name: Create mock sshd_config
+      ansible.builtin.copy:
+        content: |
+          # Mock sshd_config for testing
+          PermitRootLogin no
+          PasswordAuthentication no
+        dest: /tmp/molecule_test/etc/ssh/sshd_config
+        mode: "0644"
+
+    # Create mock site configurations
+    - name: Create mock site configurations
+      ansible.builtin.copy:
+        content: |
+          # Mock {{ item }} configuration
+          server {
+              listen 80;
+              server_name {{ item }};
+              return 301 https://$host$request_uri;
+          }
+          
+          server {
+              listen 443 ssl;
+              server_name {{ item }};
+              
+              ssl_certificate /etc/ssl/certs/{{ item }}.crt;
+              ssl_certificate_key /etc/ssl/private/{{ item }}.key;
+              
+              root /opt/server/{{ item.split('.')[0] }};
+              index index.html;
+              
+              location / {
+                  try_files $uri $uri/ =404;
+              }
+          }
+        dest: "/tmp/molecule_test/etc/nginx/sites-available/{{ item }}"
+        mode: "0644"
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    # Create mock site symlinks
+    - name: Create mock site symlinks
+      ansible.builtin.file:
+        src: "/tmp/molecule_test/etc/nginx/sites-available/{{ item }}"
+        dest: "/tmp/molecule_test/etc/nginx/sites-enabled/{{ item }}"
+        state: link
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    # Create mock SSL certificates and keys
+    - name: Create mock SSL certificates
+      ansible.builtin.copy:
+        content: |
+          -----BEGIN CERTIFICATE-----
+          MIIDazCCAlOgAwIBAgIUJozA8aMhE9B5H7LhZ+J2dODFm+IwDQYJKoZIhvcNAQEL
+          BQAwRTELMAkGA1UEBhMCVVMxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM
+          GEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yMzA0MTAxMjAwMDBaFw0yNDA0
+          MDkxMjAwMDBaMEUxCzAJBgNVBAYTAlVTMRMwEQYDVQQIDApTb21lLVN0YXRlMSEw
+          HwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwggEiMA0GCSqGSIb3DQEB
+          AQUAA4IBDwAwggEKAoIBAQDCpvMVRQFJcUw4nVOI8kyZcIZRXLZYAZ9Bx2g5jkIJ
+          Mock-Certificate-For-{{ item }}
+          -----END CERTIFICATE-----
+        dest: "/tmp/molecule_test/etc/ssl/certs/{{ item }}.crt"
+        mode: "0644"
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    - name: Create mock SSL keys
+      ansible.builtin.copy:
+        content: |
+          -----BEGIN PRIVATE KEY-----
+          MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDCpvMVRQFJcUw4
+          nVOI8kyZcIZRXLZYAZ9Bx2g5jkIJ
+          Mock-Private-Key-For-{{ item }}
+          -----END PRIVATE KEY-----
+        dest: "/tmp/molecule_test/etc/ssl/private/{{ item }}.key"
+        mode: "0640"
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+
+    # Create mock index.html files
+    - name: Create mock index.html files
+      ansible.builtin.copy:
+        content: |
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>{{ item.split('.')[0] | capitalize }} Environment</title>
+          </head>
+          <body>
+            <h1>Welcome to {{ item.split('.')[0] | capitalize }} Environment</h1>
+            <p>This is a mock index.html for {{ item }}</p>
+          </body>
+          </html>
+        dest: "/tmp/molecule_test/opt/server/{{ item.split('.')[0] }}/index.html"
+        mode: "0644"
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
