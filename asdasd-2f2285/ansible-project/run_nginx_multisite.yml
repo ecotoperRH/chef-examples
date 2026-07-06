@@ -1,0 +1,7 @@
+---
+- name: Run nginx_multisite
+  hosts: all
+
+
+  roles:
+    - nginx_multisite
