@@ -1,0 +1,29 @@
+---
+- name: Ensure nginx sites directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /etc/nginx/sites-available
+    - /etc/nginx/sites-enabled
+- name: Create nginx site configurations
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item.key }}
+    mode: "0644"
+  vars:
+    server_name: "{{ item.key }}"
+    document_root: /opt/server/{{ item.key.split('.')[0] }}
+    ssl_enabled: "{{ item.value.ssl_enabled | default(true) }}"
+    cert_file: /etc/ssl/certs/{{ item.key }}.crt
+    key_file: /etc/ssl/private/{{ item.key }}.key
+  loop: "{{ nginx_sites | dict2items }}"
+  notify: Reload nginx
+- name: Enable nginx sites
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item.key }}
+    dest: /etc/nginx/sites-enabled/{{ item.key }}
+    state: link
+  loop: "{{ nginx_sites | dict2items }}"
+  notify: Reload nginx

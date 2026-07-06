@@ -1,0 +1,63 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+      - openssh-server
+    state: present
+- name: Configure fail2ban
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+  notify: Restart fail2ban
+- name: Enable and start fail2ban service
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+- name: Configure system security via sysctl
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+  notify: Reload sysctl
+- name: Check UFW status
+  ansible.builtin.command: ufw status
+  register: ufw_status
+  changed_when: false
+- name: Set UFW default deny policy
+  ansible.builtin.command: ufw default deny
+  changed_when: false
+  when: "'Status: active' not in ufw_status.stdout"
+- name: Allow SSH through UFW
+  ansible.builtin.command: ufw allow ssh
+  changed_when: false
+  when: "'Status: active' not in ufw_status.stdout or 'ssh' not in ufw_status.stdout"
+- name: Allow HTTP through UFW
+  ansible.builtin.command: ufw allow http
+  changed_when: false
+  when: "'Status: active' not in ufw_status.stdout or 'http' not in ufw_status.stdout"
+- name: Allow HTTPS through UFW
+  ansible.builtin.command: ufw allow https
+  changed_when: false
+  when: "'Status: active' not in ufw_status.stdout or 'https' not in ufw_status.stdout"
+- name: Enable UFW
+  ansible.builtin.command: ufw --force enable
+  changed_when: false
+  when: "'Status: active' not in ufw_status.stdout"
+- name: Disable SSH root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    state: present
+  notify: Reload sshd
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    state: present
+  notify: Reload sshd

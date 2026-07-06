@@ -1,0 +1,38 @@
+---
+- name: Install SSL-related packages
+  ansible.builtin.package:
+    name:
+      - openssl
+      - ssl-cert
+    state: present
+- name: Create ssl-cert group
+  ansible.builtin.group:
+    name: ssl-cert
+    state: present
+- name: Create certificate and private key directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: ssl-cert
+    mode: "{{ '0755' if item == '/etc/ssl/certs' else '0750' }}"
+  loop:
+    - /etc/ssl/certs
+    - /etc/ssl/private
+- name: Generate self-signed SSL certificates
+  ansible.builtin.command: 'openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/{{ item.key }}.key -out /etc/ssl/certs/{{ item.key }}.crt
+    -subj "/C=US/ST=State/L=City/O=Organization/CN={{ item.key }}"
+
+    '
+  args:
+    creates: /etc/ssl/certs/{{ item.key }}.crt
+  loop: "{{ nginx_sites | dict2items }}"
+  when: item.value.ssl_enabled | default(true)
+- name: Set proper permissions on SSL private keys
+  ansible.builtin.file:
+    path: /etc/ssl/private/{{ item.key }}.key
+    owner: root
+    group: ssl-cert
+    mode: "0640"
+  loop: "{{ nginx_sites | dict2items }}"
+  when: item.value.ssl_enabled | default(true)
