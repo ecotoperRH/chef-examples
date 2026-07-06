@@ -1,0 +1,45 @@
+---
+- name: Ensure www-data user and group exist
+  ansible.builtin.user:
+    name: www-data
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+    state: present
+- name: Install nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+- name: Configure nginx.conf
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+  notify: Reload nginx
+- name: Configure security.conf
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    mode: "0644"
+  notify: Reload nginx
+- name: Enable and start nginx service
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+- name: Create document root directories
+  ansible.builtin.file:
+    path: /opt/server/{{ item.split('.')[0] }}
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+  loop: "{{ nginx_sites | dict2items | map(attribute='key') | list }}"
+- name: Deploy index.html files
+  ansible.builtin.copy:
+    src: "{{ item.split('.')[0] }}/index.html"
+    dest: /opt/server/{{ item.split('.')[0] }}/index.html
+    owner: www-data
+    group: www-data
+    mode: "0644"
+  loop: "{{ nginx_sites | dict2items | map(attribute='key') | list }}"

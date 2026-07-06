@@ -1,0 +1,11 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Configure security settings
+  ansible.builtin.include_tasks: security.yml
+- name: Install and configure nginx
+  ansible.builtin.include_tasks: nginx.yml
+- name: Configure SSL certificates
+  ansible.builtin.include_tasks: ssl.yml
+- name: Configure nginx sites
+  ansible.builtin.include_tasks: sites.yml

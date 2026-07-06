@@ -1,0 +1,164 @@
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Verify fail2ban configuration
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/etc/fail2ban/jail.local
+    register: fail2ban_config
+  - name: Assert fail2ban configuration exists
+    ansible.builtin.assert:
+      that:
+      - fail2ban_config.stat.exists
+      success_msg: fail2ban configuration exists
+      fail_msg: fail2ban configuration does not exist
+  - name: Verify sysctl security configuration
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/etc/sysctl.d/99-security.conf
+    register: sysctl_config
+  - name: Assert sysctl security configuration exists
+    ansible.builtin.assert:
+      that:
+      - sysctl_config.stat.exists
+      success_msg: sysctl security configuration exists
+      fail_msg: sysctl security configuration does not exist
+  - name: Verify SSH hardening configuration
+    ansible.builtin.command: grep -E "PermitRootLogin no|PasswordAuthentication no" /tmp/molecule_test/etc/ssh/sshd_config
+    register: ssh_config
+    changed_when: false
+  - name: Assert SSH hardening configuration is correct
+    ansible.builtin.assert:
+      that:
+      - '''PermitRootLogin no'' in ssh_config.stdout'
+      - '''PasswordAuthentication no'' in ssh_config.stdout'
+      success_msg: SSH hardening configuration is correct
+      fail_msg: SSH hardening configuration is incorrect
+  - name: Verify nginx.conf
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/etc/nginx/nginx.conf
+    register: nginx_conf
+  - name: Assert nginx.conf exists
+    ansible.builtin.assert:
+      that:
+      - nginx_conf.stat.exists
+      success_msg: nginx.conf exists
+      fail_msg: nginx.conf does not exist
+  - name: Verify security.conf
+    ansible.builtin.stat:
+      path: /tmp/molecule_test/etc/nginx/conf.d/security.conf
+    register: security_conf
+  - name: Assert security.conf exists
+    ansible.builtin.assert:
+      that:
+      - security_conf.stat.exists
+      success_msg: security.conf exists
+      fail_msg: security.conf does not exist
+  - name: Get list of site configurations
+    ansible.builtin.find:
+      paths: /tmp/molecule_test/etc/nginx/sites-available
+      patterns: '*'
+    register: site_configs
+  - name: Assert site configurations exist
+    ansible.builtin.assert:
+      that:
+      - site_configs.files | length >= 3
+      success_msg: Site configurations exist
+      fail_msg: Site configurations do not exist
+  - name: Get list of enabled sites
+    ansible.builtin.find:
+      paths: /tmp/molecule_test/etc/nginx/sites-enabled
+      patterns: '*'
+    register: enabled_sites
+  - name: Assert sites are enabled
+    ansible.builtin.assert:
+      that:
+      - enabled_sites.files | length >= 3
+      success_msg: Sites are enabled
+      fail_msg: Sites are not enabled
+  - name: Get list of SSL certificates
+    ansible.builtin.find:
+      paths: /tmp/molecule_test/etc/ssl/certs
+      patterns: '*.crt'
+    register: ssl_certs
+  - name: Assert SSL certificates exist
+    ansible.builtin.assert:
+      that:
+      - ssl_certs.files | length >= 3
+      success_msg: SSL certificates exist
+      fail_msg: SSL certificates do not exist
+  - name: Get list of SSL private keys
+    ansible.builtin.find:
+      paths: /tmp/molecule_test/etc/ssl/private
+      patterns: '*.key'
+    register: ssl_keys
+  - name: Assert SSL private keys exist
+    ansible.builtin.assert:
+      that:
+      - ssl_keys.files | length >= 3
+      success_msg: SSL private keys exist
+      fail_msg: SSL private keys do not exist
+  - name: Get list of document roots
+    ansible.builtin.find:
+      paths: /tmp/molecule_test/opt/server
+      file_type: directory
+    register: document_roots
+  - name: Assert document roots exist
+    ansible.builtin.assert:
+      that:
+      - document_roots.files | length >= 3
+      success_msg: Document roots exist
+      fail_msg: Document roots do not exist
+  - name: Get list of index.html files
+    ansible.builtin.find:
+      paths: /tmp/molecule_test/opt/server
+      patterns: '*/index.html'
+      recurse: true
+    register: index_files
+  - name: Assert index.html files exist
+    ansible.builtin.assert:
+      that:
+      - index_files.files | length >= 3
+      success_msg: index.html files exist
+      fail_msg: index.html files do not exist
+  - name: Check if nginx service is running
+    ansible.builtin.service_facts: null
+    tags: molecule-notest
+  - name: Assert nginx service is running
+    ansible.builtin.assert:
+      that:
+      - ansible_facts.services['nginx.service'].state == 'running'
+      success_msg: nginx service is running
+      fail_msg: nginx service is not running
+    tags: molecule-notest
+  - name: Check if fail2ban service is running
+    ansible.builtin.assert:
+      that:
+      - ansible_facts.services['fail2ban.service'].state == 'running'
+      success_msg: fail2ban service is running
+      fail_msg: fail2ban service is not running
+    tags: molecule-notest
+  - name: Check if nginx is listening on port 80
+    ansible.builtin.wait_for:
+      port: 80
+      timeout: 5
+    tags: molecule-notest
+  - name: Check if nginx is listening on port 443
+    ansible.builtin.wait_for:
+      port: 443
+      timeout: 5
+    tags: molecule-notest
+  - name: Check if test site is accessible
+    ansible.builtin.uri:
+      url: https://test.cluster.local
+      validate_certs: false
+      return_content: true
+    register: test_site
+    tags: molecule-notest
+  - name: Assert test site is accessible
+    ansible.builtin.assert:
+      that:
+      - test_site.status == 200
+      - '''Test Site'' in test_site.content'
+      success_msg: Test site is accessible
+      fail_msg: Test site is not accessible
+    tags: molecule-notest
