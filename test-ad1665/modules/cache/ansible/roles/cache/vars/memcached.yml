@@ -1,0 +1,4 @@
+---
+memcached_package_name: memcached
+memcached_service_name: memcached
+memcached_config_file: /etc/memcached.conf

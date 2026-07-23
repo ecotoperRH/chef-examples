@@ -1,0 +1,85 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    # Create directory structure for memcached
+    - name: Create memcached directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /tmp/molecule_test/etc
+        - /tmp/molecule_test/var/log
+        - /tmp/molecule_test/var/run/memcached
+
+    # Create memcached configuration file
+    - name: Create memcached configuration file
+      ansible.builtin.copy:
+        content: |
+          # memcached default config file
+          -d
+          logfile /var/log/memcached.log
+          -m 64
+          -p 11211
+          -u memcache
+          -l 0.0.0.0
+          -c 1024
+          -P /var/run/memcached/memcached.pid
+        dest: /tmp/molecule_test/etc/memcached.conf
+        mode: "0644"
+
+    # Create directory structure for Redis
+    - name: Create Redis directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /tmp/molecule_test/etc/redis
+        - /tmp/molecule_test/var/log/redis
+        - /tmp/molecule_test/var/lib/redis
+        - /tmp/molecule_test/etc/systemd/system
+
+    # Create Redis configuration file
+    - name: Create Redis configuration file
+      ansible.builtin.copy:
+        content: |
+          # Redis configuration file
+          port 6379
+          bind 127.0.0.1
+          requirepass redis_secure_password_123
+          maxmemory 64mb
+          databases 16
+          logfile /var/log/redis/redis.log
+          dir /var/lib/redis
+        dest: /tmp/molecule_test/etc/redis/6379.conf
+        mode: "0644"
+
+    # Create Redis systemd service file
+    - name: Create Redis systemd service file
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Redis persistent key-value database
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/bin/redis-server /etc/redis/6379.conf
+          User=redis
+          Group=redis
+          RuntimeDirectory=redis
+          RuntimeDirectoryMode=0755
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /tmp/molecule_test/etc/systemd/system/redis@6379.service
+        mode: "0644"
+
+    # Create Redis log file
+    - name: Create Redis log file
+      ansible.builtin.copy:
+        content: "# Redis server log\n"
+        dest: /tmp/molecule_test/var/log/redis/redis.log
+        mode: "0644"

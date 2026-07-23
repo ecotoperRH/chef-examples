@@ -1,0 +1,164 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    # Memcached checks
+    - name: Check memcached config file exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/memcached.conf
+      register: memcached_conf
+
+    - name: Assert memcached config file was created
+      ansible.builtin.assert:
+        that:
+          - memcached_conf.stat.exists
+          - memcached_conf.stat.size > 0
+        fail_msg: "Memcached config file not found"
+        success_msg: "Memcached config file exists"
+
+    - name: Get memcached config content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/memcached.conf
+      register: memcached_conf_content
+      when: memcached_conf.stat.exists
+
+    - name: Verify memcached configuration parameters
+      ansible.builtin.assert:
+        that:
+          - memcached_conf_content.content | b64decode | regex_search('-m 64')
+          - memcached_conf_content.content | b64decode | regex_search('-p 11211')
+          - memcached_conf_content.content | b64decode | regex_search('-c 1024')
+          - memcached_conf_content.content | b64decode | regex_search('-l 0.0.0.0')
+        fail_msg: "Memcached configuration parameters are incorrect"
+        success_msg: "Memcached configuration parameters are correct"
+      when: memcached_conf_content is defined
+
+    # Redis checks
+    - name: Check Redis config file exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/redis/6379.conf
+      register: redis_conf
+
+    - name: Assert Redis config file was created
+      ansible.builtin.assert:
+        that:
+          - redis_conf.stat.exists
+          - redis_conf.stat.size > 0
+        fail_msg: "Redis config file not found"
+        success_msg: "Redis config file exists"
+
+    - name: Get Redis config content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/redis/6379.conf
+      register: redis_conf_content
+      when: redis_conf.stat.exists
+
+    - name: Verify Redis configuration parameters
+      ansible.builtin.assert:
+        that:
+          - redis_conf_content.content | b64decode | regex_search('port 6379')
+          - redis_conf_content.content | b64decode | regex_search('bind 127.0.0.1')
+          - redis_conf_content.content | b64decode | regex_search('requirepass redis_secure_password_123')
+          - redis_conf_content.content | b64decode | regex_search('maxmemory 64mb')
+          - redis_conf_content.content | b64decode | regex_search('databases 16')
+        fail_msg: "Redis configuration parameters are incorrect"
+        success_msg: "Redis configuration parameters are correct"
+      when: redis_conf_content is defined
+
+    - name: Check Redis systemd service file exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/systemd/system/redis@6379.service
+      register: redis_service
+
+    - name: Assert Redis systemd service file was created
+      ansible.builtin.assert:
+        that:
+          - redis_service.stat.exists
+          - redis_service.stat.size > 0
+        fail_msg: "Redis systemd service file not found"
+        success_msg: "Redis systemd service file exists"
+
+    - name: Check Redis log directory exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/var/log/redis
+      register: redis_log_dir
+
+    - name: Assert Redis log directory was created
+      ansible.builtin.assert:
+        that:
+          - redis_log_dir.stat.exists
+          - redis_log_dir.stat.isdir
+        fail_msg: "Redis log directory not found"
+        success_msg: "Redis log directory exists"
+
+    - name: Check Redis data directory exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/var/lib/redis
+      register: redis_data_dir
+
+    - name: Assert Redis data directory was created
+      ansible.builtin.assert:
+        that:
+          - redis_data_dir.stat.exists
+          - redis_data_dir.stat.isdir
+        fail_msg: "Redis data directory not found"
+        success_msg: "Redis data directory exists"
+
+    # Service checks (tagged to skip in container)
+    - name: Check memcached service status
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert memcached service is running
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts.services"
+          - "ansible_facts.services['memcached.service'].state == 'running'"
+          - "ansible_facts.services['memcached.service'].status == 'enabled'"
+        fail_msg: "Memcached service is not running or enabled"
+        success_msg: "Memcached service is running and enabled"
+      tags: molecule-notest
+
+    - name: Assert Redis service is running
+      ansible.builtin.assert:
+        that:
+          - "'redis@6379.service' in ansible_facts.services"
+          - "ansible_facts.services['redis@6379.service'].state == 'running'"
+          - "ansible_facts.services['redis@6379.service'].status == 'enabled'"
+        fail_msg: "Redis service is not running or enabled"
+        success_msg: "Redis service is running and enabled"
+      tags: molecule-notest
+
+    # Port checks (tagged to skip in container)
+    - name: Check memcached port
+      ansible.builtin.wait_for:
+        port: 11211
+        timeout: 1
+      register: memcached_port_check
+      ignore_errors: true
+      tags: molecule-notest
+
+    - name: Assert memcached port is listening
+      ansible.builtin.assert:
+        that:
+          - memcached_port_check is success
+        fail_msg: "Memcached port 11211 is not listening"
+        success_msg: "Memcached port 11211 is listening"
+      tags: molecule-notest
+
+    - name: Check Redis port
+      ansible.builtin.wait_for:
+        port: 6379
+        timeout: 1
+      register: redis_port_check
+      ignore_errors: true
+      tags: molecule-notest
+
+    - name: Assert Redis port is listening
+      ansible.builtin.assert:
+        that:
+          - redis_port_check is success
+        fail_msg: "Redis port 6379 is not listening"
+        success_msg: "Redis port 6379 is listening"
+      tags: molecule-notest

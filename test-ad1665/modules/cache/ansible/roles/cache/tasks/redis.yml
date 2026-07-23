@@ -1,0 +1,40 @@
+---
+- name: Configure Redis with authentication
+  ansible.builtin.include_role:
+    name: eloy.redis.redis
+  vars:
+    redis_port: "{{ redis_port }}"
+    redis_requirepass: "{{ redis_requirepass }}"
+    redis_bind: "{{ redis_bind }}"
+    redis_maxmemory: "{{ redis_maxmemory }}"
+    redis_databases: "{{ redis_databases }}"
+    redis_logfile: "{{ redis_logfile }}"
+    redis_dir: "{{ redis_dir }}"
+- name: Ensure Redis user exists
+  ansible.builtin.user:
+    name: redis
+    system: true
+    shell: /sbin/nologin
+    home: /var/lib/redis
+    create_home: false
+    state: present
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    owner: redis
+    group: redis
+    mode: "0755"
+    state: directory
+    recurse: true
+- name: Fix Redis configuration
+  ansible.builtin.lineinfile:
+    path: /etc/redis/{{ redis_port }}.conf
+    regexp: "{{ item }}"
+    state: absent
+  loop:
+    - ^replica-serve-stale-data.*$
+    - ^replica-read-only.*$
+    - ^repl-ping-replica-period.*$
+    - ^client-output-buffer-limit.*$
+    - ^replica-priority.*$
+  notify: restart redis

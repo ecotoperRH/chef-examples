@@ -1,0 +1,13 @@
+---
+memcached_memory: 64
+memcached_port: 11211
+memcached_max_connections: 1024
+memcached_user: memcache
+memcached_listen: 0.0.0.0
+redis_port: 6379
+redis_bind: 127.0.0.1
+redis_requirepass: "{{ password | default('redis_secure_password_123') }}"
+redis_maxmemory: 64mb
+redis_databases: 16
+redis_logfile: /var/log/redis/redis.log
+redis_dir: /var/lib/redis

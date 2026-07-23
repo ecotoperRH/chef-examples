@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  role_name: cache
+  namespace: x2a
+  author: Chef Example
+  description: Configures caching services (memcached and redis)
+  license: Apache-2.0
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - bionic
+        - focal
+        - jammy
+    - name: EL
+      versions:
+        - "7"
+        - "8"
+        - "9"
+  galaxy_tags:
+    - cache
+    - memcached
+    - redis
+dependencies:
+  - name: eloy.redis
+    version: 1.0.0

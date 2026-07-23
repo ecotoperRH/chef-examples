@@ -1,0 +1,4 @@
+---
+redis_package_name: redis-server
+redis_service_name: redis@{{ redis_port }}
+redis_config_file: /etc/redis/{{ redis_port }}.conf
