@@ -1,0 +1,98 @@
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+  - name: Create expected directories
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/opt
+    - /tmp/molecule_test/opt/fastapi-tutorial
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin
+    - /tmp/molecule_test/etc
+    - /tmp/molecule_test/etc/systemd
+    - /tmp/molecule_test/etc/systemd/system
+  - name: Create mock Python executable
+    ansible.builtin.copy:
+      content: '#!/bin/sh echo ''Python 3.8.10'''
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/python
+      mode: '0755'
+  - name: Create mock pip executable
+    ansible.builtin.copy:
+      content: '#!/bin/sh echo ''pip 21.0.1'''
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/pip
+      mode: '0755'
+  - name: Create mock uvicorn executable
+    ansible.builtin.copy:
+      content: '#!/bin/sh echo ''Starting uvicorn server...'''
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/uvicorn
+      mode: '0755'
+  - name: Create mock requirements.txt
+    ansible.builtin.copy:
+      content: 'fastapi==0.68.0
+
+        uvicorn==0.15.0
+
+        sqlalchemy==1.4.23
+
+        psycopg2-binary==2.9.1
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/requirements.txt
+      mode: '0644'
+  - name: Create mock .env file
+    ansible.builtin.copy:
+      content: 'PROJECT_NAME="FastAPI Tutorial"
+
+        API_VERSION=1.0.0
+
+        DATABASE_URL=postgresql://fastapi:fastapi_password@localhost/fastapi_db
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      mode: '0644'
+  - name: Create mock systemd service file
+    ansible.builtin.copy:
+      content: '[Unit]
+
+        Description=FastAPI Tutorial Service
+
+        After=network.target postgresql.service
+
+
+        [Service]
+
+        Type=simple
+
+        User=root
+
+        WorkingDirectory=/opt/fastapi-tutorial
+
+        Environment="PATH=/opt/fastapi-tutorial/venv/bin"
+
+        ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+        Restart=always
+
+
+        [Install]
+
+        WantedBy=multi-user.target
+
+        '
+      dest: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      mode: '0644'
+  - name: Create mock git repository files
+    ansible.builtin.file:
+      path: /tmp/molecule_test/opt/fastapi-tutorial/.git
+      state: directory
+      mode: '0755'
+  - name: Create mock git config file
+    ansible.builtin.copy:
+      content: "[core]\n  repositoryformatversion = 0\n  filemode = true\n  bare = false\n  logallrefupdates = true\n[remote \"origin\"]\n  url = https://github.com/dibanez/fastapi_tutorial.git\n
+        \ fetch = +refs/heads/*:refs/remotes/origin/*\n[branch \"main\"]\n  remote = origin\n  merge = refs/heads/main\n"
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/.git/config
+      mode: '0644'
