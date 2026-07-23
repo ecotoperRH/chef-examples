@@ -1,0 +1,20 @@
+[
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Configures caching services (Memcached and Redis) with Redis password authentication and Memcached configuration.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Configures FastAPI Python application with PostgreSQL database, including Python virtual environment setup, Git repository deployment, and systemd service management.",
+    "technology": "Chef"
+  },
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Configures Nginx with multiple SSL-enabled subdomains, security hardening, and site configurations including SSL certificate generation and security features.",
+    "technology": "Chef"
+  }
+]
