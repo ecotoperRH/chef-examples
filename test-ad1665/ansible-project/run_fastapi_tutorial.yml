@@ -1,0 +1,7 @@
+---
+- name: Run fastapi_tutorial
+  hosts: all
+
+
+  roles:
+    - fastapi_tutorial
