@@ -1,5 +1,5 @@
 {
-  "revision_id": "be1f84ba30da9db6fe5c1961d51d1ac626790fc3ed9cb78022ad1a8d9a5b1bef",
+  "revision_id": "6689d788b8a04d2aa139b541887464145a8d356e345f80d2b089e56442d0aa56",
   "name": "nginx-multisite-policy",
   "run_list": [
     "recipe[nginx-multisite::default]",
@@ -18,12 +18,12 @@
       "cache_key": null,
       "scm_info": {
         "scm": "git",
-        "remote": "https://github.com/ecotoperRH/chef-examples.git",
-        "revision": "3a4af97efad906c7dec298cd926d65109fef8216",
+        "remote": null,
+        "revision": "c7845a88d33d7664bf0fcf5aa567d33ce7a2684c",
         "working_tree_clean": false,
-        "published": true,
+        "published": false,
         "synchronized_remote_branches": [
-          "origin/main"
+
         ]
       },
       "source_options": {
@@ -32,18 +32,18 @@
     },
     "fastapi-tutorial": {
       "version": "1.0.0",
-      "identifier": "dd2f622316b9a9e4b9bf50d492ffa2551017405b",
-      "dotted_decimal_identifier": "62258068395047337.64380526036030207.178486225879131",
+      "identifier": "1fd2adb58829736bac3130cf176fedaa91529fa3",
+      "dotted_decimal_identifier": "8957367794805107.30307149780293487.261316838334371",
       "source": "cookbooks/fastapi-tutorial",
       "cache_key": null,
       "scm_info": {
         "scm": "git",
-        "remote": "https://github.com/ecotoperRH/chef-examples.git",
-        "revision": "3a4af97efad906c7dec298cd926d65109fef8216",
+        "remote": null,
+        "revision": "c7845a88d33d7664bf0fcf5aa567d33ce7a2684c",
         "working_tree_clean": false,
-        "published": true,
+        "published": false,
         "synchronized_remote_branches": [
-          "origin/main"
+
         ]
       },
       "source_options": {
@@ -80,12 +80,12 @@
       "cache_key": null,
       "scm_info": {
         "scm": "git",
-        "remote": "https://github.com/ecotoperRH/chef-examples.git",
-        "revision": "3a4af97efad906c7dec298cd926d65109fef8216",
+        "remote": null,
+        "revision": "c7845a88d33d7664bf0fcf5aa567d33ce7a2684c",
         "working_tree_clean": false,
-        "published": true,
+        "published": false,
         "synchronized_remote_branches": [
-          "origin/main"
+
         ]
       },
       "source_options": {
