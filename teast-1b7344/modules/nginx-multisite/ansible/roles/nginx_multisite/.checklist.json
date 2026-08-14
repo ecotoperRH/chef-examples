@@ -1,0 +1,189 @@
+{
+  "module_name": "nginx_multisite",
+  "items": [
+    {
+      "category": "structure",
+      "source_path": "cookbooks/nginx-multisite/metadata.rb",
+      "target_path": "ansible/roles/nginx_multisite/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata (author, description, platforms, dependencies)",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for nginx reload, fail2ban restart, and ssh restart",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/tasks/main.yml",
+      "status": "complete",
+      "description": "Role entry point \u2014 includes security, nginx, ssl, sites task files",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "attributes",
+      "source_path": "cookbooks/nginx-multisite/attributes/default.rb",
+      "target_path": "ansible/roles/nginx_multisite/defaults/main.yml",
+      "status": "complete",
+      "description": "Default attributes: sites list (server_name, document_root, ssl settings), security SSH flags, nginx worker/gzip settings, fail2ban jail parameters",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/default.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/main.yml",
+      "status": "complete",
+      "description": "Entry point recipe \u2014 includes security, nginx, ssl, sites in order",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/security.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/security.yml",
+      "status": "complete",
+      "description": "Security hardening: install fail2ban+ufw, deploy jail.local, configure UFW rules, deploy sysctl hardening, harden sshd_config (PermitRootLogin, PasswordAuthentication)",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/nginx.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/nginx.yml",
+      "status": "complete",
+      "description": "Install nginx, deploy nginx.conf and security.conf, enable/start nginx service, create document root directories, deploy static index.html files for all 3 sites",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/ssl.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/ssl.yml",
+      "status": "complete",
+      "description": "Install openssl+ca-certificates, create ssl-cert group, create SSL dirs, generate self-signed RSA 2048 certs for all 3 sites (idempotent via creates:), set key permissions (640, root:ssl-cert)",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/sites.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/sites.yml",
+      "status": "complete",
+      "description": "Deploy per-site nginx vhost configs from site.conf.erb, create sites-enabled symlinks for all 3 sites, remove default site symlink",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/fail2ban.jail.local.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/fail2ban.jail.local.j2",
+      "status": "complete",
+      "description": "fail2ban jail configuration: [DEFAULT] bantime/findtime/maxretry, [sshd], [nginx-http-auth], [nginx-limit-req], [nginx-botsearch] jails",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/nginx.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/nginx.conf.j2",
+      "status": "complete",
+      "description": "Global nginx configuration: user www-data, worker_processes auto, worker_connections, sendfile, gzip, log paths, includes conf.d/*.conf and sites-enabled/*",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/security.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/security.conf.j2",
+      "status": "complete",
+      "description": "Nginx security snippet: server_tokens off, rate limit zones, buffer limits, timeouts, global SSL settings (TLSv1.2/1.3, cipher suite, session cache)",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/site.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/site.conf.j2",
+      "status": "complete",
+      "description": "Per-site nginx vhost config: HTTP\u2192HTTPS 301 redirect, HTTPS with ssl http2, TLSv1.2/1.3, HSTS, security headers, gzip, try_files, deny .ht*/.git/.svn, per-site access/error logs. Rendered 3 times (test, ci, status)",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/sysctl-security.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/sysctl-security.conf.j2",
+      "status": "complete",
+      "description": "Kernel sysctl security hardening: rp_filter, disable redirects, log_martians, icmp_echo_ignore, disable IPv6, TCP syncookies, SYN backlog/retry tuning",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "files",
+      "source_path": "cookbooks/nginx-multisite/files/default/status/index.html",
+      "target_path": "ansible/roles/nginx_multisite/files/status/index.html",
+      "status": "complete",
+      "description": "Static landing page for status.cluster.local virtual host \u2192 /opt/server/status/index.html (owner: www-data, mode: 0644)",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "files",
+      "source_path": "cookbooks/nginx-multisite/files/default/test/index.html",
+      "target_path": "ansible/roles/nginx_multisite/files/test/index.html",
+      "status": "complete",
+      "description": "Static landing page for test.cluster.local virtual host \u2192 /opt/server/test/index.html (owner: www-data, mode: 0644)",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "files",
+      "source_path": "cookbooks/nginx-multisite/files/default/ci/index.html",
+      "target_path": "ansible/roles/nginx_multisite/files/ci/index.html",
+      "status": "complete",
+      "description": "Static landing page for ci.cluster.local virtual host \u2192 /opt/server/ci/index.html (owner: www-data, mode: 0644)",
+      "notes": "File exists on disk with valid content"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration \u2014 delegated driver, local connection (not docker/podman)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/create.yml",
+      "status": "complete",
+      "description": "No-op instance create stub for delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "No-op instance destroy stub for delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Converge playbook \u2014 creates expected filesystem state under /tmp/molecule_test/ (nginx configs, SSL dirs, site dirs, fail2ban, sysctl paths)",
+      "notes": "Generated converge.yml \u2014 recreates full filesystem state under /tmp/molecule_test/: nginx.conf, conf.d/security.conf, sites-available configs for all 3 vhosts, sites-enabled symlinks, static index.html files, stub SSL certs/keys, fail2ban jail.local, sysctl 99-security.conf, and hardened sshd_config. Default site symlink explicitly absent."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Verify playbook \u2014 checks /tmp/molecule_test/ paths: nginx.conf, security.conf, vhost configs, sites-enabled symlinks, SSL certs/keys, index.html files, jail.local, sysctl conf",
+      "notes": "Generated verify.yml \u2014 14 test sections covering: nginx.conf directives, security.conf directives, all 3 vhost configs (server_name, listen, ssl_certificate, root, 301 redirect, security headers), sites-enabled symlinks (existence + correct target), default site absent, index.html content, SSL cert/key existence, key mode 0640, fail2ban jail.local (5 jails), sysctl parameters (11 checks), sshd_config hardening. Service/port/HTTP checks tagged molecule-notest for container safety."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}
