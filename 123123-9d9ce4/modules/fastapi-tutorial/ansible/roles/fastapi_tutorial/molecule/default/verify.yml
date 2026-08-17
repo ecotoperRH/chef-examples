@@ -1,0 +1,144 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    # Check application directory
+    - name: Check application directory exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial
+      register: app_dir
+
+    - name: Assert application directory was created
+      ansible.builtin.assert:
+        that:
+          - app_dir.stat.exists
+          - app_dir.stat.isdir
+        fail_msg: "Application directory not found"
+        success_msg: "Application directory exists"
+
+    # Check Python virtual environment
+    - name: Check Python virtual environment exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial/venv
+      register: venv_dir
+
+    - name: Assert Python virtual environment was created
+      ansible.builtin.assert:
+        that:
+          - venv_dir.stat.exists
+          - venv_dir.stat.isdir
+        fail_msg: "Python virtual environment not found"
+        success_msg: "Python virtual environment exists"
+
+    # Check environment configuration file
+    - name: Check environment configuration file exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      register: env_file
+
+    - name: Assert environment configuration file was created
+      ansible.builtin.assert:
+        that:
+          - env_file.stat.exists
+          - env_file.stat.size > 0
+        fail_msg: "Environment configuration file not found"
+        success_msg: "Environment configuration file exists"
+
+    - name: Get environment configuration file content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      register: env_content
+      when: env_file.stat.exists
+
+    - name: Assert environment configuration file content is correct
+      ansible.builtin.assert:
+        that:
+          - env_decoded.find('PROJECT_NAME="FastAPI Tutorial"') != -1
+          - env_decoded.find('API_VERSION=1.0.0') != -1
+          - env_decoded.find('DATABASE_URL=postgresql://fastapi:fastapi_password@localhost/fastapi_db') != -1
+        fail_msg: "Environment configuration file content is incorrect"
+        success_msg: "Environment configuration file content is correct"
+      vars:
+        env_decoded: "{{ env_content.content | b64decode }}"
+      when: env_file.stat.exists
+
+    # Check systemd service file
+    - name: Check systemd service file exists
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      register: service_file
+
+    - name: Assert systemd service file was created
+      ansible.builtin.assert:
+        that:
+          - service_file.stat.exists
+          - service_file.stat.size > 0
+        fail_msg: "Systemd service file not found"
+        success_msg: "Systemd service file exists"
+
+    - name: Get systemd service file content
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      register: service_content
+      when: service_file.stat.exists
+
+    - name: Assert systemd service file content is correct
+      ansible.builtin.assert:
+        that:
+          - service_decoded.find('Description=FastAPI Tutorial Service') != -1
+          - service_decoded.find('After=network.target postgresql.service') != -1
+          - service_decoded.find('ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000') != -1
+        fail_msg: "Systemd service file content is incorrect"
+        success_msg: "Systemd service file content is correct"
+      vars:
+        service_decoded: "{{ service_content.content | b64decode }}"
+      when: service_file.stat.exists
+
+    # Service status checks (tagged to skip in container)
+    - name: Check FastAPI service status
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert FastAPI service is running
+      ansible.builtin.assert:
+        that:
+          - "'fastapi-tutorial.service' in ansible_facts.services"
+          - "ansible_facts.services['fastapi-tutorial.service'].state == 'running'"
+        fail_msg: "FastAPI service is not running"
+        success_msg: "FastAPI service is running"
+      tags: molecule-notest
+
+    # PostgreSQL checks (tagged to skip in container)
+    - name: Check PostgreSQL service status
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert PostgreSQL service is running
+      ansible.builtin.assert:
+        that:
+          - "'postgresql.service' in ansible_facts.services"
+          - "ansible_facts.services['postgresql.service'].state == 'running'"
+        fail_msg: "PostgreSQL service is not running"
+        success_msg: "PostgreSQL service is running"
+      tags: molecule-notest
+
+    # Network port checks (tagged to skip in container)
+    - name: Check if FastAPI port is listening
+      ansible.builtin.wait_for:
+        port: 8000
+        timeout: 5
+      tags: molecule-notest
+
+    # Application health check (tagged to skip in container)
+    - name: Check FastAPI application health
+      ansible.builtin.uri:
+        url: http://localhost:8000/
+        status_code: 200
+      tags: molecule-notest
+
+    - name: Check FastAPI docs endpoint
+      ansible.builtin.uri:
+        url: http://localhost:8000/docs
+        status_code: 200
+      tags: molecule-notest
