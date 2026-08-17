@@ -1,0 +1,14 @@
+{
+  "phase": "migrate",
+  "agents_run": 1,
+  "total_findings": 3,
+  "total_critical_findings": 0,
+  "agents": [
+    {
+      "name": "test",
+      "findings": 3,
+      "critical_findings": 0,
+      "summary": "The Ansible roles contain several potentially destructive operations that lack complete safeguards: removal of the default nginx site without a controlling variable, UFW firewall configuration with --force flag that doesn't respect the security_ufw_enabled variable, and SSH configuration changes that could lock users out without creating configuration backups. While none of these issues are critical, they could cause service disruptions or access issues if not carefully managed."
+    }
+  ]
+}
