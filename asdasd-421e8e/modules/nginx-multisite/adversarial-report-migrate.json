@@ -1,0 +1,20 @@
+{
+  "phase": "migrate",
+  "agents_run": 2,
+  "total_findings": 2,
+  "total_critical_findings": 2,
+  "agents": [
+    {
+      "name": "UFW",
+      "findings": 1,
+      "critical_findings": 1,
+      "summary": "The analysis identified a critical finding in the Ansible role where UFW (Uncomplicated Firewall) is being used for firewall management, which violates company rules. The role installs UFW, configures it with a default deny policy, allows specific ports, and enables the firewall. This needs to be replaced with the company-approved firewall solution."
+    },
+    {
+      "name": "SSH config",
+      "findings": 1,
+      "critical_findings": 1,
+      "summary": "The analysis identified a critical issue where the Ansible playbook is modifying SSH configuration in security.yml, which violates the requirement that playbooks should not touch any SSH configuration as it's already set on the base images of the servers."
+    }
+  ]
+}
