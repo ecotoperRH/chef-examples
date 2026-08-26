@@ -1,0 +1,66 @@
+---
+- name: Install nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+- name: Ensure www-data user exists
+  ansible.builtin.user:
+    name: www-data
+    system: true
+    state: present
+- name: Ensure www-data group exists
+  ansible.builtin.group:
+    name: www-data
+    system: true
+    state: present
+- name: Create nginx configuration directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/nginx/conf.d
+    - /etc/nginx/sites-available
+    - /etc/nginx/sites-enabled
+- name: Configure nginx.conf
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+- name: Configure security settings
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+- name: Create document root directories for sites
+  ansible.builtin.file:
+    path: "{{ item_site['value']['document_root'] }}"
+    owner: www-data
+    group: www-data
+    mode: "0755"
+    state: directory
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+- name: Deploy index.html files for each site
+  ansible.builtin.copy:
+    src: "{{ item_site['key'].split('.')[0] }}/index.html"
+    dest: "{{ item_site['value']['document_root'] }}/index.html"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+- name: Ensure nginx service is enabled and started
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

@@ -1,0 +1,48 @@
+---
+- name: Install SSL packages
+  ansible.builtin.package:
+    name:
+      - openssl
+      - ca-certificates
+    state: present
+- name: Create ssl-cert group
+  ansible.builtin.group:
+    name: ssl-cert
+    state: present
+- name: Create SSL certificate directory
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_certificate_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    state: directory
+- name: Create SSL private key directory
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_private_key_path }}"
+    owner: root
+    group: ssl-cert
+    mode: "0710"
+    state: directory
+- name: Generate self-signed SSL certificates for sites
+  ansible.builtin.command:
+    cmd: 'openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout {{ nginx_multisite_ssl_private_key_path }}/{{ item_site[''key''] }}.key -out {{ nginx_multisite_ssl_certificate_path
+      }}/{{ item_site[''key''] }}.crt -subj "/C=US/ST=Example/L=Example/O=Example Org/OU=IT/CN={{ item_site[''key''] }}/emailAddress=admin@example.com"
+
+      '
+  args:
+    creates: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_site['key'] }}.crt"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  when: item_site['value']['ssl_enabled'] | bool
+  notify: Reload nginx
+- name: Set proper permissions on SSL private keys
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_site['key'] }}.key"
+    owner: root
+    group: ssl-cert
+    mode: "0640"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  when: item_site['value']['ssl_enabled'] | bool
