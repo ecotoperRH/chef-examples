@@ -1,0 +1,20 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Configures Nginx with multiple SSL-enabled virtual hosts, security hardening, and fail2ban/firewall integration.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Deploys a FastAPI Python application with PostgreSQL database backend and systemd service configuration.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Configures caching services including Memcached and Redis with authentication.",
+    "technology": "Chef"
+  }
+]
