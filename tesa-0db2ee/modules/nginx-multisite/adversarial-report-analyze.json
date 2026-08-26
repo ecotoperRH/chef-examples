@@ -1,0 +1,14 @@
+{
+  "phase": "analyze",
+  "agents_run": 1,
+  "total_findings": 1,
+  "total_critical_findings": 0,
+  "agents": [
+    {
+      "name": "123123123",
+      "findings": 1,
+      "critical_findings": 0,
+      "summary": "The analysis identified an incomplete migration from Chef to Ansible for the nginx-multisite module, with only planning documentation present but no actual implementation code."
+    }
+  ]
+}
