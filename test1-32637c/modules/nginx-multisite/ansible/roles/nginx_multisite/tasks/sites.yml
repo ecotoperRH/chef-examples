@@ -1,0 +1,33 @@
+---
+- name: Deploy Nginx site configuration for each virtual host
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item_sites['key'] }}
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  vars:
+    server_name: "{{ item_sites['key'] }}"
+    document_root: "{{ item_sites['value']['document_root'] }}"
+    ssl_enabled: "{{ item_sites['value']['ssl_enabled'] }}"
+    cert_file: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_sites['key'] }}.crt"
+    key_file: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_sites['key'] }}.key"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_sites
+  notify: Reload nginx
+- name: Enable Nginx site by creating symlink in sites-enabled
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item_sites['key'] }}
+    dest: /etc/nginx/sites-enabled/{{ item_sites['key'] }}
+    state: link
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_sites
+  notify: Reload nginx
+- name: Remove default Nginx placeholder site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx

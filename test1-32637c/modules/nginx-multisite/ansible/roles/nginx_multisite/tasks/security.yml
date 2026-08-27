@@ -1,0 +1,123 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+    state: present
+- name: Deploy Fail2Ban jail configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart fail2ban
+- name: Enable and start fail2ban service
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+- name: Set UFW default policy to deny
+  ansible.builtin.command:
+    cmd: ufw --force default deny
+  register: nginx_multisite_ufw_default
+  changed_when: "'Default incoming policy changed' in nginx_multisite_ufw_default.stdout"
+- name: Allow SSH through UFW
+  ansible.builtin.command:
+    cmd: ufw allow ssh
+  register: nginx_multisite_ufw_ssh
+  changed_when: "'Rules updated' in nginx_multisite_ufw_ssh.stdout"
+- name: Allow HTTP through UFW
+  ansible.builtin.command:
+    cmd: ufw allow http
+  register: nginx_multisite_ufw_http
+  changed_when: "'Rules updated' in nginx_multisite_ufw_http.stdout"
+- name: Allow HTTPS through UFW
+  ansible.builtin.command:
+    cmd: ufw allow https
+  register: nginx_multisite_ufw_https
+  changed_when: "'Rules updated' in nginx_multisite_ufw_https.stdout"
+- name: Enable UFW firewall
+  ansible.builtin.command:
+    cmd: ufw --force enable
+  register: nginx_multisite_ufw_enable
+  changed_when: "'Firewall is active and enabled' in nginx_multisite_ufw_enable.stdout"
+- name: Deploy kernel hardening sysctl configuration
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload sysctl
+- name: Apply sysctl kernel hardening parameters
+  ansible.posix.sysctl:
+    name: "{{ item_security['name'] }}"
+    value: "{{ item_security['value'] }}"
+    state: present
+    reload: false
+    sysctl_file: /etc/sysctl.d/99-security.conf
+  loop:
+    - name: net.ipv4.conf.all.rp_filter
+      value: "1"
+    - name: net.ipv4.conf.default.rp_filter
+      value: "1"
+    - name: net.ipv4.conf.all.accept_redirects
+      value: "0"
+    - name: net.ipv4.conf.default.accept_redirects
+      value: "0"
+    - name: net.ipv6.conf.all.accept_redirects
+      value: "0"
+    - name: net.ipv6.conf.default.accept_redirects
+      value: "0"
+    - name: net.ipv4.conf.all.send_redirects
+      value: "0"
+    - name: net.ipv4.conf.default.send_redirects
+      value: "0"
+    - name: net.ipv4.conf.all.accept_source_route
+      value: "0"
+    - name: net.ipv4.conf.default.accept_source_route
+      value: "0"
+    - name: net.ipv4.conf.all.log_martians
+      value: "1"
+    - name: net.ipv4.conf.default.log_martians
+      value: "1"
+    - name: net.ipv4.icmp_echo_ignore_all
+      value: "1"
+    - name: net.ipv4.icmp_echo_ignore_broadcasts
+      value: "1"
+    - name: net.ipv6.conf.all.disable_ipv6
+      value: "1"
+    - name: net.ipv6.conf.default.disable_ipv6
+      value: "1"
+    - name: net.ipv4.tcp_syncookies
+      value: "1"
+    - name: net.ipv4.tcp_max_syn_backlog
+      value: "2048"
+    - name: net.ipv4.tcp_synack_retries
+      value: "2"
+    - name: net.ipv4.tcp_syn_retries
+      value: "5"
+  loop_control:
+    loop_var: item_security
+- name: Harden SSH - disable root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    state: present
+    backup: true
+  when: nginx_multisite_ssh_disable_root | bool
+  notify: Restart ssh
+- name: Harden SSH - disable password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    state: present
+    backup: true
+  when: not nginx_multisite_ssh_password_auth | bool
+  notify: Restart ssh

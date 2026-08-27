@@ -1,0 +1,49 @@
+---
+- name: Install Nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+- name: Deploy global Nginx configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+- name: Deploy Nginx security snippet
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+- name: Create document root directories for each site
+  ansible.builtin.file:
+    path: "{{ item_nginx['value']['document_root'] }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx
+- name: Deploy static index.html for each site
+  ansible.builtin.copy:
+    src: "{{ item_nginx['key'] | split('.') | first }}/index.html"
+    dest: "{{ item_nginx['value']['document_root'] }}/index.html"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx
+- name: Enable and start Nginx service
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started

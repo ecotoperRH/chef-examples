@@ -1,0 +1,89 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure a hardened Nginx multi-site web server
+    description:
+      - Installs Nginx and configures multiple SSL-enabled virtual hosts with self-signed TLS certificates.
+      - Hardens the OS with UFW firewall rules, kernel sysctl security parameters, and Fail2Ban intrusion prevention.
+      - Locks down SSH by disabling root login and password authentication.
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+        description: Dictionary of virtual host sites to configure. Each key is the server_name (FQDN) and the value is a dict with document_root (str) and
+          ssl_enabled (bool).
+      nginx_multisite_ssl_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Directory path where SSL certificates (.crt) are stored.
+      nginx_multisite_ssl_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Directory path where SSL private keys (.key) are stored.
+      nginx_multisite_ssl_country:
+        type: str
+        required: false
+        default: US
+        description: Country code (C) for the self-signed certificate subject.
+      nginx_multisite_ssl_state:
+        type: str
+        required: false
+        default: Example
+        description: State or province (ST) for the self-signed certificate subject.
+      nginx_multisite_ssl_locality:
+        type: str
+        required: false
+        default: Example
+        description: Locality or city (L) for the self-signed certificate subject.
+      nginx_multisite_ssl_org:
+        type: str
+        required: false
+        default: Example Org
+        description: Organization name (O) for the self-signed certificate subject.
+      nginx_multisite_ssl_ou:
+        type: str
+        required: false
+        default: IT
+        description: Organizational unit (OU) for the self-signed certificate subject.
+      nginx_multisite_ssl_email:
+        type: str
+        required: false
+        default: admin@example.com
+        description: Email address for the self-signed certificate subject.
+      nginx_multisite_ssl_days:
+        type: int
+        required: false
+        default: 365
+        description: Validity period in days for the generated self-signed SSL certificates.
+      nginx_multisite_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to install and enable Fail2Ban intrusion prevention.
+      nginx_multisite_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to configure UFW firewall rules (deny default, allow SSH/HTTP/HTTPS).
+      nginx_multisite_ssh_disable_root:
+        type: bool
+        required: false
+        default: true
+        description: Whether to disable SSH root login by setting PermitRootLogin no in sshd_config.
+      nginx_multisite_ssh_password_auth:
+        type: bool
+        required: false
+        default: false
+        description: Whether to allow SSH password authentication. When false (default), PasswordAuthentication is set to no in sshd_config.
