@@ -1,0 +1,34 @@
+---
+galaxy_info:
+  role_name: nginx_multisite
+  namespace: x2a
+  author: Migration Tool
+  description: Installs and configures a hardened Nginx web server hosting multiple SSL-enabled virtual hosts with self-signed TLS certificates, UFW firewall
+    rules, kernel sysctl security parameters, Fail2Ban intrusion prevention, and SSH hardening.
+  license: Apache-2.0
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - bionic
+        - focal
+        - jammy
+    - name: EL
+      versions:
+        - "7"
+        - "8"
+        - "9"
+  galaxy_tags:
+    - nginx
+    - webserver
+    - ssl
+    - tls
+    - security
+    - hardening
+    - fail2ban
+    - ufw
+    - firewall
+    - multisite
+    - virtualhost
+    - https
+dependencies: []
