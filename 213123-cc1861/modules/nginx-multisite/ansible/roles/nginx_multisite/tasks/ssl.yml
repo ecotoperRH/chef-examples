@@ -1,0 +1,51 @@
+---
+- name: Ensure SSL directories exist
+  ansible.builtin.file:
+    path: "{{ item_dir }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ nginx_multisite_ssl_certificate_path }}"
+    - "{{ nginx_multisite_ssl_private_key_path }}"
+  loop_control:
+    loop_var: item_dir
+- name: Check if SSL certificates exist
+  ansible.builtin.stat:
+    path: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_site['key'] }}.crt"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  register: ssl_cert_check
+  when: item_site['value']['ssl_enabled'] | default(false)
+- name: Generate self-signed SSL certificates
+  ansible.builtin.shell: "openssl req -x509 -nodes -days 365 -newkey rsa:2048 \\\n  -keyout {{ nginx_multisite_ssl_private_key_path }}/{{ item_site['key'] }}.key
+    \\\n  -out {{ nginx_multisite_ssl_certificate_path }}/{{ item_site['key'] }}.crt \\\n  -subj \"/C=US/ST=State/L=City/O=Organization/CN={{ item_site['key'] }}\"\
+    \n"
+  args:
+    creates: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_site['key'] }}.crt"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+    label: "{{ item_site['key'] }}"
+  when:
+    - item_site['value']['ssl_enabled'] | default(false)
+    - (ssl_cert_check.results[ansible_loop.index0] is defined and not ssl_cert_check.results[ansible_loop.index0].stat.exists) or
+      (ssl_cert_check.results[ansible_loop.index0] is not defined)
+  notify: Reload nginx
+- name: Set SSL certificate permissions
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_site['key'] }}.crt"
+    mode: "0644"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  when: item_site['value']['ssl_enabled'] | default(false)
+- name: Set SSL private key permissions
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_site['key'] }}.key"
+    mode: "0640"
+    group: www-data
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  when: item_site['value']['ssl_enabled'] | default(false)

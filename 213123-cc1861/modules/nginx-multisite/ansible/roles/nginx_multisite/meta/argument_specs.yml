@@ -1,0 +1,52 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Nginx with multiple virtual hosts and security hardening
+    description:
+      - Configures Nginx as a web server with multiple virtual hosts, each with SSL enabled
+      - Implements security hardening through fail2ban, UFW firewall, SSH configuration, and system-level security settings
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+        description: Dictionary of sites to configure with their document roots and SSL settings
+      nginx_multisite_ssl_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Path where SSL certificates will be stored
+      nginx_multisite_ssl_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Path where SSL private keys will be stored
+      nginx_multisite_security_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to enable and configure fail2ban
+      nginx_multisite_security_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to enable and configure UFW firewall
+      nginx_multisite_security_ssh_disable_root:
+        type: bool
+        required: false
+        default: true
+        description: Whether to disable SSH root login
+      nginx_multisite_security_ssh_password_auth:
+        type: bool
+        required: false
+        default: false
+        description: Whether to enable SSH password authentication

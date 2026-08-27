@@ -1,0 +1,64 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+      - openssh-server
+    state: present
+- name: Configure fail2ban
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  notify: Restart fail2ban
+- name: Configure sysctl security settings
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+    backup: true
+  notify: Apply sysctl settings
+- name: Disable root SSH login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    mode: "0644"
+    backup: true
+  notify: Restart ssh
+- name: Disable password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    mode: "0644"
+    backup: true
+  notify: Restart ssh
+- name: Configure UFW default policies
+  ansible.builtin.ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - direction: incoming
+      policy: deny
+    - direction: outgoing
+      policy: allow
+- name: Allow SSH through UFW
+  ansible.builtin.ufw:
+    rule: allow
+    name: OpenSSH
+- name: Allow HTTP through UFW
+  ansible.builtin.ufw:
+    rule: allow
+    port: 80
+    proto: tcp
+- name: Allow HTTPS through UFW
+  ansible.builtin.ufw:
+    rule: allow
+    port: 443
+    proto: tcp
+- name: Enable UFW
+  ansible.builtin.ufw:
+    state: enabled

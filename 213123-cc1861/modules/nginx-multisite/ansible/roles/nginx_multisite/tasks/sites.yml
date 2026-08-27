@@ -1,0 +1,41 @@
+---
+- name: Ensure nginx sites directories exist
+  ansible.builtin.file:
+    path: "{{ item_dir }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /etc/nginx/sites-available
+    - /etc/nginx/sites-enabled
+  loop_control:
+    loop_var: item_dir
+- name: Create site configuration files
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item_site['key'] }}
+    mode: "0644"
+    backup: true
+    vars:
+      server_name: "{{ item_site['key'] }}"
+      document_root: "{{ item_site['value']['document_root'] }}"
+      ssl_enabled: "{{ item_site['value']['ssl_enabled'] }}"
+      cert_file: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_site['key'] }}.crt"
+      key_file: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_site['key'] }}.key"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  notify: Reload nginx
+- name: Create symlinks in sites-enabled
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item_site['key'] }}
+    dest: /etc/nginx/sites-enabled/{{ item_site['key'] }}
+    state: link
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  notify: Reload nginx
+- name: Remove default site configuration
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
