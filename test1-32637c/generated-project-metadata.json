@@ -1,0 +1,20 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Provisions Nginx as a reverse proxy with multi-virtual-host support, per-site SSL termination using self-signed certificates, security hardening headers, gzip compression, UFW firewall, Fail2ban intrusion prevention, SSH hardening, and kernel sysctl tuning for three subdomains.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Installs and configures a dual in-memory caching layer with Memcached and Redis (port 6379, password-authenticated), including a workaround to strip deprecated directives from the generated Redis config file.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Deploys a full-stack FastAPI Python web application by installing system dependencies, cloning the app from GitHub, creating a virtualenv, configuring PostgreSQL with a dedicated user and database, and registering the application as a systemd service running under Uvicorn.",
+    "technology": "Chef"
+  }
+]
