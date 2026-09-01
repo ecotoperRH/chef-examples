@@ -1,0 +1,8 @@
+[
+  {
+    "name": "nginx",
+    "path": "roles/nginx",
+    "description": "Nginx web server installation and configuration with support for multiple sites, custom HTTP parameters, and platform-specific configurations.",
+    "technology": "Ansible"
+  }
+]
