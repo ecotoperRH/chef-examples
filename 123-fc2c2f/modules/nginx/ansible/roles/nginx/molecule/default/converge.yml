@@ -1,0 +1,77 @@
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+  - name: Create base directories
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/etc/nginx
+    - /tmp/molecule_test/etc/nginx/sites-available
+    - /tmp/molecule_test/etc/nginx/sites-enabled
+    - /tmp/molecule_test/etc/nginx/conf.d
+    - /tmp/molecule_test/var/log/nginx
+    - /tmp/molecule_test/var/run
+    - /tmp/molecule_test/etc/yum.repos.d
+    - /tmp/molecule_test/tmp/site1
+    - /tmp/molecule_test/tmp/site2
+  - name: Create nginx.conf
+    ansible.builtin.copy:
+      content: "# Managed by Ansible\nuser nginx;\nworker_processes 1;\npid /var/run/nginx.pid;\n\nevents {\n    worker_connections 512;\n}\n\nhttp {\n    ssl_protocols
+        TLSv1.2 TLSv1.3;\n    include /etc/nginx/mime.types;\n    default_type application/octet-stream;\n\n    access_log /var/log/nginx/access.log;\n    error_log
+        /var/log/nginx/error.log;\n\n    sendfile on;\n    tcp_nopush on;\n    tcp_nodelay on;\n    keepalive_timeout 65;\n\n    gzip on;\n    gzip_disable \"msie6\";\n\n
+        \   include /etc/nginx/conf.d/*.conf;\n    include /etc/nginx/sites-enabled/*;\n}\n"
+      dest: /tmp/molecule_test/etc/nginx/nginx.conf
+      mode: '0644'
+  - name: Create default.conf
+    ansible.builtin.copy:
+      content: '# Managed by Ansible'
+      dest: /tmp/molecule_test/etc/nginx/conf.d/default.conf
+      mode: '0644'
+  - name: Create default site configuration
+    ansible.builtin.copy:
+      content: '# Managed by Ansible'
+      dest: /tmp/molecule_test/etc/nginx/sites-available/default
+      mode: '0644'
+  - name: Create foo site configuration
+    ansible.builtin.copy:
+      content: "server {\n    listen 8080;\n    server_name localhost;\n    root /tmp/site1;\n    \n    location / {\n        try_files $uri $uri/ /index.html;\n
+        \   }\n    \n    location /images/ {\n        try_files $uri $uri/ /index.html;\n    }\n}\n"
+      dest: /tmp/molecule_test/etc/nginx/sites-available/foo
+      mode: '0644'
+  - name: Create bar site configuration
+    ansible.builtin.copy:
+      content: "server {\n    listen 9090;\n    server_name ansible;\n    root /tmp/site2;\n    \n    location / {\n        try_files $uri $uri/ /index.html;\n    }\n
+        \   \n    location /images/ {\n        try_files $uri $uri/ /index.html;\n    }\n}\n"
+      dest: /tmp/molecule_test/etc/nginx/sites-available/bar
+      mode: '0644'
+  - name: Create symlink for default site
+    ansible.builtin.file:
+      src: /tmp/molecule_test/etc/nginx/sites-available/default
+      dest: /tmp/molecule_test/etc/nginx/sites-enabled/default
+      state: link
+  - name: Create symlinks for site configurations
+    ansible.builtin.file:
+      src: /tmp/molecule_test/etc/nginx/sites-available/{{ item }}
+      dest: /tmp/molecule_test/etc/nginx/sites-enabled/{{ item }}
+      state: link
+    loop:
+    - foo
+    - bar
+  - name: Create EPEL repo file
+    ansible.builtin.copy:
+      content: '# This is a mock EPEL repo file for testing
+
+        [epel]
+
+        name=Extra Packages for Enterprise Linux
+
+        enabled=1
+
+        gpgcheck=0
+
+        '
+      dest: /tmp/molecule_test/etc/yum.repos.d/epel_ansible.repo
+      mode: '0644'

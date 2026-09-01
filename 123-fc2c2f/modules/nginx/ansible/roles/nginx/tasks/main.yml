@@ -1,0 +1,91 @@
+---
+- name: Install the selinux python module
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - libselinux-python
+    - python3-libselinux
+  when: ansible_facts['os_family'] == "RedHat"
+- name: Copy the epel packages
+  ansible.builtin.copy:
+    src: epel.repo
+    dest: /etc/yum.repos.d/epel_ansible.repo
+    mode: "0644"
+  when: ansible_facts['os_family'] == "RedHat"
+- name: Install the nginx packages
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ redhat_pkg }}"
+  when: ansible_facts['os_family'] == "RedHat"
+- name: Install the nginx packages
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+  environment: "{{ env }}"
+  loop: "{{ ubuntu_pkg }}"
+  when: ansible_facts['os_family'] == "Debian"
+- name: Create the directories for site specific configurations
+  ansible.builtin.file:
+    path: /etc/nginx/{{ item }}
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - sites-available
+    - sites-enabled
+- name: Create the root directories for sites
+  ansible.builtin.file:
+    path: "{{ item['server']['root'] }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ nginx_sites }}"
+  when: nginx_sites|lower != 'none'
+- name: Copy the nginx configuration file
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+  notify:
+    - Restart nginx
+- name: Copy the nginx default configuration file
+  ansible.builtin.template:
+    src: default.conf.j2
+    dest: /etc/nginx/conf.d/default.conf
+    mode: "0644"
+- name: Copy the nginx default site configuration file
+  ansible.builtin.template:
+    src: default.j2
+    dest: /etc/nginx/sites-available/default
+    mode: "0644"
+- name: Create the link for site enabled specific configurations
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: link
+    src: /etc/nginx/sites-available/default
+- name: Create the configurations for sites
+  ansible.builtin.template:
+    src: site.j2
+    dest: /etc/nginx/sites-available/{{ item['server']['file_name'] }}
+    mode: "0644"
+  loop: "{{ nginx_sites }}"
+  when: nginx_sites|lower != 'none'
+- name: Create the links to enable site configurations
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/{{ item['server']['file_name'] }}
+    state: link
+    src: /etc/nginx/sites-available/{{ item['server']['file_name'] }}
+  loop: "{{ nginx_sites }}"
+  when: nginx_sites|lower != 'none'
+  notify:
+    - Reload nginx
+- name: Start the nginx service
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

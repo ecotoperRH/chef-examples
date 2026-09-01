@@ -1,0 +1,40 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure Nginx web server
+    description: Install and configure Nginx web server with custom site configurations
+    author: Benno Joy
+    options:
+      nginx_max_clients:
+        type: int
+        default: 512
+        description: Maximum number of simultaneous client connections
+      nginx_http_params:
+        type: dict
+        default:
+          sendfile: "on"
+          tcp_nopush: "on"
+          tcp_nodelay: "on"
+          keepalive_timeout: 65
+        description: HTTP parameters for Nginx configuration
+      nginx_log_dir:
+        type: str
+        default: /var/log/nginx
+        description: Directory for Nginx log files
+      nginx_access_log_name:
+        type: str
+        default: access.log
+        description: Name of the access log file
+      nginx_error_log_name:
+        type: str
+        default: error.log
+        description: Name of the error log file
+      nginx_separate_logs_per_site:
+        type: bool
+        default: false
+        description: Whether to create separate log files for each site
+      nginx_sites:
+        type: list
+        elements: dict
+        default: []
+        description: List of site configurations to create
