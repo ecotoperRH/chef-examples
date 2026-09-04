@@ -1,0 +1,22 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Configure Memcached
+  ansible.builtin.include_tasks: memcached.yml
+- name: Configure Redis
+  ansible.builtin.include_tasks: redis.yml
+- name: Remove deprecated replica directives from Redis config
+  ansible.builtin.lineinfile:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_port }}.conf"
+    regexp: "{{ item_cache['pattern'] }}"
+    state: absent
+  loop:
+    - pattern: ^replica-serve-stale-data
+    - pattern: ^replica-read-only
+    - pattern: ^repl-ping-replica-period
+    - pattern: ^client-output-buffer-limit
+    - pattern: ^replica-priority
+  loop_control:
+    loop_var: item_cache
+- name: Enable and start Redis service
+  ansible.builtin.include_tasks: redis_enable.yml

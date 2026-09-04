@@ -1,0 +1,359 @@
+# Redis configuration file example.
+
+# Note on units: when memory size is needed, it is possible to specify
+# it in the usual form of 1k 5GB 4M and so forth:
+#
+# 1k => 1000 bytes
+# 1kb => 1024 bytes
+# 1m => 1000000 bytes
+# 1mb => 1024*1024 bytes
+# 1g => 1000000000 bytes
+# 1gb => 1024*1024*1024 bytes
+#
+# units are case insensitive so 1GB 1Gb 1gB are all the same.
+
+# By default Redis does not run as a daemon. Use 'yes' if you need it.
+# Note that Redis will write a pid file in /var/run/redis.pid when daemonized.
+{% if cache_tpl_job_control == 'initd' or cache_tpl_job_control == 'rcinit' %}
+daemonize yes
+{% endif %}
+
+# When running daemonized, Redis writes a pid file in /var/run/redis.pid by
+# default. You can specify a custom pid file location here.
+pidfile {{ cache_tpl_piddir }}/redis_{{ cache_tpl_instance }}.pid
+
+# Accept connections on the specified port, default is 6379.
+# If port 0 is specified Redis will not listen on a TCP socket.
+port {{ cache_tpl_listen_port }}
+
+# TCP listen() backlog.
+tcp-backlog {{ cache_tpl_tcpbacklog }}
+
+# By default Redis listens for connections from all the network interfaces
+# available on the server. It is possible to listen to just one or multiple
+# interfaces using the "bind" configuration directive, followed by one or
+# more IP addresses.
+{% if cache_tpl_address is not none %}
+bind {{ cache_tpl_address if cache_tpl_address is string else cache_tpl_address | join(' ') }}
+{% endif %}
+
+# Protected mode is a layer of security protection, in order to avoid that
+# Redis instances left open on the internet are accessed and exploited.
+{% if cache_tpl_protected_mode is not none %}
+protected-mode {{ cache_tpl_protected_mode }}
+{% endif %}
+
+# Specify the path for the Unix socket that will be used to listen for
+# incoming connections.
+{% if cache_tpl_unixsocket is not none %}
+unixsocket {{ cache_tpl_unixsocket }}
+{% endif %}
+{% if cache_tpl_unixsocketperm is not none %}
+unixsocketperm {{ cache_tpl_unixsocketperm }}
+{% endif %}
+
+# Close the connection after a client is idle for N seconds (0 to disable)
+timeout {{ cache_tpl_conn_timeout }}
+
+# TCP keepalive.
+tcp-keepalive {{ cache_tpl_keepalive }}
+
+# Set server verbosity to 'debug'
+# it can be one of:
+# debug (a lot of information, useful for development/testing)
+# verbose (many rarely useful info, but not a mess like the debug level)
+# notice (moderately verbose, what you want in production probably)
+# warning (only very important / critical messages are logged)
+loglevel {{ cache_tpl_loglevel }}
+
+# Specify the log file name. Also 'stdout' can be used to force
+# Redis to log on the standard output.
+{% if cache_tpl_logfile is not none %}
+logfile {{ cache_tpl_logfile }}
+{% endif %}
+
+# To enable logging to the system logger, just set 'syslog-enabled' to yes,
+# and optionally update the other syslog parameters to suit your needs.
+syslog-enabled {{ cache_tpl_syslogenabled }}
+
+# Specify the syslog identity.
+syslog-ident redis-{{ cache_tpl_instance }}
+
+# Specify the syslog facility.  Must be USER or between LOCAL0-LOCAL7.
+syslog-facility {{ cache_tpl_syslogfacility }}
+
+# Set the number of databases.
+databases {{ cache_tpl_databases }}
+
+################################# TLS/SSL #####################################
+
+{% if cache_tpl_tlsport is not none %}
+tls-port {{ cache_tpl_tlsport }}
+{% endif %}
+{% if cache_tpl_tlscertfile is not none %}
+tls-cert-file {{ cache_tpl_tlscertfile }}
+{% endif %}
+{% if cache_tpl_tlskeyfile is not none %}
+tls-key-file {{ cache_tpl_tlskeyfile }}
+{% endif %}
+{% if cache_tpl_tlskeyfilepass is not none %}
+tls-key-file-pass {{ cache_tpl_tlskeyfilepass }}
+{% endif %}
+{% if cache_tpl_tlsclientcertfile is not none %}
+tls-client-cert-file {{ cache_tpl_tlsclientcertfile }}
+{% endif %}
+{% if cache_tpl_tlsclientkeyfile is not none %}
+tls-client-key-file {{ cache_tpl_tlsclientkeyfile }}
+{% endif %}
+{% if cache_tpl_tlsclientkeyfilepass is not none %}
+tls-client-key-file-pass {{ cache_tpl_tlsclientkeyfilepass }}
+{% endif %}
+{% if cache_tpl_tlsdhparamsfile is not none %}
+tls-dh-params-file {{ cache_tpl_tlsdhparamsfile }}
+{% endif %}
+{% if cache_tpl_tlscacertfile is not none %}
+tls-ca-cert-file {{ cache_tpl_tlscacertfile }}
+{% endif %}
+{% if cache_tpl_tlscacertdir is not none %}
+tls-ca-cert-dir {{ cache_tpl_tlscacertdir }}
+{% endif %}
+{% if cache_tpl_tlsauthclients is not none %}
+tls-auth-clients {{ cache_tpl_tlsauthclients }}
+{% endif %}
+{% if cache_tpl_tlsreplication is not none %}
+tls-replication {{ cache_tpl_tlsreplication }}
+{% endif %}
+{% if cache_tpl_tlscluster is not none %}
+tls-cluster {{ cache_tpl_tlscluster }}
+{% endif %}
+{% if cache_tpl_tlsprotocols is not none %}
+tls-protocols {{ cache_tpl_tlsprotocols }}
+{% endif %}
+{% if cache_tpl_tlsciphers is not none %}
+tls-ciphers {{ cache_tpl_tlsciphers }}
+{% endif %}
+{% if cache_tpl_tlsciphersuites is not none %}
+tls-ciphersuites {{ cache_tpl_tlsciphersuites }}
+{% endif %}
+{% if cache_tpl_tlspreferserverciphers is not none %}
+tls-prefer-server-ciphers {{ cache_tpl_tlspreferserverciphers }}
+{% endif %}
+{% if cache_tpl_tlssessioncaching is not none %}
+tls-session-caching {{ cache_tpl_tlssessioncaching }}
+{% endif %}
+{% if cache_tpl_tlssessioncachesize is not none %}
+tls-session-cache-size {{ cache_tpl_tlssessioncachesize }}
+{% endif %}
+{% if cache_tpl_tlssessioncachetimeout is not none %}
+tls-session-cache-timeout {{ cache_tpl_tlssessioncachetimeout }}
+{% endif %}
+
+################################ SNAPSHOTTING  #################################
+#
+# Save the DB on disk:
+#
+#   save <seconds> <changes>
+#
+#   Will save the DB if both the given number of seconds and the given
+#   number of write operations against the DB occurred.
+
+{% if cache_tpl_backuptype == 'rdb' or cache_tpl_backuptype == 'both' %}
+
+{% if cache_tpl_save is none %}
+save 900 1
+save 300 10
+save 60 10000
+{% else %}
+{% for save_option in cache_tpl_save %}
+save {{ save_option }}
+{% endfor %}
+{% endif %}
+
+# By default Redis will stop accepting writes if RDB snapshots are enabled
+# (at least one save point) and the latest background save failed.
+stop-writes-on-bgsave-error {{ cache_tpl_stopwritesonbgsaveerror }}
+
+# Compress string objects using LZF when dump .rdb databases?
+rdbcompression {{ cache_tpl_rdbcompression }}
+
+# Since version 5 of RDB a CRC64 checksum is placed at the end of the file.
+rdbchecksum {{ cache_tpl_rdbchecksum }}
+
+# The filename where to dump the DB
+{% if cache_tpl_dbfilename %}
+dbfilename {{ cache_tpl_dbfilename }}
+{% else %}
+dbfilename dump-{{ cache_tpl_instance }}.rdb
+{% endif %}
+
+{% endif %}
+
+# The working directory.
+dir {{ cache_tpl_datadir }}
+
+################################# REPLICATION #################################
+
+{% if cache_tpl_replicaof is not none %}
+replicaof {{ cache_tpl_replicaof['address'] }} {{ cache_tpl_replicaof['port'] }}
+{% endif %}
+
+{% if cache_tpl_masterauth is not none %}
+masterauth {{ cache_tpl_masterauth }}
+{% endif %}
+
+# When a replica loses its connection with the master, or when the replication
+# is still in progress, the replica can act in two different ways.
+replica-serve-stale-data {{ cache_tpl_replicaservestaledata }}
+
+# You can configure a replica instance to accept writes or not.
+replica-read-only {{ cache_tpl_replicareadonly }}
+
+# Replication SYNC strategy: disk or socket.
+repl-diskless-sync {{ cache_tpl_repldisklesssync }}
+
+# When diskless replication is enabled, it is possible to configure the delay
+# the server waits in order to spawn the child that transfers the RDB via socket.
+repl-diskless-sync-delay {{ cache_tpl_repldisklesssyncdelay }}
+
+# Master send PINGs to its replicas in a predefined interval.
+repl-ping-replica-period {{ cache_tpl_replpingreplicaperiod }}
+
+# The following option sets the replication timeout.
+repl-timeout {{ cache_tpl_repltimeout }}
+
+# Disable TCP_NODELAY on the replica socket after SYNC?
+repl-disable-tcp-nodelay {{ cache_tpl_repldisabletcpnodelay }}
+
+# Set the replication backlog size.
+repl-backlog-size {{ cache_tpl_replbacklogsize }}
+
+# After a master has no connected replicas for some time, the backlog will be freed.
+repl-backlog-ttl {{ cache_tpl_replbacklogttl }}
+
+# The replica priority is an integer number published by Redis in the INFO output.
+replica-priority {{ cache_tpl_replicapriority }}
+
+{% if cache_tpl_minreplicastowrite is not none %}
+min-replicas-to-write {{ cache_tpl_minreplicastowrite }}
+{% endif %}
+{% if cache_tpl_minreplicasmaxlag is not none %}
+min-replicas-max-lag {{ cache_tpl_minreplicasmaxlag }}
+{% endif %}
+
+################################## SECURITY ###################################
+
+{% if cache_tpl_requirepass is not none %}
+requirepass {{ cache_tpl_requirepass }}
+{% endif %}
+
+{% if cache_tpl_rename_commands is not none %}
+{% for k, v in cache_tpl_rename_commands.items() %}
+rename-command {{ k }} {{ '""' if not v else v }}
+{% endfor %}
+{% endif %}
+
+################################### LIMITS ####################################
+
+maxclients {{ cache_tpl_maxclients }}
+
+{% if cache_tpl_maxmemory %}
+maxmemory {{ cache_tpl_maxmemory }}
+{% endif %}
+
+{% if cache_tpl_maxmemorypolicy is not none %}
+maxmemory-policy {{ cache_tpl_maxmemorypolicy }}
+{% endif %}
+
+{% if cache_tpl_maxmemorysamples is not none %}
+maxmemory-samples {{ cache_tpl_maxmemorysamples }}
+{% endif %}
+
+############################## APPEND ONLY MODE ###############################
+
+{% if cache_tpl_backuptype == 'aof' or cache_tpl_backuptype == 'both' %}
+appendonly yes
+{% else %}
+appendonly no
+{% endif %}
+
+# The name of the append only file (default: "appendonly.aof")
+{% if cache_tpl_appendfilename %}
+appendfilename {{ cache_tpl_appendfilename }}
+{% else %}
+appendfilename appendonly-{{ cache_tpl_instance }}.aof
+{% endif %}
+
+# The fsync() call tells the Operating System to actually write data on disk
+# instead of waiting for more data in the output buffer.
+appendfsync {{ cache_tpl_appendfsync }}
+
+# When the AOF fsync policy is set to always or everysec, and a background
+# saving process is performing a lot of I/O against the disk, in some Linux
+# configurations Redis may block too long on the fsync() call.
+no-appendfsync-on-rewrite {{ cache_tpl_noappendfsynconrewrite }}
+
+# Automatic rewrite of the append only file.
+auto-aof-rewrite-percentage {{ cache_tpl_aofrewritepercentage }}
+auto-aof-rewrite-min-size {{ cache_tpl_aofrewriteminsize }}
+
+# An AOF file may be found to be truncated at the end during the Redis startup process.
+aof-load-truncated {{ cache_tpl_aofloadtruncated }}
+
+################################ LUA SCRIPTING  ###############################
+
+# Max execution time of a Lua script in milliseconds.
+lua-time-limit {{ cache_tpl_luatimelimit }}
+
+################################## SLOW LOG ###################################
+
+slowlog-log-slower-than {{ cache_tpl_slowloglogslowerthan }}
+slowlog-max-len {{ cache_tpl_slowlogmaxlen }}
+
+############################# EVENT NOTIFICATION ##############################
+
+notify-keyspace-events "{{ cache_tpl_notifykeyspaceevents }}"
+
+############################### ADVANCED CONFIG ###############################
+
+hash-max-ziplist-entries {{ cache_tpl_hashmaxziplistentries }}
+hash-max-ziplist-value {{ cache_tpl_hashmaxziplistvalue }}
+
+set-max-intset-entries {{ cache_tpl_setmaxintsetentries }}
+
+zset-max-ziplist-entries {{ cache_tpl_zsetmaxziplistentries }}
+zset-max-ziplist-value {{ cache_tpl_zsetmaxziplistvalue }}
+
+hll-sparse-max-bytes {{ cache_tpl_hllsparsemaxbytes }}
+
+activerehashing {{ cache_tpl_activerehasing }}
+
+# The client output buffer limits can be used to force disconnection of clients
+# that are not reading data from the server fast enough for some reason.
+{% for c in cache_tpl_clientoutputbufferlimit %}
+client-output-buffer-limit {{ c | join(' ') }}
+{% endfor %}
+
+hz {{ cache_tpl_hz }}
+
+aof-rewrite-incremental-fsync {{ cache_tpl_aofrewriteincrementalfsync }}
+
+{% if cache_tpl_clusterenabled == 'yes' %}
+cluster-enabled yes
+cluster-config-file {{ cache_tpl_clusterconfigfile if cache_tpl_clusterconfigfile else 'nodes-' + cache_tpl_instance + '.conf' }}
+cluster-node-timeout {{ cache_tpl_clusternodetimeout }}
+{% if cache_tpl_clusterport is not none %}
+cluster-port {{ cache_tpl_clusterport }}
+{% endif %}
+{% endif %}
+
+{% if cache_tpl_aclfile is not none %}
+aclfile {{ cache_tpl_aclfile }}
+{% endif %}
+
+################################## INCLUDES ###################################
+
+{% if cache_tpl_includes is not none %}
+{% for include_option in cache_tpl_includes %}
+include {{ include_option }}
+{% endfor %}
+{% endif %}

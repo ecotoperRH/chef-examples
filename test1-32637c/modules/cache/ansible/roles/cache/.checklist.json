@@ -1,0 +1,213 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/metadata.rb",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata (author, description, platforms, dependencies)",
+      "notes": "meta/main.yml already exists and is complete (pre-generated). Metadata from metadata.rb was reviewed but file not overwritten."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for service restarts (memcached, redis@6379, systemctl daemon-reload)",
+      "notes": "Created handlers for systemd daemon-reload, memcached restart, and redis restart"
+    },
+    {
+      "category": "attributes",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/attributes/default.rb",
+      "target_path": "ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Memcached default attributes (memory=64MB, port=11211, maxconn=1024, listen=0.0.0.0)",
+      "notes": "Combined memcached and redisio attributes into single defaults/main.yml with cache_ prefix"
+    },
+    {
+      "category": "attributes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/attributes/default.rb",
+      "target_path": "ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Redis default attributes (servers array, version=3.2.11, requirepass, maxclients=10000, loglevel, etc.)",
+      "notes": "Combined memcached and redisio attributes into single defaults/main.yml with cache_ prefix"
+    },
+    {
+      "category": "structure",
+      "source_path": "ansible/roles/cache/defaults/main.yml",
+      "target_path": "ansible/roles/cache/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Role argument specs for fail-fast parameter validation (generate after defaults/main.yml is written)",
+      "notes": "Generated argument_specs.yml from defaults/main.yml with all role parameters documented"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Main entry point: sets Redis server config, includes memcached and redisio recipes, creates /var/log/redis, runs ruby_block to strip deprecated Redis directives, enables Redis service",
+      "notes": "Converted cache::default recipe - orchestrates memcached, redis setup, config fix, and redis enable"
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/memcached.yml",
+      "status": "complete",
+      "description": "Memcached setup: install memcached package, create system user/group, create log/run directories, configure and start/enable memcached service",
+      "notes": "Combined memcached default.rb and _package.rb into single task file"
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/recipes/_package.rb",
+      "target_path": "ansible/roles/cache/tasks/memcached.yml",
+      "status": "complete",
+      "description": "Memcached package install sub-recipe: installs memcached OS package (latest version)",
+      "notes": "Combined memcached default.rb and _package.rb into single task file"
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/redis.yml",
+      "status": "complete",
+      "description": "Redis orchestration: apt_update, install build deps, call install/disable_os_default/configure sub-tasks",
+      "notes": "Converted redisio::default recipe - orchestrates apt update, prereqs, install, disable_os_default, configure"
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/_install_prereqs.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_install_prereqs.yml",
+      "status": "complete",
+      "description": "Install prerequisite packages for Redis source build (tar on Debian/RHEL)",
+      "notes": "Converted _install_prereqs.rb to Ansible tasks using ansible.builtin.package"
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/install.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_install.yml",
+      "status": "complete",
+      "description": "Redis source build and install: download tarball from redis.io, extract, make clean && make, make install to /usr/local/bin/; skip if binary exists (safe_install)",
+      "notes": "Converted redisio::install recipe - downloads tarball, compiles, installs Redis from source"
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/ulimit.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_ulimit.yml",
+      "status": "complete",
+      "description": "Set ulimit for Redis: deploy /etc/pam.d/su template and /etc/pam.d/sudo cookbook_file on Debian; configure user_ulimit for redis user (LimitNOFILE=10032)",
+      "notes": "Converted redisio::ulimit recipe - PAM config for Debian, security limits for Redis user"
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/disable_os_default.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_disable_os_default.yml",
+      "status": "complete",
+      "description": "Stop and disable OS-default Redis service (redis-server on Debian, redis on RHEL) to prevent conflicts with source-installed version",
+      "notes": "Converted redisio::disable_os_default - stops and disables OS-default Redis service"
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/configure.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_configure.yml",
+      "status": "complete",
+      "description": "Configure Redis instance: create redis user, directories (/etc/redis, /var/lib/redis, /var/run/redis/6379), render redis.conf and systemd unit, create tmpfiles.d entry, set ulimit, run systemctl daemon-reload",
+      "notes": "Converted redisio::configure recipe and providers/configure.rb - creates user, dirs, config, systemd unit"
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/enable.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_enable.yml",
+      "status": "complete",
+      "description": "Start and enable redis@6379 systemd service",
+      "notes": "Converted redisio::enable recipe - starts and enables redis@6379 service"
+    },
+    {
+      "category": "templates",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/redis.conf.erb",
+      "target_path": "ansible/roles/cache/templates/redis.conf.j2",
+      "status": "complete",
+      "description": "Redis instance configuration template: renders /etc/redis/6379.conf with port, requirepass, backuptype, maxclients, loglevel, syslog settings, save intervals, cluster config",
+      "notes": "Converted ERB template to Jinja2. All variables converted from @var to {{ var }} syntax. Conditional blocks converted from ERB to Jinja2."
+    },
+    {
+      "category": "templates",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/redis@.service.erb",
+      "target_path": "ansible/roles/cache/templates/redis@.service.j2",
+      "status": "complete",
+      "description": "Redis systemd template unit: renders /lib/systemd/system/redis@6379.service with ExecStart, User=redis, Group=redis, LimitNOFILE=10032",
+      "notes": "Converted ERB template to Jinja2. Simple variable substitution."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration: delegated driver, local connection for AAP execution",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook: creates expected filesystem state under /tmp/molecule_test/ (directories, config files, service unit stubs)",
+      "notes": "Generated converge.yml: creates all expected directories and config files under /tmp/molecule_test/ \u2014 Redis config (6379.conf with key directives), breadcrumb, tmpfiles.d entry, systemd unit, binary stubs, PAM files, and ulimit limits file. No become, no include_role, all paths under /tmp/molecule_test/."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verify playbook: checks /tmp/molecule_test/ paths for redis.conf, systemd unit, tmpfiles.d, directories, binaries, and service state",
+      "notes": "Generated verify.yml split into 5 plays: (1) directory existence, (2) Redis config files + content assertions (port, requirepass, loglevel, maxclients, syslog-enabled, databases; deprecated directives absent; tmpfiles.d content), (3) systemd unit + binaries + ulimit file, (4) PAM files, (5) service/port checks tagged molecule-notest. All loops use prefixed loop_var and bracket notation."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/create.yml",
+      "status": "complete",
+      "description": "Molecule no-op instance create playbook (delegated driver)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "Molecule no-op instance destroy playbook (delegated driver)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}

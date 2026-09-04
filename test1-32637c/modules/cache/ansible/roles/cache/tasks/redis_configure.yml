@@ -1,0 +1,179 @@
+---
+- name: Create Redis system group
+  ansible.builtin.group:
+    name: "{{ cache_redis_group }}"
+    system: "{{ cache_redis_systemuser }}"
+    state: present
+- name: Create Redis system user
+  ansible.builtin.user:
+    name: "{{ cache_redis_user }}"
+    comment: Redis service account
+    create_home: true
+    home: "{{ cache_redis_homedir }}"
+    shell: "{{ cache_redis_shell }}"
+    system: "{{ cache_redis_systemuser }}"
+    group: "{{ cache_redis_group }}"
+    state: present
+- name: Create Redis configuration directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_configdir }}"
+    owner: root
+    group: "{{ cache_redis_group }}"
+    mode: "0775"
+    state: directory
+- name: Create Redis data directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_datadir }}"
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0775"
+    state: directory
+- name: Create Redis PID directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_base_piddir }}/{{ cache_redis_port }}"
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+    state: directory
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_logdir }}"
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+    state: directory
+- name: Check if Redis config breadcrumb exists
+  ansible.builtin.stat:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_port }}.conf.breadcrumb"
+  register: cache_redis_breadcrumb_stat
+- name: Deploy Redis configuration file
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ cache_redis_configdir }}/{{ cache_redis_port }}.conf"
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "{{ cache_redis_permissions }}"
+    backup: true
+  vars:
+    cache_tpl_job_control: systemd
+    cache_tpl_piddir: "{{ cache_redis_base_piddir }}/{{ cache_redis_port }}"
+    cache_tpl_instance: "{{ cache_redis_port }}"
+    cache_tpl_listen_port: "{{ cache_redis_port }}"
+    cache_tpl_tcpbacklog: "{{ cache_redis_tcpbacklog }}"
+    cache_tpl_address: "{{ cache_redis_address }}"
+    cache_tpl_databases: "{{ cache_redis_databases }}"
+    cache_tpl_backuptype: "{{ cache_redis_backuptype }}"
+    cache_tpl_datadir: "{{ cache_redis_datadir }}"
+    cache_tpl_unixsocket: "{{ cache_redis_unixsocket }}"
+    cache_tpl_unixsocketperm: "{{ cache_redis_unixsocketperm }}"
+    cache_tpl_conn_timeout: "{{ cache_redis_timeout }}"
+    cache_tpl_keepalive: "{{ cache_redis_keepalive }}"
+    cache_tpl_loglevel: "{{ cache_redis_loglevel }}"
+    cache_tpl_logfile: "{{ cache_redis_logfile }}"
+    cache_tpl_syslogenabled: "{{ cache_redis_syslogenabled }}"
+    cache_tpl_syslogfacility: "{{ cache_redis_syslogfacility }}"
+    cache_tpl_save: "{{ cache_redis_save }}"
+    cache_tpl_stopwritesonbgsaveerror: "{{ cache_redis_stopwritesonbgsaveerror }}"
+    cache_tpl_rdbcompression: "{{ cache_redis_rdbcompression }}"
+    cache_tpl_rdbchecksum: "{{ cache_redis_rdbchecksum }}"
+    cache_tpl_dbfilename: "{{ cache_redis_dbfilename }}"
+    cache_tpl_replicaof: "{{ cache_redis_replicaof }}"
+    cache_tpl_protected_mode: "{{ cache_redis_protected_mode }}"
+    cache_tpl_masterauth: "{{ cache_redis_masterauth }}"
+    cache_tpl_replicaservestaledata: "{{ cache_redis_replicaservestaledata }}"
+    cache_tpl_replicareadonly: "{{ cache_redis_replicareadonly }}"
+    cache_tpl_repldisklesssync: "{{ cache_redis_repldisklesssync }}"
+    cache_tpl_repldisklesssyncdelay: "{{ cache_redis_repldisklesssyncdelay }}"
+    cache_tpl_replpingreplicaperiod: "{{ cache_redis_replpingreplicaperiod }}"
+    cache_tpl_repltimeout: "{{ cache_redis_repltimeout }}"
+    cache_tpl_repldisabletcpnodelay: "{{ cache_redis_repldisabletcpnodelay }}"
+    cache_tpl_replbacklogsize: "{{ cache_redis_replbacklogsize }}"
+    cache_tpl_replbacklogttl: "{{ cache_redis_replbacklogttl }}"
+    cache_tpl_replicapriority: "{{ cache_redis_replicapriority }}"
+    cache_tpl_requirepass: "{{ redis_password }}"
+    cache_tpl_rename_commands: "{{ cache_redis_rename_commands }}"
+    cache_tpl_maxclients: "{{ cache_redis_maxclients }}"
+    cache_tpl_maxmemory: "{{ cache_redis_maxmemory }}"
+    cache_tpl_maxmemorypolicy: "{{ cache_redis_maxmemorypolicy }}"
+    cache_tpl_maxmemorysamples: "{{ cache_redis_maxmemorysamples }}"
+    cache_tpl_appendfilename: "{{ cache_redis_appendfilename }}"
+    cache_tpl_appendfsync: "{{ cache_redis_appendfsync }}"
+    cache_tpl_noappendfsynconrewrite: "{{ cache_redis_noappendfsynconrewrite }}"
+    cache_tpl_aofrewritepercentage: "{{ cache_redis_aofrewritepercentage }}"
+    cache_tpl_aofrewriteminsize: "{{ cache_redis_aofrewriteminsize }}"
+    cache_tpl_aofloadtruncated: "{{ cache_redis_aofloadtruncated }}"
+    cache_tpl_luatimelimit: "{{ cache_redis_luatimelimit }}"
+    cache_tpl_slowloglogslowerthan: "{{ cache_redis_slowloglogslowerthan }}"
+    cache_tpl_slowlogmaxlen: "{{ cache_redis_slowlogmaxlen }}"
+    cache_tpl_notifykeyspaceevents: "{{ cache_redis_notifykeyspaceevents }}"
+    cache_tpl_hashmaxziplistentries: "{{ cache_redis_hashmaxziplistentries }}"
+    cache_tpl_hashmaxziplistvalue: "{{ cache_redis_hashmaxziplistvalue }}"
+    cache_tpl_setmaxintsetentries: "{{ cache_redis_setmaxintsetentries }}"
+    cache_tpl_zsetmaxziplistentries: "{{ cache_redis_zsetmaxziplistentries }}"
+    cache_tpl_zsetmaxziplistvalue: "{{ cache_redis_zsetmaxziplistvalue }}"
+    cache_tpl_hllsparsemaxbytes: "{{ cache_redis_hllsparsemaxbytes }}"
+    cache_tpl_activerehasing: "{{ cache_redis_activerehasing }}"
+    cache_tpl_clientoutputbufferlimit: "{{ cache_redis_clientoutputbufferlimit }}"
+    cache_tpl_hz: "{{ cache_redis_hz }}"
+    cache_tpl_aofrewriteincrementalfsync: "{{ cache_redis_aofrewriteincrementalfsync }}"
+    cache_tpl_clusterenabled: "{{ cache_redis_clusterenabled }}"
+    cache_tpl_clusterconfigfile: "{{ cache_redis_clusterconfigfile }}"
+    cache_tpl_clusternodetimeout: "{{ cache_redis_clusternodetimeout }}"
+    cache_tpl_clusterport: "{{ cache_redis_clusterport }}"
+    cache_tpl_includes: "{{ cache_redis_includes }}"
+    cache_tpl_aclfile: "{{ cache_redis_aclfile }}"
+    cache_tpl_minreplicastowrite: "{{ cache_redis_minreplicastowrite }}"
+    cache_tpl_minreplicasmaxlag: "{{ cache_redis_minreplicasmaxlag }}"
+    cache_tpl_tlsport: "{{ cache_redis_tlsport }}"
+    cache_tpl_tlscertfile: "{{ cache_redis_tlscertfile }}"
+    cache_tpl_tlskeyfile: "{{ cache_redis_tlskeyfile }}"
+    cache_tpl_tlskeyfilepass: "{{ cache_redis_tlskeyfilepass }}"
+    cache_tpl_tlsclientcertfile: "{{ cache_redis_tlsclientcertfile }}"
+    cache_tpl_tlsclientkeyfile: "{{ cache_redis_tlsclientkeyfile }}"
+    cache_tpl_tlsclientkeyfilepass: "{{ cache_redis_tlsclientkeyfilepass }}"
+    cache_tpl_tlsdhparamsfile: "{{ cache_redis_tlsdhparamsfile }}"
+    cache_tpl_tlscacertfile: "{{ cache_redis_tlscacertfile }}"
+    cache_tpl_tlscacertdir: "{{ cache_redis_tlscacertdir }}"
+    cache_tpl_tlsauthclients: "{{ cache_redis_tlsauthclients }}"
+    cache_tpl_tlsreplication: "{{ cache_redis_tlsreplication }}"
+    cache_tpl_tlscluster: "{{ cache_redis_tlscluster }}"
+    cache_tpl_tlsprotocols: "{{ cache_redis_tlsprotocols }}"
+    cache_tpl_tlsciphers: "{{ cache_redis_tlsciphers }}"
+    cache_tpl_tlsciphersuites: "{{ cache_redis_tlsciphersuites }}"
+    cache_tpl_tlspreferserverciphers: "{{ cache_redis_tlspreferserverciphers }}"
+    cache_tpl_tlssessioncaching: "{{ cache_redis_tlssessioncaching }}"
+    cache_tpl_tlssessioncachesize: "{{ cache_redis_tlssessioncachesize }}"
+    cache_tpl_tlssessioncachetimeout: "{{ cache_redis_tlssessioncachetimeout }}"
+  when: not cache_redis_breadcrumb_stat.stat.exists
+  notify: Reload systemd daemon
+- name: Create Redis config breadcrumb file
+  ansible.builtin.file:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_port }}.conf.breadcrumb"
+    state: touch
+    owner: root
+    group: root
+    mode: "0644"
+    modification_time: preserve
+    access_time: preserve
+- name: Create Redis tmpfiles.d entry for PID directory
+  ansible.builtin.copy:
+    content: "d {{ cache_redis_base_piddir }}/{{ cache_redis_port }} 0755 {{ cache_redis_user }} {{ cache_redis_group }} "
+    dest: /etc/tmpfiles.d/redis@{{ cache_redis_port }}.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+- name: Deploy Redis systemd service unit template
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /lib/systemd/system/redis@{{ cache_redis_port }}.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  vars:
+    cache_tpl_bin_path: "{{ cache_redis_bin_path }}"
+    cache_tpl_svc_user: "{{ cache_redis_user }}"
+    cache_tpl_svc_group: "{{ cache_redis_group }}"
+    cache_tpl_limit_nofile: "{{ cache_redis_limit_nofile }}"
+  notify: Reload systemd daemon

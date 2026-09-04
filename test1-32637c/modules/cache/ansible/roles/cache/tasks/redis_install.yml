@@ -1,0 +1,53 @@
+---
+- name: Install Redis via OS package (FreeBSD / package_install mode)
+  ansible.builtin.package:
+    name: "{{ cache_redis_package_name | default('redis') }}"
+    state: present
+  when: cache_redis_package_install
+- name: Check if Redis binary already exists (safe_install guard)
+  ansible.builtin.stat:
+    path: "{{ cache_redis_bin_path }}/redis-server"
+  register: cache_redis_binary_stat
+  when: not cache_redis_package_install
+- name: Download Redis source tarball
+  ansible.builtin.get_url:
+    url: "{{ cache_redis_mirror }}/{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }}"
+    dest: /tmp/redis-{{ cache_redis_version }}.{{ cache_redis_artifact_type }}
+    mode: "0644"
+  when:
+    - not cache_redis_package_install
+    - not (cache_redis_safe_install and cache_redis_binary_stat.stat.exists)
+- name: Extract Redis source tarball
+  ansible.builtin.unarchive:
+    src: /tmp/redis-{{ cache_redis_version }}.{{ cache_redis_artifact_type }}
+    dest: /tmp
+    remote_src: true
+  when:
+    - not cache_redis_package_install
+    - not (cache_redis_safe_install and cache_redis_binary_stat.stat.exists)
+- name: Clean Redis build directory
+  ansible.builtin.command:
+    cmd: make clean
+    chdir: /tmp/{{ cache_redis_base_name }}{{ cache_redis_version }}
+  changed_when: true
+  when:
+    - not cache_redis_package_install
+    - not (cache_redis_safe_install and cache_redis_binary_stat.stat.exists)
+- name: Compile Redis from source
+  ansible.builtin.command:
+    cmd: make
+    chdir: /tmp/{{ cache_redis_base_name }}{{ cache_redis_version }}
+  changed_when: true
+  when:
+    - not cache_redis_package_install
+    - not (cache_redis_safe_install and cache_redis_binary_stat.stat.exists)
+- name: Install Redis binaries
+  ansible.builtin.command:
+    cmd: make install PREFIX=/usr/local
+    chdir: /tmp/{{ cache_redis_base_name }}{{ cache_redis_version }}
+  changed_when: true
+  when:
+    - not cache_redis_package_install
+    - not (cache_redis_safe_install and cache_redis_binary_stat.stat.exists)
+- name: Include Redis ulimit configuration
+  ansible.builtin.include_tasks: redis_ulimit.yml

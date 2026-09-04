@@ -1,0 +1,134 @@
+---
+cache_memcached_version:
+cache_memcached_memory: 64
+cache_memcached_port: 11211
+cache_memcached_udp_port: 11211
+cache_memcached_listen: 0.0.0.0
+cache_memcached_maxconn: 1024
+cache_memcached_max_object_size: 1m
+cache_memcached_experimental_options: []
+cache_memcached_extra_cli_options: []
+cache_memcached_ulimit: 1024
+cache_memcached_logfilepath: /var/log/memcached
+cache_memcached_user: memcached
+cache_memcached_group: memcached
+cache_redis_version: 3.2.11
+cache_redis_mirror: http://download.redis.io/releases/
+cache_redis_base_name: redis-
+cache_redis_artifact_type: tar.gz
+cache_redis_safe_install: true
+cache_redis_package_install: false
+cache_redis_bypass_setup: false
+cache_redis_bin_path: /usr/local/bin
+cache_redis_install_dir:
+cache_redis_base_piddir: /var/run/redis
+cache_redis_os_service_name: "{{ 'redis-server' if ansible_os_family == 'Debian' else 'redis' }}"
+cache_redis_port: "6379"
+cache_redis_user: redis
+cache_redis_group: redis
+cache_redis_homedir: /var/lib/redis
+cache_redis_shell: /bin/false
+cache_redis_configdir: /etc/redis
+cache_redis_datadir: /var/lib/redis
+cache_redis_logdir: /var/log/redis
+cache_redis_permissions: "0644"
+cache_redis_systemuser: true
+cache_redis_uid:
+cache_redis_tcpbacklog: "511"
+cache_redis_address:
+cache_redis_databases: "16"
+cache_redis_backuptype: rdb
+cache_redis_unixsocket:
+cache_redis_unixsocketperm:
+cache_redis_timeout: "0"
+cache_redis_keepalive: "0"
+cache_redis_loglevel: notice
+cache_redis_logfile:
+cache_redis_syslogenabled: "yes"
+cache_redis_syslogfacility: local0
+cache_redis_save:
+cache_redis_stopwritesonbgsaveerror: "yes"
+cache_redis_rdbcompression: "yes"
+cache_redis_rdbchecksum: "yes"
+cache_redis_dbfilename:
+cache_redis_replicaof:
+cache_redis_protected_mode:
+cache_redis_masterauth:
+cache_redis_replicaservestaledata: "yes"
+cache_redis_replicareadonly: "yes"
+cache_redis_repldisklesssync: "no"
+cache_redis_repldisklesssyncdelay: "5"
+cache_redis_replpingreplicaperiod: "10"
+cache_redis_repltimeout: "60"
+cache_redis_repldisabletcpnodelay: "no"
+cache_redis_replbacklogsize: 1mb
+cache_redis_replbacklogttl: 3600
+cache_redis_replicapriority: "100"
+cache_redis_rename_commands:
+cache_redis_maxclients: 10000
+cache_redis_maxmemory:
+cache_redis_maxmemorypolicy:
+cache_redis_maxmemorysamples:
+cache_redis_appendfilename:
+cache_redis_appendfsync: everysec
+cache_redis_noappendfsynconrewrite: "no"
+cache_redis_aofrewritepercentage: "100"
+cache_redis_aofrewriteminsize: 64mb
+cache_redis_aofloadtruncated: "yes"
+cache_redis_luatimelimit: "5000"
+cache_redis_slowloglogslowerthan: "10000"
+cache_redis_slowlogmaxlen: "1024"
+cache_redis_notifykeyspaceevents: ""
+cache_redis_hashmaxziplistentries: "512"
+cache_redis_hashmaxziplistvalue: "64"
+cache_redis_setmaxintsetentries: "512"
+cache_redis_zsetmaxziplistentries: "128"
+cache_redis_zsetmaxziplistvalue: "64"
+cache_redis_hllsparsemaxbytes: "3000"
+cache_redis_activerehasing: "yes"
+cache_redis_clientoutputbufferlimit:
+  - - normal
+    - "0"
+    - "0"
+    - "0"
+  - - replica
+    - 256mb
+    - 64mb
+    - "60"
+  - - pubsub
+    - 32mb
+    - 8mb
+    - "60"
+cache_redis_hz: "10"
+cache_redis_aofrewriteincrementalfsync: "yes"
+cache_redis_clusterenabled: "no"
+cache_redis_clusterconfigfile:
+cache_redis_clusternodetimeout: 5000
+cache_redis_clusterport:
+cache_redis_includes:
+cache_redis_aclfile:
+cache_redis_minreplicastowrite:
+cache_redis_minreplicasmaxlag:
+cache_redis_ulimit: 0
+cache_redis_limit_nofile: 10032
+cache_redis_tlsport:
+cache_redis_tlscertfile:
+cache_redis_tlskeyfile:
+cache_redis_tlskeyfilepass:
+cache_redis_tlsclientcertfile:
+cache_redis_tlsclientkeyfile:
+cache_redis_tlsclientkeyfilepass:
+cache_redis_tlsdhparamsfile:
+cache_redis_tlscacertfile:
+cache_redis_tlscacertdir:
+cache_redis_tlsauthclients:
+cache_redis_tlsreplication:
+cache_redis_tlscluster:
+cache_redis_tlsprotocols:
+cache_redis_tlsciphers:
+cache_redis_tlsciphersuites:
+cache_redis_tlspreferserverciphers:
+cache_redis_tlssessioncaching:
+cache_redis_tlssessioncachesize:
+cache_redis_tlssessioncachetimeout:
+cache_ulimit_security_limits_directory: /etc/security/limits.d

@@ -1,0 +1,33 @@
+---
+- name: Deploy PAM su configuration for ulimits (Debian/Ubuntu only)
+  ansible.builtin.copy:
+    dest: /etc/pam.d/su
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+    content: "#%PAM-1.0\nauth       sufficient pam_rootok.so\nsession    required   pam_limits.so\nsession    include    system-auth\naccount    include    system-auth\n\
+      password   include    system-auth\n"
+  when: ansible_os_family == 'Debian'
+- name: Deploy PAM sudo configuration for ulimits (Debian/Ubuntu only)
+  ansible.builtin.copy:
+    dest: /etc/pam.d/sudo
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+    content: "#%PAM-1.0\nauth       include    system-auth\naccount    include    system-auth\nsession    required   pam_limits.so\nsession    include    system-auth\n"
+  when: ansible_os_family == 'Debian'
+- name: Configure Redis file descriptor ulimit
+  ansible.builtin.lineinfile:
+    path: "{{ cache_ulimit_security_limits_directory }}/redis.conf"
+    line: "{{ item_ulimit }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - redis soft nofile {{ cache_redis_limit_nofile }}
+    - redis hard nofile {{ cache_redis_limit_nofile }}
+  loop_control:
+    loop_var: item_ulimit

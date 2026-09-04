@@ -1,0 +1,43 @@
+---
+- name: Install memcached package
+  ansible.builtin.package:
+    name: memcached
+    state: present
+- name: Create memcached system group
+  ansible.builtin.group:
+    name: "{{ cache_memcached_group }}"
+    system: true
+    state: present
+- name: Create memcached system user
+  ansible.builtin.user:
+    name: "{{ cache_memcached_user }}"
+    system: true
+    create_home: false
+    group: "{{ cache_memcached_group }}"
+    home: /nonexistent
+    comment: Memcached
+    shell: /bin/false
+    state: present
+- name: Lock memcached user account
+  ansible.builtin.user:
+    name: "{{ cache_memcached_user }}"
+    password_lock: true
+- name: Create memcached log directory
+  ansible.builtin.file:
+    path: "{{ cache_memcached_logfilepath }}"
+    owner: "{{ cache_memcached_user }}"
+    group: "{{ cache_memcached_group }}"
+    mode: "0755"
+    state: directory
+- name: Create memcached run directory
+  ansible.builtin.file:
+    path: /var/run/memcached
+    owner: "{{ cache_memcached_user }}"
+    group: "{{ cache_memcached_group }}"
+    mode: "0755"
+    state: directory
+- name: Start and enable memcached service
+  ansible.builtin.service:
+    name: memcached
+    state: started
+    enabled: true

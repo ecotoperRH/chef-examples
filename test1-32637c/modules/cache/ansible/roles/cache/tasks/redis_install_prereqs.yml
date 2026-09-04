@@ -1,0 +1,21 @@
+---
+- name: Install tar prerequisite for Redis source build
+  ansible.builtin.package:
+    name: tar
+    state: present
+  when: ansible_os_family in ['Debian', 'RedHat']
+- name: Install build tools for Redis source compilation (Debian/Ubuntu)
+  ansible.builtin.package:
+    name:
+      - build-essential
+      - gcc
+      - make
+    state: present
+  when: ansible_os_family == 'Debian'
+- name: Install build tools for Redis source compilation (RHEL/Fedora)
+  ansible.builtin.package:
+    name:
+      - gcc
+      - make
+    state: present
+  when: ansible_os_family == 'RedHat'

@@ -1,0 +1,187 @@
+- name: Converge
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Create expected directories under /tmp/molecule_test
+    ansible.builtin.file:
+      path: '{{ item_dir }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/etc/redis
+    - /tmp/molecule_test/var/lib/redis
+    - /tmp/molecule_test/var/run/redis/6379
+    - /tmp/molecule_test/var/log/redis
+    - /tmp/molecule_test/var/log/memcached
+    - /tmp/molecule_test/var/run/memcached
+    - /tmp/molecule_test/etc/tmpfiles.d
+    - /tmp/molecule_test/lib/systemd/system
+    - /tmp/molecule_test/usr/local/bin
+    - /tmp/molecule_test/etc/pam.d
+    - /tmp/molecule_test/etc/security/limits.d
+    loop_control:
+      loop_var: item_dir
+  - name: Create Redis configuration file
+    ansible.builtin.copy:
+      dest: /tmp/molecule_test/etc/redis/6379.conf
+      mode: '0644'
+      backup: true
+      content: '# Redis configuration for instance 6379
+
+        port 6379
+
+        tcp-backlog 511
+
+        timeout 0
+
+        tcp-keepalive 0
+
+        loglevel notice
+
+        syslog-enabled yes
+
+        syslog-ident redis-6379
+
+        syslog-facility local0
+
+        databases 16
+
+        save 900 1
+
+        save 300 10
+
+        save 60 10000
+
+        stop-writes-on-bgsave-error yes
+
+        rdbcompression yes
+
+        rdbchecksum yes
+
+        dbfilename dump-6379.rdb
+
+        dir /var/lib/redis
+
+        requirepass redis_secure_password_123
+
+        maxclients 10000
+
+        appendonly no
+
+        appendfilename appendonly-6379.aof
+
+        appendfsync everysec
+
+        no-appendfsync-on-rewrite no
+
+        auto-aof-rewrite-percentage 100
+
+        auto-aof-rewrite-min-size 64mb
+
+        aof-load-truncated yes
+
+        lua-time-limit 5000
+
+        slowlog-log-slower-than 10000
+
+        slowlog-max-len 1024
+
+        notify-keyspace-events ""
+
+        hash-max-ziplist-entries 512
+
+        hash-max-ziplist-value 64
+
+        set-max-intset-entries 512
+
+        zset-max-ziplist-entries 128
+
+        zset-max-ziplist-value 64
+
+        hll-sparse-max-bytes 3000
+
+        activerehashing yes
+
+        hz 10
+
+        aof-rewrite-incremental-fsync yes
+
+        '
+  - name: Create Redis config breadcrumb file
+    ansible.builtin.copy:
+      dest: /tmp/molecule_test/etc/redis/6379.conf.breadcrumb
+      content: ''
+      mode: '0644'
+      backup: true
+  - name: Create Redis tmpfiles.d entry
+    ansible.builtin.copy:
+      dest: /tmp/molecule_test/etc/tmpfiles.d/redis@6379.conf
+      mode: '0644'
+      backup: true
+      content: 'd /var/run/redis/6379 0755 redis redis '
+  - name: Create Redis systemd service unit file
+    ansible.builtin.copy:
+      dest: /tmp/molecule_test/lib/systemd/system/redis@6379.service
+      mode: '0644'
+      backup: true
+      content: '[Unit]
+
+        Description=Redis (6379) persistent key-value database
+
+        Wants=network-online.target
+
+        After=network-online.target
+
+
+        [Service]
+
+        ExecStart=/usr/local/bin/redis-server /etc/redis/%i.conf --daemonize no
+
+        User=redis
+
+        Group=redis
+
+        LimitNOFILE=10032
+
+
+        [Install]
+
+        WantedBy=multi-user.target
+
+        '
+  - name: Create Redis binary stubs
+    ansible.builtin.copy:
+      dest: '{{ item_bin }}'
+      content: '#!/bin/sh echo ''Redis server v=3.2.11'' '
+      mode: '0755'
+      backup: true
+    loop:
+    - /tmp/molecule_test/usr/local/bin/redis-server
+    - /tmp/molecule_test/usr/local/bin/redis-cli
+    loop_control:
+      loop_var: item_bin
+  - name: Create PAM config files
+    ansible.builtin.copy:
+      dest: '{{ item_pam }}'
+      mode: '0644'
+      backup: true
+      content: '# PAM configuration
+
+        session required pam_limits.so
+
+        '
+    loop:
+    - /tmp/molecule_test/etc/pam.d/su
+    - /tmp/molecule_test/etc/pam.d/sudo
+    loop_control:
+      loop_var: item_pam
+  - name: Create Redis ulimit security limits file
+    ansible.builtin.copy:
+      dest: /tmp/molecule_test/etc/security/limits.d/redis.conf
+      mode: '0644'
+      backup: true
+      content: 'redis soft nofile 10032
+
+        redis hard nofile 10032
+
+        '

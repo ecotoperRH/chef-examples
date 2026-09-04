@@ -1,0 +1,525 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure Memcached and Redis caching services
+    description:
+      - Deploys and configures Memcached (port 11211) and Redis (port 6379) on a single host.
+      - Memcached is installed from the OS package manager.
+      - Redis is compiled from source (version 3.2.11 by default) and managed as a systemd template unit.
+      - Redis authentication password is injected at runtime via AAP credential type.
+    options:
+      redis_password:
+        type: str
+        required: true
+        description: Redis requirepass authentication password. Injected at runtime by the AAP credential type. Do NOT set a default value.
+      cache_memcached_version:
+        type: str
+        required: false
+        default:
+        description: Memcached package version to install. Null means latest.
+      cache_memcached_memory:
+        type: int
+        required: false
+        default: 64
+        description: Amount of memory (MB) to allocate for Memcached.
+      cache_memcached_port:
+        type: int
+        required: false
+        default: 11211
+        description: TCP port Memcached listens on.
+      cache_memcached_udp_port:
+        type: int
+        required: false
+        default: 11211
+        description: UDP port Memcached listens on.
+      cache_memcached_listen:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: IP address Memcached binds to.
+      cache_memcached_maxconn:
+        type: int
+        required: false
+        default: 1024
+        description: Maximum number of simultaneous connections for Memcached.
+      cache_memcached_max_object_size:
+        type: str
+        required: false
+        default: 1m
+        description: Maximum size of a single Memcached object.
+      cache_memcached_experimental_options:
+        type: list
+        elements: str
+        required: false
+        default: []
+        description: List of experimental Memcached CLI options.
+      cache_memcached_extra_cli_options:
+        type: list
+        elements: str
+        required: false
+        default: []
+        description: List of extra Memcached CLI options.
+      cache_memcached_ulimit:
+        type: int
+        required: false
+        default: 1024
+        description: File descriptor ulimit for the Memcached process.
+      cache_memcached_logfilepath:
+        type: str
+        required: false
+        default: /var/log/memcached
+        description: Directory path for Memcached log files.
+      cache_memcached_user:
+        type: str
+        required: false
+        default: memcached
+        description: System user that runs the Memcached service.
+      cache_memcached_group:
+        type: str
+        required: false
+        default: memcached
+        description: System group for the Memcached service user.
+      cache_redis_version:
+        type: str
+        required: false
+        default: 3.2.11
+        description: Redis version to download and compile from source.
+      cache_redis_mirror:
+        type: str
+        required: false
+        default: http://download.redis.io/releases/
+        description: Base URL for downloading Redis source tarballs.
+      cache_redis_base_name:
+        type: str
+        required: false
+        default: redis-
+        description: Prefix for the Redis tarball filename.
+      cache_redis_artifact_type:
+        type: str
+        required: false
+        default: tar.gz
+        description: Archive format of the Redis source tarball.
+      cache_redis_safe_install:
+        type: bool
+        required: false
+        default: true
+        description: When true, skip compilation if the Redis binary already exists at the target path.
+      cache_redis_package_install:
+        type: bool
+        required: false
+        default: false
+        description: When true, install Redis from the OS package manager instead of compiling from source. Defaults to true on FreeBSD.
+      cache_redis_bypass_setup:
+        type: bool
+        required: false
+        default: false
+        description: When true, skip Redis install, disable_os_default, and configure steps.
+      cache_redis_bin_path:
+        type: str
+        required: false
+        default: /usr/local/bin
+        description: Directory containing Redis binaries after source installation.
+      cache_redis_install_dir:
+        type: str
+        required: false
+        default:
+        description: Custom installation directory for Redis binaries. Null uses bin_path.
+      cache_redis_base_piddir:
+        type: str
+        required: false
+        default: /var/run/redis
+        description: Base directory for Redis PID files. Instance subdirectory is appended.
+      cache_redis_os_service_name:
+        type: str
+        required: false
+        default: redis-server
+        description: Name of the OS-default Redis service to stop and disable. Defaults to redis-server on Debian, redis on RHEL.
+      cache_redis_port:
+        type: str
+        required: false
+        default: "6379"
+        description: TCP port for the Redis instance.
+      cache_redis_user:
+        type: str
+        required: false
+        default: redis
+        description: System user that runs the Redis service.
+      cache_redis_group:
+        type: str
+        required: false
+        default: redis
+        description: System group for the Redis service user.
+      cache_redis_homedir:
+        type: str
+        required: false
+        default: /var/lib/redis
+        description: Home directory for the Redis system user.
+      cache_redis_shell:
+        type: str
+        required: false
+        default: /bin/false
+        description: Login shell for the Redis system user.
+      cache_redis_configdir:
+        type: str
+        required: false
+        default: /etc/redis
+        description: Directory where Redis configuration files are stored.
+      cache_redis_datadir:
+        type: str
+        required: false
+        default: /var/lib/redis
+        description: Directory where Redis stores RDB/AOF persistence files.
+      cache_redis_logdir:
+        type: str
+        required: false
+        default: /var/log/redis
+        description: Directory for Redis log files.
+      cache_redis_permissions:
+        type: str
+        required: false
+        default: "0644"
+        description: File permissions for the Redis configuration file.
+      cache_redis_systemuser:
+        type: bool
+        required: false
+        default: true
+        description: Whether the Redis user is a system account.
+      cache_redis_uid:
+        type: str
+        required: false
+        default:
+        description: Explicit UID for the Redis system user. Null means auto-assigned.
+      cache_redis_tcpbacklog:
+        type: str
+        required: false
+        default: "511"
+        description: TCP listen() backlog size for Redis.
+      cache_redis_address:
+        type: str
+        required: false
+        default:
+        description: IP address(es) Redis binds to. Null means all interfaces.
+      cache_redis_databases:
+        type: str
+        required: false
+        default: "16"
+        description: Number of Redis databases.
+      cache_redis_backuptype:
+        type: str
+        required: false
+        default: rdb
+        description: "Redis persistence type: rdb, aof, or both."
+      cache_redis_timeout:
+        type: str
+        required: false
+        default: "0"
+        description: Idle client connection timeout in seconds (0 to disable).
+      cache_redis_keepalive:
+        type: str
+        required: false
+        default: "0"
+        description: TCP keepalive interval in seconds (0 to disable).
+      cache_redis_loglevel:
+        type: str
+        required: false
+        default: notice
+        description: "Redis log verbosity: debug, verbose, notice, or warning."
+      cache_redis_logfile:
+        type: str
+        required: false
+        default:
+        description: Path to Redis log file. Null means log to syslog/stdout.
+      cache_redis_syslogenabled:
+        type: str
+        required: false
+        default: "yes"
+        description: Whether Redis logs to syslog.
+      cache_redis_syslogfacility:
+        type: str
+        required: false
+        default: local0
+        description: Syslog facility for Redis log messages.
+      cache_redis_save:
+        type: list
+        required: false
+        default:
+        description: List of RDB save points (e.g. ['900 1', '300 10']). Null uses Redis defaults (900 1, 300 10, 60 10000).
+      cache_redis_stopwritesonbgsaveerror:
+        type: str
+        required: false
+        default: "yes"
+        description: Stop accepting writes if the last background save failed.
+      cache_redis_rdbcompression:
+        type: str
+        required: false
+        default: "yes"
+        description: Compress RDB files using LZF.
+      cache_redis_rdbchecksum:
+        type: str
+        required: false
+        default: "yes"
+        description: Add CRC64 checksum to RDB files.
+      cache_redis_dbfilename:
+        type: str
+        required: false
+        default:
+        description: RDB dump filename. Null uses dump-<port>.rdb.
+      cache_redis_replicaof:
+        type: dict
+        required: false
+        default:
+        description: Master address and port for replication. Dict with keys 'address' and 'port'.
+      cache_redis_protected_mode:
+        type: str
+        required: false
+        default:
+        description: Redis protected mode setting (yes/no). Null leaves unset.
+      cache_redis_masterauth:
+        type: str
+        required: false
+        default:
+        description: Password to authenticate with master when replication is configured.
+      cache_redis_replicaservestaledata:
+        type: str
+        required: false
+        default: "yes"
+        description: Whether replica serves stale data when disconnected from master.
+      cache_redis_replicareadonly:
+        type: str
+        required: false
+        default: "yes"
+        description: Whether replica instances are read-only.
+      cache_redis_repldisklesssync:
+        type: str
+        required: false
+        default: "no"
+        description: Use diskless replication sync.
+      cache_redis_repldisklesssyncdelay:
+        type: str
+        required: false
+        default: "5"
+        description: Delay in seconds before starting diskless replication transfer.
+      cache_redis_replpingreplicaperiod:
+        type: str
+        required: false
+        default: "10"
+        description: Interval in seconds for master to send PINGs to replicas.
+      cache_redis_repltimeout:
+        type: str
+        required: false
+        default: "60"
+        description: Replication timeout in seconds.
+      cache_redis_repldisabletcpnodelay:
+        type: str
+        required: false
+        default: "no"
+        description: Disable TCP_NODELAY on replica socket after SYNC.
+      cache_redis_replbacklogsize:
+        type: str
+        required: false
+        default: 1mb
+        description: Replication backlog buffer size.
+      cache_redis_replbacklogttl:
+        type: int
+        required: false
+        default: 3600
+        description: Seconds before freeing replication backlog when no replicas connected.
+      cache_redis_replicapriority:
+        type: str
+        required: false
+        default: "100"
+        description: Replica priority for Sentinel promotion (0 = never promote).
+      cache_redis_rename_commands:
+        type: dict
+        required: false
+        default:
+        description: Map of Redis commands to rename for security (command -> new_name).
+      cache_redis_maxclients:
+        type: int
+        required: false
+        default: 10000
+        description: Maximum number of simultaneous Redis client connections.
+      cache_redis_maxmemory:
+        type: str
+        required: false
+        default:
+        description: Maximum memory Redis may use (e.g. '2gb'). Null means unlimited.
+      cache_redis_maxmemorypolicy:
+        type: str
+        required: false
+        default:
+        description: Eviction policy when maxmemory is reached.
+      cache_redis_maxmemorysamples:
+        type: str
+        required: false
+        default:
+        description: Number of keys to sample for LRU/TTL eviction algorithms.
+      cache_redis_appendfilename:
+        type: str
+        required: false
+        default:
+        description: AOF filename. Null uses appendonly-<port>.aof.
+      cache_redis_appendfsync:
+        type: str
+        required: false
+        default: everysec
+        description: "AOF fsync policy: always, everysec, or no."
+      cache_redis_noappendfsynconrewrite:
+        type: str
+        required: false
+        default: "no"
+        description: Disable fsync during AOF rewrite.
+      cache_redis_aofrewritepercentage:
+        type: str
+        required: false
+        default: "100"
+        description: Percentage growth to trigger AOF rewrite.
+      cache_redis_aofrewriteminsize:
+        type: str
+        required: false
+        default: 64mb
+        description: Minimum AOF file size before rewrite is triggered.
+      cache_redis_aofloadtruncated:
+        type: str
+        required: false
+        default: "yes"
+        description: Load truncated AOF file on startup.
+      cache_redis_luatimelimit:
+        type: str
+        required: false
+        default: "5000"
+        description: Maximum Lua script execution time in milliseconds.
+      cache_redis_slowloglogslowerthan:
+        type: str
+        required: false
+        default: "10000"
+        description: Threshold in microseconds for slow log entries.
+      cache_redis_slowlogmaxlen:
+        type: str
+        required: false
+        default: "1024"
+        description: Maximum number of entries in the slow log.
+      cache_redis_notifykeyspaceevents:
+        type: str
+        required: false
+        default: ""
+        description: Keyspace notification event classes to publish.
+      cache_redis_hashmaxziplistentries:
+        type: str
+        required: false
+        default: "512"
+        description: Max entries in a hash before switching to hashtable encoding.
+      cache_redis_hashmaxziplistvalue:
+        type: str
+        required: false
+        default: "64"
+        description: Max value size in a hash before switching to hashtable encoding.
+      cache_redis_setmaxintsetentries:
+        type: str
+        required: false
+        default: "512"
+        description: Max entries in an integer set before switching to hashtable encoding.
+      cache_redis_zsetmaxziplistentries:
+        type: str
+        required: false
+        default: "128"
+        description: Max entries in a sorted set before switching to skiplist encoding.
+      cache_redis_zsetmaxziplistvalue:
+        type: str
+        required: false
+        default: "64"
+        description: Max value size in a sorted set before switching to skiplist encoding.
+      cache_redis_hllsparsemaxbytes:
+        type: str
+        required: false
+        default: "3000"
+        description: HyperLogLog sparse representation byte limit.
+      cache_redis_activerehasing:
+        type: str
+        required: false
+        default: "yes"
+        description: Enable active rehashing of the main Redis hash table.
+      cache_redis_clientoutputbufferlimit:
+        type: list
+        elements: list
+        required: false
+        default:
+          - - normal
+            - "0"
+            - "0"
+            - "0"
+          - - replica
+            - 256mb
+            - 64mb
+            - "60"
+          - - pubsub
+            - 32mb
+            - 8mb
+            - "60"
+        description: Client output buffer limits per client class.
+      cache_redis_hz:
+        type: str
+        required: false
+        default: "10"
+        description: Redis internal timer frequency (1-500).
+      cache_redis_aofrewriteincrementalfsync:
+        type: str
+        required: false
+        default: "yes"
+        description: Fsync AOF file every 32MB during rewrite.
+      cache_redis_clusterenabled:
+        type: str
+        required: false
+        default: "no"
+        description: Enable Redis Cluster mode.
+      cache_redis_clusterconfigfile:
+        type: str
+        required: false
+        default:
+        description: Cluster config filename. Null uses nodes-<port>.conf.
+      cache_redis_clusternodetimeout:
+        type: int
+        required: false
+        default: 5000
+        description: Cluster node timeout in milliseconds.
+      cache_redis_clusterport:
+        type: str
+        required: false
+        default:
+        description: Cluster bus port. Null uses default (port + 10000).
+      cache_redis_includes:
+        type: list
+        elements: str
+        required: false
+        default:
+        description: List of additional Redis config files to include.
+      cache_redis_aclfile:
+        type: str
+        required: false
+        default:
+        description: Path to external ACL file (Redis 6+).
+      cache_redis_minreplicastowrite:
+        type: str
+        required: false
+        default:
+        description: Minimum replicas required for master to accept writes.
+      cache_redis_minreplicasmaxlag:
+        type: str
+        required: false
+        default:
+        description: Maximum replica lag in seconds for min-replicas-to-write check.
+      cache_redis_ulimit:
+        type: int
+        required: false
+        default: 0
+        description: File descriptor ulimit for Redis. 0 means auto-calculate as maxclients + 32.
+      cache_redis_limit_nofile:
+        type: int
+        required: false
+        default: 10032
+        description: LimitNOFILE value for the Redis systemd unit and security limits. Calculated as maxclients (10000) + 32.
+      cache_ulimit_security_limits_directory:
+        type: str
+        required: false
+        default: /etc/security/limits.d
+        description: Directory for per-user security limits configuration files.
