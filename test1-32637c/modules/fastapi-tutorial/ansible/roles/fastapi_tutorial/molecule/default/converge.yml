@@ -1,0 +1,91 @@
+- name: Converge
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Create application and venv directories
+    ansible.builtin.file:
+      path: '{{ item_dir }}'
+      state: directory
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/opt/fastapi-tutorial
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin
+    - /tmp/molecule_test/opt/fastapi-tutorial/app
+    - /tmp/molecule_test/etc/systemd/system
+    loop_control:
+      loop_var: item_dir
+  - name: Create stub requirements.txt
+    ansible.builtin.copy:
+      content: 'fastapi>=0.100.0
+
+        uvicorn[standard]>=0.23.0
+
+        psycopg2-binary>=2.9.0
+
+        sqlalchemy>=2.0.0
+
+        python-dotenv>=1.0.0
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/requirements.txt
+      mode: '0644'
+  - name: Create stub app/__init__.py
+    ansible.builtin.copy:
+      content: ''
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/app/__init__.py
+      mode: '0644'
+  - name: Create stub venv binaries
+    ansible.builtin.copy:
+      content: '#!/bin/sh echo stub '
+      dest: '{{ item_bin }}'
+      mode: '0755'
+    loop:
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/python
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/python3
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/pip
+    - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/uvicorn
+    loop_control:
+      loop_var: item_bin
+  - name: Create application .env configuration file
+    ansible.builtin.copy:
+      content: 'PROJECT_NAME="FastAPI Tutorial"
+
+        API_VERSION=1.0.0
+
+        DATABASE_URL=postgresql://fastapi:fastapi_password@localhost/fastapi_db
+
+        '
+      dest: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      mode: '0600'
+  - name: Create systemd unit file for fastapi-tutorial
+    ansible.builtin.copy:
+      content: '[Unit]
+
+        Description=FastAPI Tutorial Service
+
+        After=network.target postgresql.service
+
+
+        [Service]
+
+        Type=simple
+
+        User=root
+
+        WorkingDirectory=/opt/fastapi-tutorial
+
+        Environment="PATH=/opt/fastapi-tutorial/venv/bin"
+
+        ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+        Restart=always
+
+
+        [Install]
+
+        WantedBy=multi-user.target
+
+        '
+      dest: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      mode: '0644'

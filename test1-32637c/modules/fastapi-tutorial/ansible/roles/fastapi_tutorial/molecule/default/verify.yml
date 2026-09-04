@@ -1,0 +1,232 @@
+---
+# ===========================================================================
+# Play 1 — Verify directory structure and file existence
+# ===========================================================================
+- name: Verify directory structure
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    - name: Stat application directories
+      ansible.builtin.stat:
+        path: "{{ item_dir }}"
+      loop:
+        - /tmp/molecule_test/opt/fastapi-tutorial
+        - /tmp/molecule_test/opt/fastapi-tutorial/venv
+        - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin
+        - /tmp/molecule_test/opt/fastapi-tutorial/app
+        - /tmp/molecule_test/etc/systemd/system
+      loop_control:
+        loop_var: item_dir
+      register: dir_stat_results
+
+    - name: Assert application directories exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isdir']
+        fail_msg: "Expected directory does not exist or is not a directory"
+      loop: "{{ dir_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Stat key application files
+      ansible.builtin.stat:
+        path: "{{ item_file }}"
+      loop:
+        - /tmp/molecule_test/opt/fastapi-tutorial/requirements.txt
+        - /tmp/molecule_test/opt/fastapi-tutorial/.env
+        - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/uvicorn
+        - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/python
+        - /tmp/molecule_test/opt/fastapi-tutorial/venv/bin/pip
+        - /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      loop_control:
+        loop_var: item_file
+      register: file_stat_results
+
+    - name: Assert key application files exist and are non-empty
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isreg']
+          - item_result['stat']['size'] > 0
+        fail_msg: "Expected file does not exist or is empty"
+      loop: "{{ file_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+# ===========================================================================
+# Play 2 — Verify .env file content
+# ===========================================================================
+- name: Verify environment configuration file content
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    - name: Slurp .env configuration file
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      register: env_file_slurp
+
+    - name: Decode .env file content
+      ansible.builtin.set_fact:
+        env_file_content: "{{ env_file_slurp['content'] | b64decode }}"
+
+    - name: Assert .env contains PROJECT_NAME
+      ansible.builtin.assert:
+        that:
+          - "'PROJECT_NAME' in env_file_content"
+          - "'FastAPI Tutorial' in env_file_content"
+        fail_msg: "PROJECT_NAME not found in .env file"
+
+    - name: Assert .env contains API_VERSION
+      ansible.builtin.assert:
+        that:
+          - "'API_VERSION' in env_file_content"
+          - "'1.0.0' in env_file_content"
+        fail_msg: "API_VERSION not found in .env file"
+
+    - name: Assert .env contains DATABASE_URL
+      ansible.builtin.assert:
+        that:
+          - "'DATABASE_URL' in env_file_content"
+          - "'postgresql://' in env_file_content"
+          - "'fastapi_db' in env_file_content"
+        fail_msg: "DATABASE_URL not found or malformed in .env file"
+
+    - name: Stat .env file for permission check
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/opt/fastapi-tutorial/.env
+      register: env_stat
+
+    - name: Assert .env file has mode 0600
+      ansible.builtin.assert:
+        that:
+          - "env_stat['stat']['mode'] == '0600'"
+        fail_msg: "Expected .env file to have mode 0600"
+
+# ===========================================================================
+# Play 3 — Verify systemd unit file content
+# ===========================================================================
+- name: Verify systemd unit file content
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    - name: Slurp systemd unit file
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      register: service_file_slurp
+
+    - name: Decode systemd unit file content
+      ansible.builtin.set_fact:
+        service_file_content: "{{ service_file_slurp['content'] | b64decode }}"
+
+    - name: Assert unit file contains [Unit] section with correct After= directive
+      ansible.builtin.assert:
+        that:
+          - "'[Unit]' in service_file_content"
+          - "'After=network.target postgresql.service' in service_file_content"
+        fail_msg: "Unit section or After= directive missing from service file"
+
+    - name: Assert unit file contains [Service] section with required directives
+      ansible.builtin.assert:
+        that:
+          - "'[Service]' in service_file_content"
+          - "'Type=simple' in service_file_content"
+          - "'User=root' in service_file_content"
+          - "'WorkingDirectory=/opt/fastapi-tutorial' in service_file_content"
+          - "'Restart=always' in service_file_content"
+        fail_msg: "Service section or required directives missing from service file"
+
+    - name: Assert unit file ExecStart uses uvicorn on port 8000
+      ansible.builtin.assert:
+        that:
+          - "'ExecStart=' in service_file_content"
+          - "'uvicorn' in service_file_content"
+          - "'app.main:app' in service_file_content"
+          - "'--port 8000' in service_file_content"
+          - "'0.0.0.0' in service_file_content"
+        fail_msg: "ExecStart directive missing or incorrect in service file"
+
+    - name: Assert unit file contains [Install] section
+      ansible.builtin.assert:
+        that:
+          - "'[Install]' in service_file_content"
+          - "'WantedBy=multi-user.target' in service_file_content"
+        fail_msg: "Install section missing from service file"
+
+    - name: Stat systemd unit file for permission check
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/systemd/system/fastapi-tutorial.service
+      register: service_stat
+
+    - name: Assert systemd unit file has mode 0644
+      ansible.builtin.assert:
+        that:
+          - "service_stat['stat']['mode'] == '0644'"
+        fail_msg: "Expected service file to have mode 0644"
+
+# ===========================================================================
+# Play 4 — Service and port checks (container-unsafe, tagged molecule-notest)
+# ===========================================================================
+- name: Verify runtime services and ports (skipped in container)
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert PostgreSQL service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'postgresql.service' in ansible_facts['services']"
+          - "ansible_facts['services']['postgresql.service']['state'] == 'running'"
+          - "ansible_facts['services']['postgresql.service']['status'] == 'enabled'"
+        fail_msg: "PostgreSQL service is not running or not enabled"
+      tags: molecule-notest
+
+    - name: Assert fastapi-tutorial service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'fastapi-tutorial.service' in ansible_facts['services']"
+          - "ansible_facts['services']['fastapi-tutorial.service']['state'] == 'running'"
+          - "ansible_facts['services']['fastapi-tutorial.service']['status'] == 'enabled'"
+        fail_msg: "fastapi-tutorial service is not running or not enabled"
+      tags: molecule-notest
+
+    - name: Check PostgreSQL is listening on port 5432
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 5432
+        timeout: 5
+        state: started
+      tags: molecule-notest
+
+    - name: Check fastapi-tutorial is listening on port 8000
+      ansible.builtin.wait_for:
+        host: 0.0.0.0
+        port: 8000
+        timeout: 5
+        state: started
+      tags: molecule-notest
+
+    - name: Check FastAPI application HTTP health endpoint
+      ansible.builtin.uri:
+        url: http://localhost:8000/
+        method: GET
+        status_code:
+          - 200
+          - 307
+        timeout: 10
+      tags: molecule-notest
+
+    - name: Check FastAPI OpenAPI docs endpoint
+      ansible.builtin.uri:
+        url: http://localhost:8000/docs
+        method: GET
+        status_code: 200
+        timeout: 10
+      tags: molecule-notest

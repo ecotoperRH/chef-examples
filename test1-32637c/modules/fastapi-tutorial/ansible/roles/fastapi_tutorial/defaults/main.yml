@@ -1,0 +1,21 @@
+---
+fastapi_tutorial_app_dir: /opt/fastapi-tutorial
+fastapi_tutorial_git_repo: https://github.com/dibanez/fastapi_tutorial.git
+fastapi_tutorial_git_revision: main
+fastapi_tutorial_venv_dir: /opt/fastapi-tutorial/venv
+fastapi_tutorial_asgi_entrypoint: app.main:app
+fastapi_tutorial_bind_host: 0.0.0.0
+fastapi_tutorial_port: 8000
+fastapi_tutorial_project_name: FastAPI Tutorial
+fastapi_tutorial_api_version: 1.0.0
+fastapi_tutorial_app_dir_mode: "0755"
+fastapi_tutorial_env_file_mode: "0600"
+fastapi_tutorial_service_file_mode: "0644"
+fastapi_tutorial_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - git
+  - postgresql
+  - postgresql-contrib
+  - libpq-dev

@@ -1,0 +1,73 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+- name: Install system packages
+  ansible.builtin.package:
+    name: "{{ fastapi_tutorial_packages }}"
+    state: present
+- name: Create application directory
+  ansible.builtin.file:
+    path: "{{ fastapi_tutorial_app_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ fastapi_tutorial_app_dir_mode }}"
+- name: Clone FastAPI tutorial repository
+  ansible.builtin.git:
+    repo: "{{ fastapi_tutorial_git_repo }}"
+    dest: "{{ fastapi_tutorial_app_dir }}"
+    version: "{{ fastapi_tutorial_git_revision }}"
+    update: true
+    force: false
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ fastapi_tutorial_venv_dir }}
+    creates: "{{ fastapi_tutorial_venv_dir }}"
+- name: Install Python dependencies
+  ansible.builtin.pip:
+    requirements: "{{ fastapi_tutorial_app_dir }}/requirements.txt"
+    virtualenv: "{{ fastapi_tutorial_venv_dir }}"
+    state: present
+- name: Enable and start PostgreSQL service
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+- name: Provision PostgreSQL database user and database
+  ansible.builtin.shell:
+    cmd: 'sudo -u postgres psql -c "CREATE USER {{ db_username }} WITH PASSWORD ''{{ db_password }}'';" || true
+
+      sudo -u postgres psql -c "CREATE DATABASE {{ db_name }} OWNER {{ db_username }};" || true
+
+      sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_username }};" || true
+
+      '
+  changed_when: false
+  no_log: true
+- name: Deploy application environment configuration file
+  ansible.builtin.template:
+    src: fastapi-tutorial.env.j2
+    dest: "{{ fastapi_tutorial_app_dir }}/.env"
+    owner: root
+    group: root
+    mode: "{{ fastapi_tutorial_env_file_mode }}"
+    backup: true
+  notify:
+    - Restart fastapi-tutorial service
+- name: Deploy systemd unit file for fastapi-tutorial
+  ansible.builtin.template:
+    src: fastapi-tutorial.service.j2
+    dest: /etc/systemd/system/fastapi-tutorial.service
+    owner: root
+    group: root
+    mode: "{{ fastapi_tutorial_service_file_mode }}"
+    backup: true
+  notify:
+    - Reload systemd daemon
+    - Restart fastapi-tutorial service
+- name: Enable and start fastapi-tutorial service
+  ansible.builtin.systemd:
+    name: fastapi-tutorial
+    state: started
+    enabled: true
+    daemon_reload: true
