@@ -1,0 +1,45 @@
+{
+  "name": "nginx-multisite",
+  "description": "Configures nginx with multiple SSL-enabled subdomains",
+  "long_description": "",
+  "maintainer": "Chef Example",
+  "maintainer_email": "admin@example.com",
+  "license": "Apache-2.0",
+  "platforms": {
+    "ubuntu": ">= 18.04",
+    "centos": ">= 7.0"
+  },
+  "dependencies": {
+
+  },
+  "providing": {
+    "nginx-multisite": ">= 0.0.0",
+    "nginx-multisite::nginx": ">= 0.0.0",
+    "nginx-multisite::security": ">= 0.0.0",
+    "nginx-multisite::sites": ">= 0.0.0",
+    "nginx-multisite::ssl": ">= 0.0.0"
+  },
+  "recipes": {
+    "nginx-multisite": "",
+    "nginx-multisite::nginx": "",
+    "nginx-multisite::security": "",
+    "nginx-multisite::sites": "",
+    "nginx-multisite::ssl": ""
+  },
+  "version": "1.0.0",
+  "source_url": "",
+  "issues_url": "",
+  "privacy": false,
+  "chef_versions": [
+    [
+      ">= 16.0"
+    ]
+  ],
+  "ohai_versions": [
+
+  ],
+  "gems": [
+
+  ],
+  "eager_load_libraries": true
+}
