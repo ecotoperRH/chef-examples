@@ -1,0 +1,332 @@
+# Redis configuration file example.
+
+# Note on units: when memory size is needed, it is possible to specify
+# it in the usual form of 1k 5GB 4M and so forth:
+#
+# 1k => 1000 bytes
+# 1kb => 1024 bytes
+# 1m => 1000000 bytes
+# 1mb => 1024*1024 bytes
+# 1g => 1000000000 bytes
+# 1gb => 1024*1024*1024 bytes
+#
+# units are case insensitive so 1GB 1Gb 1gB are all the same.
+
+# By default Redis does not run as a daemon. Use 'yes' if you need it.
+# Note that Redis will write a pid file in /var/run/redis.pid when daemonized.
+{% if redis_job_control == 'initd' or redis_job_control == 'rcinit' %}
+daemonize yes
+{% endif %}
+
+# When running daemonized, Redis writes a pid file in /var/run/redis.pid by
+# default. You can specify a custom pid file location here.
+pidfile {{ redis_piddir }}/redis_{{ redis_name }}.pid
+
+# Accept connections on the specified port, default is 6379.
+# If port 0 is specified Redis will not listen on a TCP socket.
+port {{ redis_port }}
+
+# TCP listen() backlog.
+tcp-backlog {{ redis_tcpbacklog }}
+
+# By default Redis listens for connections from all the network interfaces
+# available on the server. It is possible to listen to just one or multiple
+# interfaces using the "bind" configuration directive, followed by one or
+# more IP addresses.
+{% if redis_address is not none %}
+bind {{ redis_address if redis_address is string else redis_address | join(' ') }}
+{% endif %}
+
+# Protected mode is a layer of security protection.
+{% if redis_protected_mode is not none %}
+protected-mode {{ redis_protected_mode }}
+{% endif %}
+
+# Specify the path for the Unix socket that will be used to listen for
+# incoming connections.
+{% if redis_unixsocket is not none %}
+unixsocket {{ redis_unixsocket }}
+{% endif %}
+{% if redis_unixsocketperm is not none %}
+unixsocketperm {{ redis_unixsocketperm }}
+{% endif %}
+
+# Close the connection after a client is idle for N seconds (0 to disable)
+timeout {{ redis_timeout }}
+
+# TCP keepalive.
+tcp-keepalive {{ redis_keepalive }}
+
+# Set server verbosity to 'debug'
+# it can be one of:
+# debug (a lot of information, useful for development/testing)
+# verbose (many rarely useful info, but not a mess like the debug level)
+# notice (moderately verbose, what you want in production probably)
+# warning (only very important / critical messages are logged)
+loglevel {{ redis_loglevel }}
+
+# Specify the log file name.
+{% if redis_logfile is not none %}
+logfile {{ redis_logfile }}
+{% endif %}
+
+# To enable logging to the system logger, just set 'syslog-enabled' to yes,
+# and optionally update the other syslog parameters to suit your needs.
+syslog-enabled {{ redis_syslogenabled }}
+
+# Specify the syslog identity.
+syslog-ident redis-{{ redis_name }}
+
+# Specify the syslog facility.  Must be USER or between LOCAL0-LOCAL7.
+syslog-facility {{ redis_syslogfacility }}
+
+# Set the number of databases.
+databases {{ redis_databases }}
+
+################################# TLS/SSL #####################################
+{% if redis_tlsport is not none %}
+tls-port {{ redis_tlsport }}
+{% endif %}
+{% if redis_tlscertfile is not none %}
+tls-cert-file {{ redis_tlscertfile }}
+{% endif %}
+{% if redis_tlskeyfile is not none %}
+tls-key-file {{ redis_tlskeyfile }}
+{% endif %}
+{% if redis_tlskeyfilepass is not none %}
+tls-key-file-pass {{ redis_tlskeyfilepass }}
+{% endif %}
+{% if redis_tlsclientcertfile is not none %}
+tls-client-cert-file {{ redis_tlsclientcertfile }}
+{% endif %}
+{% if redis_tlsclientkeyfile is not none %}
+tls-client-key-file {{ redis_tlsclientkeyfile }}
+{% endif %}
+{% if redis_tlsclientkeyfilepass is not none %}
+tls-client-key-file-pass {{ redis_tlsclientkeyfilepass }}
+{% endif %}
+{% if redis_tlsdhparamsfile is not none %}
+tls-dh-params-file {{ redis_tlsdhparamsfile }}
+{% endif %}
+{% if redis_tlscacertfile is not none %}
+tls-ca-cert-file {{ redis_tlscacertfile }}
+{% endif %}
+{% if redis_tlscacertdir is not none %}
+tls-ca-cert-dir {{ redis_tlscacertdir }}
+{% endif %}
+{% if redis_tlsauthclients is not none %}
+tls-auth-clients {{ redis_tlsauthclients }}
+{% endif %}
+{% if redis_tlsreplication is not none %}
+tls-replication {{ redis_tlsreplication }}
+{% endif %}
+{% if redis_tlscluster is not none %}
+tls-cluster {{ redis_tlscluster }}
+{% endif %}
+{% if redis_tlsprotocols is not none %}
+tls-protocols {{ redis_tlsprotocols }}
+{% endif %}
+{% if redis_tlsciphers is not none %}
+tls-ciphers {{ redis_tlsciphers }}
+{% endif %}
+{% if redis_tlsciphersuites is not none %}
+tls-ciphersuites {{ redis_tlsciphersuites }}
+{% endif %}
+{% if redis_tlspreferserverciphers is not none %}
+tls-prefer-server-ciphers {{ redis_tlspreferserverciphers }}
+{% endif %}
+{% if redis_tlssessioncaching is not none %}
+tls-session-caching {{ redis_tlssessioncaching }}
+{% endif %}
+{% if redis_tlssessioncachesize is not none %}
+tls-session-cache-size {{ redis_tlssessioncachesize }}
+{% endif %}
+{% if redis_tlssessioncachetimeout is not none %}
+tls-session-cache-timeout {{ redis_tlssessioncachetimeout }}
+{% endif %}
+
+################################ SNAPSHOTTING  #################################
+#
+# Save the DB on disk:
+#
+#   save <seconds> <changes>
+#
+{% if redis_backuptype == 'rdb' or redis_backuptype == 'both' %}
+
+{% if redis_save is none %}
+  save 900 1
+  save 300 10
+  save 60 10000
+{% else %}
+{% for save_option in redis_save %}
+  save {{ save_option }}
+{% endfor %}
+{% endif %}
+
+# By default Redis will stop accepting writes if RDB snapshots are enabled
+# (at least one save point) and the latest background save failed.
+stop-writes-on-bgsave-error {{ redis_stopwritesonbgsaveerror }}
+
+# Compress string objects using LZF when dump .rdb databases?
+rdbcompression {{ redis_rdbcompression }}
+
+# Since version 5 of RDB a CRC64 checksum is placed at the end of the file.
+rdbchecksum {{ redis_rdbchecksum }}
+
+# The filename where to dump the DB
+{% if redis_dbfilename %}
+dbfilename {{ redis_dbfilename }}
+{% else %}
+dbfilename dump-{{ redis_name }}.rdb
+{% endif %}
+
+{% endif %}
+
+# The working directory.
+dir {{ redis_datadir }}
+
+################################# REPLICATION #################################
+
+{% if redis_replicaof is not none %}
+replicaof {{ redis_replicaof['address'] }} {{ redis_replicaof['port'] }}
+{% endif %}
+
+{% if redis_masterauth is not none %}
+masterauth {{ redis_masterauth }}
+{% endif %}
+
+replica-serve-stale-data {{ redis_replicaservestaledata }}
+
+replica-read-only {{ redis_replicareadonly }}
+
+repl-diskless-sync {{ redis_repldisklesssync }}
+
+repl-diskless-sync-delay {{ redis_repldisklesssyncdelay }}
+
+repl-ping-replica-period {{ redis_replpingreplicaperiod }}
+
+repl-timeout {{ redis_repltimeout }}
+
+repl-disable-tcp-nodelay {{ redis_repldisabletcpnodelay }}
+
+repl-backlog-size {{ redis_replbacklogsize }}
+
+repl-backlog-ttl {{ redis_replbacklogttl }}
+
+replica-priority {{ redis_replicapriority }}
+
+{% if redis_minreplicastowrite is not none %}
+min-replicas-to-write {{ redis_minreplicastowrite }}
+{% endif %}
+{% if redis_minreplicasmaxlag is not none %}
+min-replicas-max-lag {{ redis_minreplicasmaxlag }}
+{% endif %}
+
+################################## SECURITY ###################################
+
+{% if redis_requirepass is not none %}
+requirepass {{ redis_requirepass }}
+{% endif %}
+
+{% if redis_rename_commands is not none %}
+{% for cmd_key, cmd_val in redis_rename_commands.items() %}
+rename-command {{ cmd_key }} {{ '""' if not cmd_val else cmd_val }}
+{% endfor %}
+{% endif %}
+
+################################### LIMITS ####################################
+
+maxclients {{ redis_maxclients }}
+
+{% if redis_maxmemory %}
+maxmemory {{ redis_maxmemory }}
+{% endif %}
+
+{% if redis_maxmemorypolicy is not none %}
+maxmemory-policy {{ redis_maxmemorypolicy }}
+{% endif %}
+
+{% if redis_maxmemorysamples is not none %}
+maxmemory-samples {{ redis_maxmemorysamples }}
+{% endif %}
+
+############################## APPEND ONLY MODE ###############################
+
+{% if redis_backuptype == 'aof' or redis_backuptype == 'both' %}
+appendonly yes
+{% else %}
+appendonly no
+{% endif %}
+
+# The name of the append only file (default: "appendonly.aof")
+{% if redis_appendfilename %}
+appendfilename {{ redis_appendfilename }}
+{% else %}
+appendfilename appendonly-{{ redis_name }}.aof
+{% endif %}
+
+appendfsync {{ redis_appendfsync }}
+
+no-appendfsync-on-rewrite {{ redis_noappendfsynconrewrite }}
+
+auto-aof-rewrite-percentage {{ redis_aofrewritepercentage }}
+auto-aof-rewrite-min-size {{ redis_aofrewriteminsize }}
+
+aof-load-truncated {{ redis_aofloadtruncated }}
+
+################################ LUA SCRIPTING  ###############################
+
+lua-time-limit {{ redis_luatimelimit }}
+
+################################## SLOW LOG ###################################
+
+slowlog-log-slower-than {{ redis_slowloglogslowerthan }}
+
+slowlog-max-len {{ redis_slowlogmaxlen }}
+
+############################# EVENT NOTIFICATION ##############################
+
+notify-keyspace-events "{{ redis_notifykeyspaceevents }}"
+
+############################### ADVANCED CONFIG ###############################
+
+hash-max-ziplist-entries {{ redis_hashmaxziplistentries }}
+hash-max-ziplist-value {{ redis_hashmaxziplistvalue }}
+
+set-max-intset-entries {{ redis_setmaxintsetentries }}
+
+zset-max-ziplist-entries {{ redis_zsetmaxziplistentries }}
+zset-max-ziplist-value {{ redis_zsetmaxziplistvalue }}
+
+hll-sparse-max-bytes {{ redis_hllsparsemaxbytes }}
+
+activerehashing {{ redis_activerehasing }}
+
+{% for cobl_item in redis_clientoutputbufferlimit %}
+client-output-buffer-limit {{ cobl_item }}
+{% endfor %}
+
+hz {{ redis_hz }}
+
+aof-rewrite-incremental-fsync {{ redis_aofrewriteincrementalfsync }}
+
+{% if redis_clusterenabled == 'yes' %}
+cluster-enabled yes
+cluster-config-file {{ redis_clusterconfigfile if redis_clusterconfigfile else 'nodes-' + redis_name + '.conf' }}
+cluster-node-timeout {{ redis_clusternodetimeout }}
+{% if redis_clusterport is not none %}
+cluster-port {{ redis_clusterport }}
+{% endif %}
+{% endif %}
+
+{% if redis_aclfile is not none %}
+aclfile {{ redis_aclfile }}
+{% endif %}
+
+################################## INCLUDES ###################################
+
+{% if redis_includes is not none %}
+{% for include_option in redis_includes %}
+include {{ include_option }}
+{% endfor %}
+{% endif %}

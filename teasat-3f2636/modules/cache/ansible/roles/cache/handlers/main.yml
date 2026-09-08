@@ -1,0 +1,13 @@
+---
+- name: Restart memcached
+  ansible.builtin.service:
+    name: memcached
+    state: restarted
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+- name: Restart redis
+  ansible.builtin.systemd:
+    name: redis@{{ cache_redis_name }}
+    state: restarted
+    daemon_reload: true

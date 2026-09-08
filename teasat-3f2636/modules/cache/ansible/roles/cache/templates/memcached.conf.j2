@@ -1,0 +1,33 @@
+# Memcached configuration file
+# Managed by Ansible - do not edit manually
+
+# Memory limit (MB)
+-m {{ cache_memcached_memory }}
+
+# TCP port
+-p {{ cache_memcached_port }}
+
+# UDP port
+-U {{ cache_memcached_udp_port }}
+
+# Listen address
+-l {{ cache_memcached_listen }}
+
+# Maximum simultaneous connections
+-c {{ cache_memcached_maxconn }}
+
+# Maximum object size
+-I {{ cache_memcached_max_object_size }}
+
+# Run as user
+-u {{ cache_memcached_user }}
+
+# File descriptor limit
+-f {{ cache_memcached_ulimit }}
+
+# Log file directory
+-L
+
+{% for opt in cache_memcached_extra_cli_options %}
+{{ opt }}
+{% endfor %}

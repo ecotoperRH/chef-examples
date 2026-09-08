@@ -1,0 +1,302 @@
+---
+# ============================================================
+# Play 1: Verify directory structure
+# ============================================================
+- name: Verify cache role — directory structure
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Stat expected directories
+      ansible.builtin.stat:
+        path: "{{ item_dir }}"
+      loop:
+        - /tmp/molecule_test/var/log/memcached
+        - /tmp/molecule_test/var/run/memcached
+        - /tmp/molecule_test/var/log/redis
+        - /tmp/molecule_test/var/lib/redis
+        - /tmp/molecule_test/var/run/redis/6379
+        - /tmp/molecule_test/etc/redis
+      loop_control:
+        loop_var: item_dir
+      register: cache_dir_stat_results
+
+    - name: Assert expected directories exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isdir']
+        fail_msg: "Expected directory does not exist or is not a directory"
+      loop: "{{ cache_dir_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+# ============================================================
+# Play 2: Verify Redis configuration files exist
+# ============================================================
+- name: Verify cache role — Redis config files exist
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Stat Redis configuration files
+      ansible.builtin.stat:
+        path: "{{ item_cfg }}"
+      loop:
+        - /tmp/molecule_test/etc/redis/6379.conf
+        - /tmp/molecule_test/etc/redis/6379.conf.breadcrumb
+        - /tmp/molecule_test/lib/systemd/system/redis@6379.service
+        - /tmp/molecule_test/etc/tmpfiles.d/redis@6379.conf
+        - /tmp/molecule_test/etc/security/limits.d/redis.conf
+        - /tmp/molecule_test/usr/local/bin/redis-server
+      loop_control:
+        loop_var: item_cfg
+      register: cache_cfg_stat_results
+
+    - name: Assert Redis configuration files exist and are non-empty
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['size'] > 0
+        fail_msg: "Expected Redis config file not found or is empty"
+      loop: "{{ cache_cfg_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+# ============================================================
+# Play 3: Verify Redis configuration file content
+# ============================================================
+- name: Verify cache role — Redis config file content
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Slurp Redis configuration file
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/redis/6379.conf
+      register: cache_redis_conf_slurp
+
+    - name: Decode Redis configuration content
+      ansible.builtin.set_fact:
+        cache_redis_conf_content: "{{ cache_redis_conf_slurp['content'] | b64decode }}"
+
+    - name: Assert Redis config contains required port directive
+      ansible.builtin.assert:
+        that:
+          - "'port 6379' in cache_redis_conf_content"
+        fail_msg: "Redis config missing 'port 6379' directive"
+
+    - name: Assert Redis config contains requirepass directive
+      ansible.builtin.assert:
+        that:
+          - "'requirepass redis_secure_password_123' in cache_redis_conf_content"
+        fail_msg: "Redis config missing requirepass directive"
+
+    - name: Assert Redis config contains maxclients directive
+      ansible.builtin.assert:
+        that:
+          - "'maxclients 10000' in cache_redis_conf_content"
+        fail_msg: "Redis config missing 'maxclients 10000' directive"
+
+    - name: Assert Redis config contains databases directive
+      ansible.builtin.assert:
+        that:
+          - "'databases 16' in cache_redis_conf_content"
+        fail_msg: "Redis config missing 'databases 16' directive"
+
+    - name: Assert Redis config contains loglevel directive
+      ansible.builtin.assert:
+        that:
+          - "'loglevel notice' in cache_redis_conf_content"
+        fail_msg: "Redis config missing 'loglevel notice' directive"
+
+    - name: Assert Redis config contains syslog-enabled directive
+      ansible.builtin.assert:
+        that:
+          - "'syslog-enabled yes' in cache_redis_conf_content"
+        fail_msg: "Redis config missing 'syslog-enabled yes' directive"
+
+# ============================================================
+# Play 4: Verify deprecated directives were removed from Redis config
+# ============================================================
+- name: Verify cache role — deprecated directives removed from Redis config
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Slurp Redis configuration file for deprecation check
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/redis/6379.conf
+      register: cache_redis_conf_depr_slurp
+
+    - name: Decode Redis configuration content for deprecation check
+      ansible.builtin.set_fact:
+        cache_redis_conf_depr_content: "{{ cache_redis_conf_depr_slurp['content'] | b64decode }}"
+
+    - name: Assert deprecated replica-serve-stale-data directive is absent
+      ansible.builtin.assert:
+        that:
+          - "'replica-serve-stale-data' not in cache_redis_conf_depr_content"
+        fail_msg: "Deprecated directive 'replica-serve-stale-data' must not appear in Redis config"
+
+    - name: Assert deprecated replica-read-only directive is absent
+      ansible.builtin.assert:
+        that:
+          - "'replica-read-only' not in cache_redis_conf_depr_content"
+        fail_msg: "Deprecated directive 'replica-read-only' must not appear in Redis config"
+
+    - name: Assert deprecated repl-ping-replica-period directive is absent
+      ansible.builtin.assert:
+        that:
+          - "'repl-ping-replica-period' not in cache_redis_conf_depr_content"
+        fail_msg: "Deprecated directive 'repl-ping-replica-period' must not appear in Redis config"
+
+    - name: Assert deprecated client-output-buffer-limit directive is absent
+      ansible.builtin.assert:
+        that:
+          - "'client-output-buffer-limit' not in cache_redis_conf_depr_content"
+        fail_msg: "Deprecated directive 'client-output-buffer-limit' must not appear in Redis config"
+
+    - name: Assert deprecated replica-priority directive is absent
+      ansible.builtin.assert:
+        that:
+          - "'replica-priority' not in cache_redis_conf_depr_content"
+        fail_msg: "Deprecated directive 'replica-priority' must not appear in Redis config"
+
+# ============================================================
+# Play 5: Verify systemd unit and tmpfiles.d content
+# ============================================================
+- name: Verify cache role — systemd unit and tmpfiles.d content
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Slurp Redis systemd unit file
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/lib/systemd/system/redis@6379.service
+      register: cache_redis_service_slurp
+
+    - name: Decode Redis systemd unit content
+      ansible.builtin.set_fact:
+        cache_redis_service_content: "{{ cache_redis_service_slurp['content'] | b64decode }}"
+
+    - name: Assert systemd unit contains correct ExecStart path
+      ansible.builtin.assert:
+        that:
+          - "'/usr/local/bin/redis-server' in cache_redis_service_content"
+        fail_msg: "Systemd unit missing expected ExecStart with /usr/local/bin/redis-server"
+
+    - name: Assert systemd unit contains daemonize no flag
+      ansible.builtin.assert:
+        that:
+          - "'--daemonize no' in cache_redis_service_content"
+        fail_msg: "Systemd unit missing '--daemonize no' in ExecStart"
+
+    - name: Assert systemd unit contains correct LimitNOFILE
+      ansible.builtin.assert:
+        that:
+          - "'LimitNOFILE=10032' in cache_redis_service_content"
+        fail_msg: "Systemd unit missing 'LimitNOFILE=10032'"
+
+    - name: Slurp Redis tmpfiles.d entry
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/tmpfiles.d/redis@6379.conf
+      register: cache_redis_tmpfiles_slurp
+
+    - name: Decode Redis tmpfiles.d content
+      ansible.builtin.set_fact:
+        cache_redis_tmpfiles_content: "{{ cache_redis_tmpfiles_slurp['content'] | b64decode }}"
+
+    - name: Assert tmpfiles.d entry contains correct PID directory path
+      ansible.builtin.assert:
+        that:
+          - "'d /var/run/redis/6379' in cache_redis_tmpfiles_content"
+        fail_msg: "tmpfiles.d entry missing 'd /var/run/redis/6379' directive"
+
+    - name: Assert tmpfiles.d entry contains correct ownership
+      ansible.builtin.assert:
+        that:
+          - "'redis redis' in cache_redis_tmpfiles_content"
+        fail_msg: "tmpfiles.d entry missing 'redis redis' ownership"
+
+# ============================================================
+# Play 6: Verify ulimit configuration content
+# ============================================================
+- name: Verify cache role — ulimit configuration content
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Slurp Redis ulimit limits file
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/security/limits.d/redis.conf
+      register: cache_redis_ulimit_slurp
+
+    - name: Decode Redis ulimit content
+      ansible.builtin.set_fact:
+        cache_redis_ulimit_content: "{{ cache_redis_ulimit_slurp['content'] | b64decode }}"
+
+    - name: Assert ulimit file contains soft nofile limit for redis
+      ansible.builtin.assert:
+        that:
+          - "'redis soft nofile 10032' in cache_redis_ulimit_content"
+        fail_msg: "Ulimit file missing 'redis soft nofile 10032'"
+
+    - name: Assert ulimit file contains hard nofile limit for redis
+      ansible.builtin.assert:
+        that:
+          - "'redis hard nofile 10032' in cache_redis_ulimit_content"
+        fail_msg: "Ulimit file missing 'redis hard nofile 10032'"
+
+# ============================================================
+# Play 7: Service and port checks (skipped in container — molecule-notest)
+# ============================================================
+- name: Verify cache role — service and port checks (molecule-notest)
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert memcached service is active
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts['services']"
+          - "ansible_facts['services']['memcached.service']['state'] == 'running'"
+        fail_msg: "memcached service is not running"
+      tags: molecule-notest
+
+    - name: Assert redis@6379 service is active
+      ansible.builtin.assert:
+        that:
+          - "'redis@6379.service' in ansible_facts['services']"
+          - "ansible_facts['services']['redis@6379.service']['state'] == 'running'"
+        fail_msg: "redis@6379 service is not running"
+      tags: molecule-notest
+
+    - name: Assert redis@6379 service is enabled
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts['services']['redis@6379.service']['status'] == 'enabled'"
+        fail_msg: "redis@6379 service is not enabled"
+      tags: molecule-notest
+
+    - name: Assert OS default redis-server service is not active (Debian)
+      ansible.builtin.assert:
+        that:
+          - >-
+            'redis-server.service' not in ansible_facts['services']
+            or ansible_facts['services']['redis-server.service']['state'] != 'running'
+        fail_msg: "OS default redis-server service should be stopped"
+      tags: molecule-notest
+
+    - name: Check Memcached is listening on TCP port 11211
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        timeout: 5
+        state: started
+      tags: molecule-notest
+
+    - name: Check Redis is listening on TCP port 6379
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        timeout: 5
+        state: started
+      tags: molecule-notest

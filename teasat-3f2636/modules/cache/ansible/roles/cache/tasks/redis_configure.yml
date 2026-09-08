@@ -1,0 +1,232 @@
+---
+- name: Stop and disable OS default Redis service (Debian)
+  ansible.builtin.service:
+    name: "{{ cache_redis_os_default_service_debian }}"
+    state: stopped
+    enabled: false
+  when: ansible_os_family == 'Debian'
+  failed_when: false
+- name: Stop and disable OS default Redis service (RHEL/Fedora)
+  ansible.builtin.service:
+    name: "{{ cache_redis_os_default_service_rhel }}"
+    state: stopped
+    enabled: false
+  when: ansible_os_family == 'RedHat'
+  failed_when: false
+- name: Create redis system group
+  ansible.builtin.group:
+    name: "{{ cache_redis_group }}"
+    system: true
+    state: present
+- name: Create redis system user
+  ansible.builtin.user:
+    name: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    system: "{{ cache_redis_systemuser }}"
+    home: "{{ cache_redis_homedir }}"
+    create_home: true
+    shell: "{{ cache_redis_shell }}"
+    comment: Redis service account
+    state: present
+- name: Create Redis configuration directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_configdir }}"
+    owner: root
+    group: "{{ cache_redis_group }}"
+    mode: "0775"
+    state: directory
+- name: Create Redis data directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_datadir }}"
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0775"
+    state: directory
+- name: Create Redis PID directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_base_piddir }}/{{ cache_redis_name }}"
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+    state: directory
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+    state: directory
+- name: Check for Redis config breadcrumb
+  ansible.builtin.stat:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf.breadcrumb"
+  register: cache_redis_breadcrumb_stat
+- name: Deploy Redis configuration file
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf"
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "{{ cache_redis_permissions }}"
+    backup: true
+  vars:
+    redis_job_control: "{{ cache_redis_job_control }}"
+    redis_piddir: "{{ cache_redis_base_piddir }}/{{ cache_redis_name }}"
+    redis_name: "{{ cache_redis_name }}"
+    redis_port: "{{ cache_redis_port }}"
+    redis_tcpbacklog: "{{ cache_redis_tcpbacklog }}"
+    redis_address: "{{ cache_redis_address }}"
+    redis_protected_mode: "{{ cache_redis_protected_mode }}"
+    redis_unixsocket: "{{ cache_redis_unixsocket }}"
+    redis_unixsocketperm: "{{ cache_redis_unixsocketperm }}"
+    redis_timeout: "{{ cache_redis_timeout }}"
+    redis_keepalive: "{{ cache_redis_keepalive }}"
+    redis_loglevel: "{{ cache_redis_loglevel }}"
+    redis_logfile: "{{ cache_redis_logfile }}"
+    redis_syslogenabled: "{{ cache_redis_syslogenabled }}"
+    redis_syslogfacility: "{{ cache_redis_syslogfacility }}"
+    redis_databases: "{{ cache_redis_databases }}"
+    redis_backuptype: "{{ cache_redis_backuptype }}"
+    redis_save: "{{ cache_redis_save }}"
+    redis_stopwritesonbgsaveerror: "{{ cache_redis_stopwritesonbgsaveerror }}"
+    redis_rdbcompression: "{{ cache_redis_rdbcompression }}"
+    redis_rdbchecksum: "{{ cache_redis_rdbchecksum }}"
+    redis_dbfilename: "{{ cache_redis_dbfilename }}"
+    redis_datadir: "{{ cache_redis_datadir }}"
+    redis_replicaof: "{{ cache_redis_replicaof }}"
+    redis_masterauth: "{{ cache_redis_masterauth }}"
+    redis_replicaservestaledata: "{{ cache_redis_replicaservestaledata }}"
+    redis_replicareadonly: "{{ cache_redis_replicareadonly }}"
+    redis_repldisklesssync: "{{ cache_redis_repldisklesssync }}"
+    redis_repldisklesssyncdelay: "{{ cache_redis_repldisklesssyncdelay }}"
+    redis_replpingreplicaperiod: "{{ cache_redis_replpingreplicaperiod }}"
+    redis_repltimeout: "{{ cache_redis_repltimeout }}"
+    redis_repldisabletcpnodelay: "{{ cache_redis_repldisabletcpnodelay }}"
+    redis_replbacklogsize: "{{ cache_redis_replbacklogsize }}"
+    redis_replbacklogttl: "{{ cache_redis_replbacklogttl }}"
+    redis_replicapriority: "{{ cache_redis_replicapriority }}"
+    redis_requirepass: "{{ redis_password }}"
+    redis_rename_commands: "{{ cache_redis_rename_commands }}"
+    redis_maxclients: "{{ cache_redis_maxclients }}"
+    redis_maxmemory: "{{ cache_redis_maxmemory }}"
+    redis_maxmemorypolicy: "{{ cache_redis_maxmemorypolicy }}"
+    redis_maxmemorysamples: "{{ cache_redis_maxmemorysamples }}"
+    redis_appendfilename: "{{ cache_redis_appendfilename }}"
+    redis_appendfsync: "{{ cache_redis_appendfsync }}"
+    redis_noappendfsynconrewrite: "{{ cache_redis_noappendfsynconrewrite }}"
+    redis_aofrewritepercentage: "{{ cache_redis_aofrewritepercentage }}"
+    redis_aofrewriteminsize: "{{ cache_redis_aofrewriteminsize }}"
+    redis_aofloadtruncated: "{{ cache_redis_aofloadtruncated }}"
+    redis_luatimelimit: "{{ cache_redis_luatimelimit }}"
+    redis_slowloglogslowerthan: "{{ cache_redis_slowloglogslowerthan }}"
+    redis_slowlogmaxlen: "{{ cache_redis_slowlogmaxlen }}"
+    redis_notifykeyspaceevents: "{{ cache_redis_notifykeyspaceevents }}"
+    redis_hashmaxziplistentries: "{{ cache_redis_hashmaxziplistentries }}"
+    redis_hashmaxziplistvalue: "{{ cache_redis_hashmaxziplistvalue }}"
+    redis_setmaxintsetentries: "{{ cache_redis_setmaxintsetentries }}"
+    redis_zsetmaxziplistentries: "{{ cache_redis_zsetmaxziplistentries }}"
+    redis_zsetmaxziplistvalue: "{{ cache_redis_zsetmaxziplistvalue }}"
+    redis_hllsparsemaxbytes: "{{ cache_redis_hllsparsemaxbytes }}"
+    redis_activerehasing: "{{ cache_redis_activerehasing }}"
+    redis_clientoutputbufferlimit: "{{ cache_redis_clientoutputbufferlimit }}"
+    redis_hz: "{{ cache_redis_hz }}"
+    redis_aofrewriteincrementalfsync: "{{ cache_redis_aofrewriteincrementalfsync }}"
+    redis_clusterenabled: "{{ cache_redis_clusterenabled }}"
+    redis_clusterconfigfile: "{{ cache_redis_clusterconfigfile }}"
+    redis_clusternodetimeout: "{{ cache_redis_clusternodetimeout }}"
+    redis_clusterport: "{{ cache_redis_clusterport }}"
+    redis_aclfile: "{{ cache_redis_aclfile }}"
+    redis_includes: "{{ cache_redis_includes }}"
+    redis_minreplicastowrite: "{{ cache_redis_minreplicastowrite }}"
+    redis_minreplicasmaxlag: "{{ cache_redis_minreplicasmaxlag }}"
+    redis_tlsport: "{{ cache_redis_tlsport }}"
+    redis_tlscertfile: "{{ cache_redis_tlscertfile }}"
+    redis_tlskeyfile: "{{ cache_redis_tlskeyfile }}"
+    redis_tlskeyfilepass: "{{ cache_redis_tlskeyfilepass }}"
+    redis_tlsclientcertfile: "{{ cache_redis_tlsclientcertfile }}"
+    redis_tlsclientkeyfile: "{{ cache_redis_tlsclientkeyfile }}"
+    redis_tlsclientkeyfilepass: "{{ cache_redis_tlsclientkeyfilepass }}"
+    redis_tlsdhparamsfile: "{{ cache_redis_tlsdhparamsfile }}"
+    redis_tlscacertfile: "{{ cache_redis_tlscacertfile }}"
+    redis_tlscacertdir: "{{ cache_redis_tlscacertdir }}"
+    redis_tlsauthclients: "{{ cache_redis_tlsauthclients }}"
+    redis_tlsreplication: "{{ cache_redis_tlsreplication }}"
+    redis_tlscluster: "{{ cache_redis_tlscluster }}"
+    redis_tlsprotocols: "{{ cache_redis_tlsprotocols }}"
+    redis_tlsciphers: "{{ cache_redis_tlsciphers }}"
+    redis_tlsciphersuites: "{{ cache_redis_tlsciphersuites }}"
+    redis_tlspreferserverciphers: "{{ cache_redis_tlspreferserverciphers }}"
+    redis_tlssessioncaching: "{{ cache_redis_tlssessioncaching }}"
+    redis_tlssessioncachesize: "{{ cache_redis_tlssessioncachesize }}"
+    redis_tlssessioncachetimeout: "{{ cache_redis_tlssessioncachetimeout }}"
+  when: not cache_redis_breadcrumb_stat.stat.exists
+  notify: Reload systemd daemon
+- name: Create Redis config breadcrumb file
+  ansible.builtin.file:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf.breadcrumb"
+    state: touch
+    mode: "0644"
+    modification_time: preserve
+    access_time: preserve
+- name: Remove deprecated replica-serve-stale-data directive
+  ansible.builtin.replace:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf"
+    regexp: ^replica-serve-stale-data.*$
+    replace: ""
+  when: not cache_redis_breadcrumb_stat.stat.exists
+- name: Remove deprecated replica-read-only directive
+  ansible.builtin.replace:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf"
+    regexp: ^replica-read-only.*$
+    replace: ""
+  when: not cache_redis_breadcrumb_stat.stat.exists
+- name: Remove deprecated repl-ping-replica-period directive
+  ansible.builtin.replace:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf"
+    regexp: ^repl-ping-replica-period.*$
+    replace: ""
+  when: not cache_redis_breadcrumb_stat.stat.exists
+- name: Remove deprecated client-output-buffer-limit directive
+  ansible.builtin.replace:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf"
+    regexp: ^client-output-buffer-limit.*$
+    replace: ""
+  when: not cache_redis_breadcrumb_stat.stat.exists
+- name: Remove deprecated replica-priority directive
+  ansible.builtin.replace:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf"
+    regexp: ^replica-priority.*$
+    replace: ""
+  when: not cache_redis_breadcrumb_stat.stat.exists
+- name: Create tmpfiles.d entry for Redis PID directory
+  ansible.builtin.copy:
+    content: d {{ cache_redis_base_piddir }}/{{ cache_redis_name }} 0755 {{ cache_redis_user }} {{ cache_redis_group }}
+    dest: /etc/tmpfiles.d/redis@{{ cache_redis_name }}.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: cache_redis_job_control == 'systemd'
+- name: Deploy Redis systemd unit file
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /lib/systemd/system/redis@{{ cache_redis_name }}.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  vars:
+    redis_bin_path: "{{ cache_redis_bin_path }}"
+    redis_service_user: "{{ cache_redis_user }}"
+    redis_service_group: "{{ cache_redis_group }}"
+    redis_limit_nofile: "{{ cache_redis_limit_nofile }}"
+  when: cache_redis_job_control == 'systemd'
+  notify: Reload systemd daemon
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+- name: Start and enable Redis service
+  ansible.builtin.systemd:
+    name: redis@{{ cache_redis_name }}
+    state: started
+    enabled: true
+    daemon_reload: true
+  when: cache_redis_job_control == 'systemd'

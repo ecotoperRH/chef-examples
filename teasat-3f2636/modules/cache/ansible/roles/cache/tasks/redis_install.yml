@@ -1,0 +1,75 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == 'Debian'
+- name: Install Redis build prerequisites
+  ansible.builtin.package:
+    name:
+      - tar
+      - gcc
+      - make
+    state: present
+- name: Install build-essential (Debian/Ubuntu)
+  ansible.builtin.package:
+    name: build-essential
+    state: present
+  when: ansible_os_family == 'Debian'
+- name: Install Development Tools (RHEL/Fedora)
+  ansible.builtin.package:
+    name:
+      - gcc
+      - make
+      - glibc-devel
+    state: present
+  when: ansible_os_family == 'RedHat'
+- name: Check if Redis binary already exists
+  ansible.builtin.stat:
+    path: "{{ cache_redis_bin_path }}/redis-server"
+  register: cache_redis_binary_stat
+- name: Download Redis source tarball
+  ansible.builtin.get_url:
+    url: "{{ cache_redis_mirror }}/{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }}"
+    dest: /tmp/redis-{{ cache_redis_version }}.tar.gz
+    mode: "0644"
+  when: not cache_redis_binary_stat.stat.exists
+- name: Extract Redis source tarball
+  ansible.builtin.unarchive:
+    src: /tmp/redis-{{ cache_redis_version }}.tar.gz
+    dest: /tmp
+    remote_src: true
+  when: not cache_redis_binary_stat.stat.exists
+- name: Build Redis from source
+  ansible.builtin.shell:
+    cmd: "make clean\nmake\n"
+    chdir: /tmp/redis-{{ cache_redis_version }}
+    creates: /tmp/redis-{{ cache_redis_version }}/src/redis-server
+  when: not cache_redis_binary_stat.stat.exists
+- name: Install Redis binaries to system path
+  ansible.builtin.command:
+    cmd: make install
+    chdir: /tmp/redis-{{ cache_redis_version }}
+  when: not cache_redis_binary_stat.stat.exists
+  changed_when: not cache_redis_binary_stat.stat.exists
+- name: Configure Redis ulimit via PAM limits
+  ansible.builtin.blockinfile:
+    path: /etc/security/limits.d/redis.conf
+    create: true
+    mode: "0644"
+    block: "{{ cache_redis_user }} soft nofile {{ cache_redis_limit_nofile }}\n{{ cache_redis_user }} hard nofile {{ cache_redis_limit_nofile }}\n"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - redis ulimit"
+- name: Configure PAM su for ulimit support (Debian/Ubuntu)
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/su
+    line: session required pam_limits.so
+    state: present
+    backup: true
+  when: ansible_os_family == 'Debian'
+- name: Configure PAM sudo for ulimit support (Debian/Ubuntu)
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/sudo
+    line: session required pam_limits.so
+    state: present
+    backup: true
+  when: ansible_os_family == 'Debian'
