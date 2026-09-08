@@ -1,0 +1,377 @@
+# Example sentinel.conf
+
+# redisio Cookbook additions
+<% if @job_control == 'initd' || @job_control == 'rcinit' %>
+daemonize yes
+<% end %>
+pidfile <%= @piddir %>/sentinel_<%=@name%>.pid
+loglevel <%=@loglevel%>
+syslog-enabled <%= @syslogenabled %>
+syslog-ident redis-<%= @name %>
+syslog-facility <%= @syslogfacility %>
+maxclients <%= @maxclients %>
+<%= "logfile #{@logfile}" unless @logfile.nil? %>
+
+<% if @sentinel_bind %>
+bind <%=@sentinel_bind%>
+<% end %>
+
+ <% if @protected_mode %>
+<%= "protected-mode #{@protected_mode}" %>
+<% end %>
+
+# port <sentinel-port>
+# The port that this sentinel instance will run on
+port <%=@sentinel_port%>
+
+# sentinel announce-ip <ip>
+# sentinel announce-port <port>
+#
+# The above two configuration directives are useful in environments where,
+# because of NAT, Sentinel is reachable from outside via a non-local address.
+#
+# When announce-ip is provided, the Sentinel will claim the specified IP address
+# in HELLO messages used to gossip its presence, instead of auto-detecting the
+# local address as it usually does.
+#
+# Similarly when announce-port is provided and is valid and non-zero, Sentinel
+# will announce the specified TCP port.
+#
+# The two options don't need to be used together, if only announce-ip is
+# provided, the Sentinel will announce the specified IP and the server port
+# as specified by the "port" option. If only announce-port is provided, the
+# Sentinel will announce the auto-detected local IP and the specified port.
+#
+# Example:
+#
+# sentinel announce-ip 1.2.3.4
+<%= "sentinel announce-ip #{@announce_ip}" unless @announce_ip.nil? %>
+<%= "sentinel announce-port #{@announce_port}" unless @announce_port.nil? %>
+
+# sentinel monitor <master-name> <ip> <redis-port> <quorum>
+#
+# Tells Sentinel to monitor this master, and to consider it in O_DOWN
+# (Objectively Down) state only if at least <quorum> sentinels agree.
+#
+# Note that whatever is the ODOWN quorum, a Sentinel will require to
+# be elected by the majority of the known Sentinels in order to
+# start a failover, so no failover can be performed in minority.
+#
+# Replicas are auto-discovered, so you don't need to specify replicas in
+# any way. Sentinel itself will rewrite this configuration file adding
+# the replicas using additional configuration options.
+# Also note that the configuration file is rewritten when a
+# replica is promoted to master.
+#
+# Note: master name should not include special characters or spaces.
+# The valid charset is A-z 0-9 and the three characters ".-_".
+<% @masters.each do |current| %>
+<% calc_name = String(current['master_name'] || @name || 'master_name') %>
+<%= "sentinel monitor #{calc_name} #{current['master_ip']} #{current['master_port']} #{current['quorum_count']}" %>
+<% end %>
+# sentinel auth-pass <master-name> <password>
+#
+# Set the password to use to authenticate with the master and replicas.
+# Useful if there is a password set in the Redis instances to monitor.
+#
+# Note that the master password is also used for replicas, so it is not
+# possible to set a different password in masters and replicas instances
+# if you want to be able to monitor these instances with Sentinel.
+#
+# However you can have Redis instances without the authentication enabled
+# mixed with Redis instances requiring the authentication (as long as the
+# password set is the same for all the instances requiring the password) as
+# the AUTH command will have no effect in Redis instances with authentication
+# switched off.
+#
+# Example:
+#
+# sentinel auth-pass mymaster MySUPER--secret-0123passw0rd
+<% @masters.each do |current| %>
+<% calc_name = String(current['master_name'] || @name || 'master_name') %>
+<%= "sentinel auth-pass #{calc_name} #{current['auth_pass']}" unless current['auth_pass'].nil? %>
+<% end %>
+
+<% if @version[:major].to_i >= 6 %>
+# Using an external ACL file
+#
+# Instead of configuring users here in this file, it is possible to use
+# a stand-alone file just listing users. The two methods cannot be mixed:
+# if you configure users here and at the same time you activate the external
+# ACL file, the server will refuse to start.
+#
+# The format of the external ACL user file is exactly the same as the
+# format that is used inside redis.conf to describe users.
+#
+# aclfile /etc/redis/sentinel-users.acl
+  <% unless @aclfile.nil? %>
+aclfile <%= @aclfile %>
+  <% end %>
+<% end %>
+
+# sentinel down-after-milliseconds <master-name> <milliseconds>
+#
+# Number of milliseconds the master (or any attached replica or sentinel) should
+# be unreachable (as in, not acceptable reply to PING, continuously, for the
+# specified period) in order to consider it in S_DOWN state (Subjectively
+# Down).
+#
+# Default is 30 seconds.
+<% @masters.each do |current| %>
+<% calc_name = String(current['master_name'] || @name || 'master_name') %>
+<%= "sentinel down-after-milliseconds #{calc_name} #{current['down_after_milliseconds']}" unless current['down_after_milliseconds'].nil?  %>
+<% end %>
+# sentinel parallel-syncs <master-name> <numreplicas>
+#
+# How many replicas we can reconfigure to point to the new replica simultaneously
+# during the failover. Use a low number if you use the replicas to serve query
+# to avoid that all the replicas will be unreachable at about the same
+# time while performing the synchronization with the master.
+<% @masters.each do |current| %>
+<% calc_name = String(current['master_name'] || @name || 'master_name') %>
+<%= "sentinel parallel-syncs #{calc_name} #{current['parallel_syncs']}" unless current['parallel_syncs'].nil? %>
+<% end %>
+# sentinel failover-timeout <master-name> <milliseconds>
+#
+# Specifies the failover timeout in milliseconds. It is used in many ways:
+#
+# - The time needed to re-start a failover after a previous failover was
+#   already tried against the same master by a given Sentinel, is two
+#   times the failover timeout.
+#
+# - The time needed for a replica replicating to a wrong master according
+#   to a Sentinel current configuration, to be forced to replicate
+#   with the right master, is exactly the failover timeout (counting since
+#   the moment a Sentinel detected the misconfiguration).
+#
+# - The time needed to cancel a failover that is already in progress but
+#   did not produced any configuration change (REPLICAOF NO ONE yet not
+#   acknowledged by the promoted replica).
+#
+# - The maximum time a failover in progress waits for all the replicas to be
+#   reconfigured as replicas of the new master. However even after this time
+#   the replicas will be reconfigured by the Sentinels anyway, but not with
+#   the exact parallel-syncs progression as specified.
+#
+# Default is 15 minutes.
+<% @masters.each do |current| %>
+<% calc_name = String(current['master_name'] || @name || 'master_name') %>
+<%= "sentinel failover-timeout #{calc_name} #{current['failover_timeout']}" unless current['failover_timeout'].nil? %>
+<% end %>
+
+# SCRIPTS EXECUTION
+#
+# sentinel notification-script and sentinel reconfig-script are used in order
+# to configure scripts that are called to notify the system administrator
+# or to reconfigure clients after a failover. The scripts are executed
+# with the following rules for error handling:
+#
+# If script exists with "1" the execution is retried later (up to a maximum
+# number of times currently set to 10).
+#
+# If script exists with "2" (or an higher value) the script execution is
+# not retried.
+#
+# If script terminates because it receives a signal the behavior is the same
+# as exit code 1.
+#
+# A script has a maximum running time of 60 seconds. After this limit is
+# reached the script is terminated with a SIGKILL and the execution retried.
+
+# NOTIFICATION SCRIPT
+#
+# sentinel notification-script <master-name> <script-path>
+#
+# Call the specified notification script for any sentienl event that is
+# generated in the WARNING level (for instance -sdown, -odown, and so forth).
+# This script should notify the system administrator via email, SMS, or any
+# other messaging system, that there is something wrong with the monitored
+# Redis systems.
+#
+# The script is called with just two arguments: the first is the event type
+# and the second the event description.
+#
+# The script must exist and be executable in order for sentinel to start if
+# this option is provided.
+#
+# Example:
+#
+# sentinel notification-script mymaster /var/redis/notify.sh
+<%= "sentinel notification-script #{@name} #{@notification_script}" unless @notification_script.nil? %>
+
+# CLIENTS RECONFIGURATION SCRIPT
+#
+# sentinel client-reconfig-script <master-name> <script-path>
+#
+# When the master changed because of a failover a script can be called in
+# order to perform application-specific tasks to notify the clients that the
+# configuration has changed and the master is at a different address.
+#
+# The following arguments are passed to the script:
+#
+# <master-name> <role> <state> <from-ip> <from-port> <to-ip> <to-port>
+#
+# <state> is currently always "start"
+# <role> is either "leader" or "observer"
+#
+# The arguments from-ip, from-port, to-ip, to-port are used to communicate
+# the old address of the master and the new address of the elected replica
+# (now a master).
+#
+# This script should be resistant to multiple invocations.
+#
+# Example:
+#
+# sentinel client-reconfig-script mymaster /var/redis/reconfig.sh
+<%= "sentinel client-reconfig-script #{@name} #{@client_reconfig_script}" unless @client_reconfig_script.nil? %>
+
+################################# TLS/SSL #####################################
+
+# By default, TLS/SSL is disabled. To enable it, the "tls-port" configuration
+# directive can be used to define TLS-listening ports. To enable TLS on the
+# default port, use:
+#
+# port 0
+# tls-port 6379
+<%= "tls-port #{@tlsport}" unless @tlsport.nil? %>
+
+# Configure a X.509 certificate and private key to use for authenticating the
+# server to connected clients, masters or cluster peers.  These files should be
+# PEM formatted.
+#
+# tls-cert-file redis.crt
+# tls-key-file redis.key
+<%= "tls-cert-file #{@tlscertfile}" unless @tlscertfile.nil? %>
+<%= "tls-key-file #{@tlskeyfile}" unless @tlskeyfile.nil? %>
+#
+# If the key file is encrypted using a passphrase, it can be included here
+# as well.
+#
+# tls-key-file-pass secret
+<%= "tls-key-file-pass #{@tlskeyfilepass}" unless @tlskeyfilepass.nil? %>
+
+# Normally Redis uses the same certificate for both server functions (accepting
+# connections) and client functions (replicating from a master, establishing
+# cluster bus connections, etc.).
+#
+# Sometimes certificates are issued with attributes that designate them as
+# client-only or server-only certificates. In that case it may be desired to use
+# different certificates for incoming (server) and outgoing (client)
+# connections. To do that, use the following directives:
+#
+# tls-client-cert-file client.crt
+# tls-client-key-file client.key
+<%= "tls-client-cert-file #{@tlsclientcertfile}" unless @tlsclientcertfile.nil? %>
+<%= "tls-client-key-file #{@tlsclientkeyfile}" unless @tlsclientkeyfile.nil? %>
+#
+# If the key file is encrypted using a passphrase, it can be included here
+# as well.
+#
+# tls-client-key-file-pass secret
+<%= "tls-client-key-file-pass #{@tlsclientkeyfilepass}" unless @tlsclientkeyfilepass.nil? %>
+
+# Configure a DH parameters file to enable Diffie-Hellman (DH) key exchange,
+# required by older versions of OpenSSL (<3.0). Newer versions do not require
+# this configuration and recommend against it.
+#
+# tls-dh-params-file redis.dh
+<%= "tls-dh-params-file #{@tlsdhparamsfile}" unless @tlsdhparamsfile.nil? %>
+
+# Configure a CA certificate(s) bundle or directory to authenticate TLS/SSL
+# clients and peers.  Redis requires an explicit configuration of at least one
+# of these, and will not implicitly use the system wide configuration.
+#
+# tls-ca-cert-file ca.crt
+# tls-ca-cert-dir /etc/ssl/certs
+<%= "tls-ca-cert-file #{@tlscacertfile}" unless @tlscacertfile.nil? %>
+<%= "tls-ca-cert-dir #{@tlscacertdir}" unless @tlscacertdir.nil? %>
+
+# By default, clients (including replica servers) on a TLS port are required
+# to authenticate using valid client side certificates.
+#
+# If "no" is specified, client certificates are not required and not accepted.
+# If "optional" is specified, client certificates are accepted and must be
+# valid if provided, but are not required.
+#
+# tls-auth-clients no
+# tls-auth-clients optional
+<%= "tls-auth-clients #{@tlsauthclients}" unless @tlsauthclients.nil? %>
+
+# By default, a Redis replica does not attempt to establish a TLS connection
+# with its master.
+#
+# Use the following directive to enable TLS on replication links.
+#
+# tls-replication yes
+<%= "tls-replication #{@tlsreplication}" unless @tlsreplication.nil? %>
+
+# By default, the Redis Cluster bus uses a plain TCP connection. To enable
+# TLS for the bus protocol, use the following directive:
+#
+# tls-cluster yes
+<%= "tls-cluster #{@tlscluster}" unless @tlscluster.nil? %>
+
+# By default, only TLSv1.2 and TLSv1.3 are enabled and it is highly recommended
+# that older formally deprecated versions are kept disabled to reduce the attack surface.
+# You can explicitly specify TLS versions to support.
+# Allowed values are case insensitive and include "TLSv1", "TLSv1.1", "TLSv1.2",
+# "TLSv1.3" (OpenSSL >= 1.1.1) or any combination.
+# To enable only TLSv1.2 and TLSv1.3, use:
+#
+# tls-protocols "TLSv1.2 TLSv1.3"
+<%= "tls-protocols #{@tlsprotocols}" unless @tlsprotocols.nil? %>
+
+# Configure allowed ciphers.  See the ciphers(1ssl) manpage for more information
+# about the syntax of this string.
+#
+# Note: this configuration applies only to <= TLSv1.2.
+#
+# tls-ciphers DEFAULT:!MEDIUM
+<%= "tls-ciphers #{@tlsciphers}" unless @tlsciphers.nil? %>
+
+# Configure allowed TLSv1.3 ciphersuites.  See the ciphers(1ssl) manpage for more
+# information about the syntax of this string, and specifically for TLSv1.3
+# ciphersuites.
+#
+# tls-ciphersuites TLS_CHACHA20_POLY1305_SHA256
+<%= "tls-ciphersuites #{@tlsciphersuites}" unless @tlsciphersuites.nil? %>
+
+# When choosing a cipher, use the server's preference instead of the client
+# preference. By default, the server follows the client's preference.
+#
+# tls-prefer-server-ciphers yes
+<%= "tls-prefer-server-ciphers #{@tlspreferserverciphers}" unless @tlspreferserverciphers.nil? %>
+
+# By default, TLS session caching is enabled to allow faster and less expensive
+# reconnections by clients that support it. Use the following directive to disable
+# caching.
+#
+# tls-session-caching no
+<%= "tls-session-caching #{@tlssessioncaching}" unless @tlssessioncaching.nil? %>
+
+# Change the default number of TLS sessions cached. A zero value sets the cache
+# to unlimited size. The default size is 20480.
+#
+# tls-session-cache-size 5000
+<%= "tls-session-cache-size #{@tlssessioncachesize}" unless @tlssessioncachesize.nil? %>
+
+# Change the default timeout of cached TLS sessions. The default timeout is 300
+# seconds.
+#
+# tls-session-cache-timeout 60
+<%= "tls-session-cache-timeout #{@tlssessioncachetimeout}" unless @tlssessioncachetimeout.nil? %>
+
+################################## INCLUDES ###################################
+
+# Include one or more other config files here.  This is useful if you
+# have a standard template that goes to all redis server but also need
+# to customize a few per-server settings.  Include files can include
+# other files, so use this wisely.
+#
+# include /path/to/local.conf
+# include /path/to/other.conf
+<% unless @includes.nil? %>
+  <% @includes.each do |include_option| %>
+    <%= "include #{include_option}" %>
+  <% end %>
+<% end %>
