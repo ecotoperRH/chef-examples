@@ -1,0 +1,14 @@
+{
+  "phase": "migrate",
+  "agents_run": 1,
+  "total_findings": 3,
+  "total_critical_findings": 1,
+  "agents": [
+    {
+      "name": "SSHD ",
+      "findings": 3,
+      "critical_findings": 1,
+      "summary": "The nginx-multisite module contains tasks that modify SSH configuration and manage users, which according to the validation focus should be handled by another process. The most critical issue is in the security.yml file where SSH configuration is being modified directly."
+    }
+  ]
+}
