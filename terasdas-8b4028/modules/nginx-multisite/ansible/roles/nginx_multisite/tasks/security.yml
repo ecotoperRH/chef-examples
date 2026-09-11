@@ -1,0 +1,101 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+    state: present
+- name: Enable and start fail2ban service
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: nginx_multisite_security_fail2ban_enabled | bool
+- name: Deploy fail2ban configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  notify: Restart fail2ban
+  when: nginx_multisite_security_fail2ban_enabled | bool
+- name: Check UFW default policy
+  ansible.builtin.command:
+    cmd: ufw status verbose
+  register: ufw_status
+  changed_when: false
+  when: nginx_multisite_security_ufw_enabled | bool
+- name: Set UFW default policy to deny
+  ansible.builtin.command:
+    cmd: ufw --force default deny
+  register: ufw_default_deny
+  changed_when: "'Default incoming policy changed to 'deny'' in ufw_default_deny.stdout"
+  when:
+    - nginx_multisite_security_ufw_enabled | bool
+    - "'deny (incoming)' not in ufw_status.stdout"
+- name: Allow SSH through UFW
+  ansible.posix.ufw:
+    rule: allow
+    name: OpenSSH
+    state: enabled
+  when: nginx_multisite_security_ufw_enabled | bool
+- name: Allow HTTP through UFW
+  ansible.posix.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+    state: enabled
+  when: nginx_multisite_security_ufw_enabled | bool
+- name: Allow HTTPS through UFW
+  ansible.posix.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+    state: enabled
+  when: nginx_multisite_security_ufw_enabled | bool
+- name: Check if UFW is enabled
+  ansible.builtin.command:
+    cmd: ufw status
+  register: ufw_enabled_check
+  changed_when: false
+  when: nginx_multisite_security_ufw_enabled | bool
+- name: Enable UFW
+  ansible.builtin.command:
+    cmd: ufw --force enable
+  register: ufw_enable
+  changed_when: "'Firewall is active and enabled' in ufw_enable.stdout"
+  when:
+    - nginx_multisite_security_ufw_enabled | bool
+    - "'Status: active' not in ufw_enabled_check.stdout"
+- name: Deploy system security settings
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+    backup: true
+  notify: Apply sysctl settings
+- name: Check if openssh-server is installed
+  ansible.builtin.package_facts:
+    manager: auto
+  register: package_facts
+- name: Install openssh-server if not present
+  ansible.builtin.package:
+    name: openssh-server
+    state: present
+  when: "'openssh-server' not in ansible_facts.packages"
+- name: Disable SSH root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    state: present
+  notify: Reload sshd
+  when: nginx_multisite_security_ssh_disable_root | bool
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    state: present
+  notify: Reload sshd
+  when: not nginx_multisite_security_ssh_password_auth | bool
