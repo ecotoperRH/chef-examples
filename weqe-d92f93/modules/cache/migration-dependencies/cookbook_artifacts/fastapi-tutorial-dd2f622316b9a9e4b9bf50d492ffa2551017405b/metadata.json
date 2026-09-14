@@ -1,0 +1,37 @@
+{
+  "name": "fastapi-tutorial",
+  "description": "Configures FastAPI tutorial application with PostgreSQL",
+  "long_description": "",
+  "maintainer": "Chef Example",
+  "maintainer_email": "admin@example.com",
+  "license": "Apache-2.0",
+  "platforms": {
+    "ubuntu": ">= 18.04",
+    "centos": ">= 7.0"
+  },
+  "dependencies": {
+
+  },
+  "providing": {
+    "fastapi-tutorial": ">= 0.0.0"
+  },
+  "recipes": {
+    "fastapi-tutorial": ""
+  },
+  "version": "1.0.0",
+  "source_url": "",
+  "issues_url": "",
+  "privacy": false,
+  "chef_versions": [
+    [
+      ">= 16.0"
+    ]
+  ],
+  "ohai_versions": [
+
+  ],
+  "gems": [
+
+  ],
+  "eager_load_libraries": true
+}
