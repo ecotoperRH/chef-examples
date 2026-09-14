@@ -1,0 +1,116 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy and configure the FastAPI tutorial application with PostgreSQL
+    description:
+      - Installs system packages required for a Python ASGI application.
+      - Clones the FastAPI tutorial repository from GitHub.
+      - Creates a Python virtual environment and installs pip dependencies.
+      - Provisions a PostgreSQL database and user.
+      - Deploys a .env configuration file and a systemd unit file.
+      - Enables and starts the fastapi-tutorial service on the configured port.
+    options:
+      fastapi_tutorial_app_dir:
+        type: str
+        required: false
+        default: /opt/fastapi-tutorial
+        description: Filesystem path where the application is deployed.
+      fastapi_tutorial_repo_url:
+        type: str
+        required: false
+        default: https://github.com/dibanez/fastapi_tutorial.git
+        description: Git repository URL for the FastAPI tutorial application.
+      fastapi_tutorial_repo_branch:
+        type: str
+        required: false
+        default: main
+        description: Git branch or revision to check out.
+      fastapi_tutorial_venv_dir:
+        type: str
+        required: false
+        default: /opt/fastapi-tutorial/venv
+        description: Path to the Python virtual environment directory.
+      fastapi_tutorial_run_user:
+        type: str
+        required: false
+        default: root
+        description: OS user that owns the application files and runs the service.
+      fastapi_tutorial_app_module:
+        type: str
+        required: false
+        default: app.main:app
+        description: ASGI application module path passed to uvicorn.
+      fastapi_tutorial_bind_host:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: IP address uvicorn binds to.
+      fastapi_tutorial_port:
+        type: int
+        required: false
+        default: 8000
+        description: TCP port the FastAPI application listens on.
+      fastapi_tutorial_project_name:
+        type: str
+        required: false
+        default: FastAPI Tutorial
+        description: Project name written to the application .env file.
+      fastapi_tutorial_api_version:
+        type: str
+        required: false
+        default: 1.0.0
+        description: API version string written to the application .env file.
+      fastapi_tutorial_service_name:
+        type: str
+        required: false
+        default: fastapi-tutorial
+        description: Name of the systemd service unit.
+      fastapi_tutorial_packages:
+        type: list
+        elements: str
+        required: false
+        default:
+          - python3
+          - python3-pip
+          - python3-venv
+          - git
+          - postgresql
+          - postgresql-contrib
+          - libpq-dev
+        description: List of system packages to install before deploying the application.
+      fastapi_tutorial_db_host:
+        type: str
+        required: false
+        default: localhost
+        description: Hostname of the PostgreSQL server.
+      fastapi_tutorial_db_name:
+        type: str
+        required: false
+        default: fastapi_db
+        description: Name of the PostgreSQL database for the application.
+      fastapi_tutorial_db_user:
+        type: str
+        required: false
+        default: fastapi
+        description: PostgreSQL role name for the application.
+      db_username:
+        type: str
+        required: true
+        description: PostgreSQL application username. Injected at runtime by the AAP credential type — do not set in defaults or vars.
+      db_password:
+        type: str
+        required: true
+        description: PostgreSQL application password. Injected at runtime by the AAP credential type — do not set in defaults or vars.
+      db_host:
+        type: str
+        required: true
+        description: PostgreSQL host. Injected at runtime by the AAP credential type — do not set in defaults or vars.
+      db_name:
+        type: str
+        required: true
+        description: PostgreSQL database name. Injected at runtime by the AAP credential type — do not set in defaults or vars.
+      database_url:
+        type: str
+        required: true
+        description: Full PostgreSQL connection URL (e.g. postgresql://user:pass@host/dbname). Injected at runtime by the AAP credential type and written to the
+          application .env file.

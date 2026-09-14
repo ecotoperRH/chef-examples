@@ -1,0 +1,133 @@
+{
+  "module_name": "fastapi_tutorial",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/fastapi-tutorial/metadata.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata (author, description, platforms) derived from metadata.rb",
+      "notes": "Updated meta/main.yml with proper metadata from Chef metadata.rb; added relevant galaxy_tags"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for systemd daemon-reload and service restart notifications",
+      "notes": "Created handlers for systemd daemon-reload (triggered by service file changes) and service restart"
+    },
+    {
+      "category": "attributes",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/defaults/main.yml",
+      "status": "complete",
+      "description": "Ansible defaults: app path, git repo/branch, port, venv path, DB name/user/password, service name, systemd unit path, .env path",
+      "notes": "Created defaults from Chef recipe inline values; credentials use AAP injected variables"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Role argument specs for fail-fast parameter validation \u2014 generate after defaults/main.yml is written",
+      "notes": "Generated argument_specs from defaults/main.yml; AAP credential variables documented as required with no defaults"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/main.yml",
+      "status": "complete",
+      "description": "Main tasks: install system packages, create app directory, clone git repo, create venv, install pip deps, enable/start PostgreSQL, provision DB user and database, write .env file, write systemd unit, daemon-reload, enable/start fastapi-tutorial service",
+      "notes": "Converted Chef recipe to Ansible tasks; credentials use AAP injected variables; pip module used for dependencies; shell used for psql provisioning with || true idempotency"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/templates/fastapi-tutorial.service.j2",
+      "status": "complete",
+      "description": "Jinja2 template for /etc/systemd/system/fastapi-tutorial.service \u2014 systemd unit with uvicorn ExecStart on port 8000, After=postgresql.service",
+      "notes": "Converted inline Chef file resource content to Jinja2 template with role variables"
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/templates/fastapi-tutorial.env.j2",
+      "status": "complete",
+      "description": "Jinja2 template for /opt/fastapi-tutorial/.env \u2014 PROJECT_NAME, API_VERSION, DATABASE_URL (password injected from vault variable)",
+      "notes": "Converted inline Chef file resource content to Jinja2 template; DATABASE_URL uses AAP credential variable {{ database_url }}"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Converge playbook \u2014 creates expected filesystem state under /tmp/molecule_test/ (app dir, venv, .env, systemd unit)",
+      "notes": "Creates /tmp/molecule_test/ directory tree mirroring role filesystem layout: app dir, venv (bin/lib/include), app module, requirements.txt stub, .env config file (mode 0640), and systemd unit file (mode 0644) with representative content matching role defaults."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration \u2014 delegated driver, local connection (no docker/podman)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Verify playbook \u2014 checks /tmp/molecule_test/ paths: app dir, venv/bin/python, .env content, systemd unit file content",
+      "notes": "5-play verify: (1) directory structure stat+assert, (2) .env content slurp+assert (PROJECT_NAME, API_VERSION, DATABASE_URL), (3) systemd unit file slurp+assert (ExecStart, After=, WorkingDirectory, Restart, WantedBy), (4) venv binary stat+assert, (5) service/port/HTTP checks all tagged molecule-notest for container safety."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/create.yml",
+      "status": "complete",
+      "description": "No-op instance create playbook for delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "No-op instance destroy playbook for delegated driver",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}
