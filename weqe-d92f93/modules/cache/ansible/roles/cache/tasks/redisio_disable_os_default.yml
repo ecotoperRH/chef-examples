@@ -1,0 +1,20 @@
+---
+- name: Set OS default Redis service name (Debian/Ubuntu)
+  ansible.builtin.set_fact:
+    cache_redis_os_service_name: redis-server
+  when: ansible_os_family == 'Debian'
+- name: Set OS default Redis service name (RHEL/Fedora)
+  ansible.builtin.set_fact:
+    cache_redis_os_service_name: redis
+  when: ansible_os_family == 'RedHat'
+- name: Stop and disable OS default Redis service
+  ansible.builtin.service:
+    name: "{{ cache_redis_os_service_name }}"
+    state: stopped
+    enabled: false
+  when: cache_redis_os_service_name is defined
+  register: cache_redis_os_service_result
+  failed_when:
+    - cache_redis_os_service_result is failed
+    - "'Could not find the requested service' not in (cache_redis_os_service_result.msg | default(''))"
+    - "'No such file or directory' not in (cache_redis_os_service_result.msg | default(''))"

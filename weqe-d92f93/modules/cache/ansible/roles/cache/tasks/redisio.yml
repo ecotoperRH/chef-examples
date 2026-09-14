@@ -1,0 +1,18 @@
+---
+- name: Update apt cache (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == 'Debian'
+- name: Install Redis prerequisites (source install only)
+  ansible.builtin.include_tasks: redisio_install_prereqs.yml
+  when: not (cache_redis_package_install | bool)
+- name: Install and configure Redis
+  when: not (cache_redis_bypass_setup | bool)
+  block:
+    - name: Install Redis
+      ansible.builtin.include_tasks: redisio_install.yml
+    - name: Disable OS default Redis service
+      ansible.builtin.include_tasks: redisio_disable_os_default.yml
+    - name: Configure Redis instances
+      ansible.builtin.include_tasks: redisio_configure.yml

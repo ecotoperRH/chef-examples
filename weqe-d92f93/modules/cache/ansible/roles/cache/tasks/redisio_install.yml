@@ -1,0 +1,64 @@
+---
+- name: Install Redis from OS package
+  ansible.builtin.package:
+    name: "{{ cache_redis_package_name }}"
+    state: present
+  when: cache_redis_package_install | bool
+- name: Install Redis from source
+  when: not (cache_redis_package_install | bool)
+  block:
+    - name: Install Redis build prerequisites
+      ansible.builtin.include_tasks: redisio_install_prereqs.yml
+    - name: Install build-essential packages (Debian/Ubuntu)
+      ansible.builtin.package:
+        name:
+          - build-essential
+          - gcc
+          - make
+        state: present
+      when: ansible_os_family == 'Debian'
+    - name: Install build tools (RHEL/Fedora)
+      ansible.builtin.package:
+        name:
+          - gcc
+          - gcc-c++
+          - make
+          - binutils
+          - autoconf
+          - automake
+          - libtool
+          - m4
+        state: present
+      when: ansible_os_family == 'RedHat'
+    - name: Set Redis download URL
+      ansible.builtin.set_fact:
+        cache_redis_download_url: "{{ cache_redis_mirror }}{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }}"
+    - name: Create Redis build directory
+      ansible.builtin.file:
+        path: /tmp/redis-build
+        state: directory
+        mode: "0755"
+    - name: Download Redis tarball
+      ansible.builtin.get_url:
+        url: "{{ cache_redis_download_url }}"
+        dest: /tmp/redis-build/redis-{{ cache_redis_version }}.tar.gz
+        mode: "0644"
+        creates: /tmp/redis-build/redis-{{ cache_redis_version }}.tar.gz
+    - name: Extract Redis tarball
+      ansible.builtin.unarchive:
+        src: /tmp/redis-build/redis-{{ cache_redis_version }}.tar.gz
+        dest: /tmp/redis-build
+        remote_src: true
+        creates: /tmp/redis-build/redis-{{ cache_redis_version }}/Makefile
+    - name: Check if Redis binary already exists (safe_install)
+      ansible.builtin.stat:
+        path: "{{ cache_redis_bin_path }}/redis-server"
+      register: cache_redis_binary_stat
+    - name: Compile and install Redis from source
+      ansible.builtin.shell:
+        cmd: "cd /tmp/redis-build/redis-{{ cache_redis_version }} make clean && make make install PREFIX=/usr/local "
+        creates: "{{ cache_redis_bin_path }}/redis-server"
+      when: not (cache_redis_safe_install | bool) or not cache_redis_binary_stat.stat.exists
+      changed_when: true
+- name: Set Redis ulimit configuration
+  ansible.builtin.include_tasks: redisio_ulimit.yml

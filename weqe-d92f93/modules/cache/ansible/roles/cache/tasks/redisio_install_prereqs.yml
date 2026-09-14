@@ -1,0 +1,7 @@
+---
+- name: Install Redis build prerequisite packages (Debian/Ubuntu and RHEL/Fedora)
+  ansible.builtin.package:
+    name:
+      - tar
+    state: present
+  when: ansible_os_family in ['Debian', 'RedHat']

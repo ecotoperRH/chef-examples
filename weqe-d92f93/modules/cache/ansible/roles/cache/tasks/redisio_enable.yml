@@ -1,0 +1,22 @@
+---
+- name: Start and enable Redis service instances (systemd)
+  ansible.builtin.systemd:
+    name: redis@{{ item_redis_enable['name'] | default(item_redis_enable['port'], true) }}
+    state: started
+    enabled: true
+    daemon_reload: true
+  loop: "{{ cache_redis_servers }}"
+  loop_control:
+    loop_var: item_redis_enable
+    label: "{{ item_redis_enable['port'] }}"
+  when: cache_redis_job_control == 'systemd'
+- name: Start and enable Redis service instances (initd/upstart/rcinit)
+  ansible.builtin.service:
+    name: redis{{ item_redis_enable['name'] | default(item_redis_enable['port'], true) }}
+    state: started
+    enabled: true
+  loop: "{{ cache_redis_servers }}"
+  loop_control:
+    loop_var: item_redis_enable
+    label: "{{ item_redis_enable['port'] }}"
+  when: cache_redis_job_control != 'systemd'
