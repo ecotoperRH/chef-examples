@@ -1,0 +1,106 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Nginx with SSL-enabled virtual hosts and security hardening
+    description:
+      - Configures Nginx web server with multiple SSL-enabled virtual hosts (test.cluster.local, ci.cluster.local, status.cluster.local)
+      - Deploys security hardening including UFW firewall, Fail2Ban intrusion detection, SSH hardening, and kernel security parameters
+      - Generates self-signed SSL certificates for each virtual host
+      - Serves static HTML content from separate document roots
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+        description: Dictionary of virtual hosts with their configuration (document_root and ssl_enabled status)
+        options:
+          document_root:
+            type: str
+            description: Document root directory for the virtual host
+          ssl_enabled:
+            type: bool
+            description: Whether SSL/TLS is enabled for this virtual host
+      nginx_multisite_ssl_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Path where SSL certificates are stored
+      nginx_multisite_ssl_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Path where SSL private keys are stored
+      nginx_multisite_ssl_cert_country:
+        type: str
+        required: false
+        default: US
+        description: Country code for SSL certificate subject
+      nginx_multisite_ssl_cert_state:
+        type: str
+        required: false
+        default: Example
+        description: State/Province for SSL certificate subject
+      nginx_multisite_ssl_cert_locality:
+        type: str
+        required: false
+        default: Example
+        description: Locality/City for SSL certificate subject
+      nginx_multisite_ssl_cert_org:
+        type: str
+        required: false
+        default: Example Org
+        description: Organization name for SSL certificate subject
+      nginx_multisite_ssl_cert_ou:
+        type: str
+        required: false
+        default: IT
+        description: Organizational Unit for SSL certificate subject
+      nginx_multisite_ssl_cert_email:
+        type: str
+        required: false
+        default: admin@example.com
+        description: Email address for SSL certificate subject
+      nginx_multisite_ssl_cert_days:
+        type: int
+        required: false
+        default: 365
+        description: Validity period in days for self-signed SSL certificates
+      nginx_multisite_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to enable and configure Fail2Ban intrusion detection
+      nginx_multisite_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to enable and configure UFW firewall
+      nginx_multisite_ssh_disable_root:
+        type: bool
+        required: false
+        default: true
+        description: Whether to disable SSH root login
+      nginx_multisite_ssh_disable_password_auth:
+        type: bool
+        required: false
+        default: true
+        description: Whether to disable SSH password authentication
+      nginx_multisite_web_user:
+        type: str
+        required: false
+        default: www-data
+        description: System user for Nginx web server process
+      nginx_multisite_web_group:
+        type: str
+        required: false
+        default: www-data
+        description: System group for Nginx web server process

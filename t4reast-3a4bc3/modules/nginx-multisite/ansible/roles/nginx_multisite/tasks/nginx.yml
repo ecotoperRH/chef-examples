@@ -1,0 +1,66 @@
+---
+- name: Install nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+- name: Ensure www-data group exists
+  ansible.builtin.group:
+    name: "{{ nginx_multisite_web_group }}"
+    state: present
+- name: Ensure www-data user exists
+  ansible.builtin.user:
+    name: "{{ nginx_multisite_web_user }}"
+    group: "{{ nginx_multisite_web_group }}"
+    shell: /usr/sbin/nologin
+    home: /var/www
+    state: present
+- name: Deploy global nginx configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+- name: Deploy nginx security snippet
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+- name: Enable and start nginx service
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+- name: Create parent directories for site document roots
+  ansible.builtin.file:
+    path: "{{ item_site['value']['document_root'] | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+- name: Create site document root directories
+  ansible.builtin.file:
+    path: "{{ item_site['value']['document_root'] }}"
+    state: directory
+    owner: "{{ nginx_multisite_web_user }}"
+    group: "{{ nginx_multisite_web_group }}"
+    mode: "0755"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+- name: Deploy static site index files
+  ansible.builtin.copy:
+    src: "{{ item_site['key'].split('.')[0] }}/index.html"
+    dest: "{{ item_site['value']['document_root'] }}/index.html"
+    owner: "{{ nginx_multisite_web_user }}"
+    group: "{{ nginx_multisite_web_group }}"
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
