@@ -1,0 +1,14 @@
+{
+  "phase": "migrate",
+  "agents_run": 1,
+  "total_findings": 3,
+  "total_critical_findings": 1,
+  "agents": [
+    {
+      "name": "No SSHD config",
+      "findings": 3,
+      "critical_findings": 1,
+      "summary": "Analysis of Ansible artifacts identified 3 security findings: 1 CRITICAL issue with SSH daemon configuration modification and 2 WARNING issues related to system user and group creation."
+    }
+  ]
+}
