@@ -1,0 +1,26 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Hardened Nginx web server hosting three SSL-enabled virtual hosts with full OS security baseline including UFW firewall, fail2ban, kernel sysctl hardening, and SSH hardening. Manages multi-recipe structure for security, nginx, SSL certificate generation, and site configuration.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Dual caching service provisioner deploying Memcached (port 11211) and Redis (port 6379, password-authenticated, source-compiled from Redis 3.2.11 tarball) with systemd management. Includes post-processing to strip deprecated Redis config directives for version compatibility.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Full-stack Python application provisioner that clones the FastAPI tutorial app, creates a Python virtual environment, provisions a PostgreSQL database and user, writes a .env file with database credentials, and registers a systemd service running uvicorn on port 8000.",
+    "technology": "Chef"
+  },
+  {
+    "name": "nginx",
+    "path": "123-fc2c2f/modules/nginx/ansible/roles/nginx",
+    "description": "Standalone Ansible role for Nginx web server installation and configuration with support for multiple sites, custom HTTP parameters, and platform-specific configurations. Already complete with Molecule test suite and Jinja2 templates.",
+    "technology": "Ansible"
+  }
+]
