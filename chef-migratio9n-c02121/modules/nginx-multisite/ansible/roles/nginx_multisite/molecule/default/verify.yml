@@ -1,0 +1,457 @@
+---
+# ============================================================
+# Play 1: Verify nginx configs, site configs, document roots,
+#         symlinks, and absence of default site
+# ============================================================
+- name: Verify nginx configuration and site files
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    # ----------------------------------------------------------
+    # 1. Global nginx config files
+    # ----------------------------------------------------------
+    - name: Stat global nginx config files
+      ansible.builtin.stat:
+        path: "{{ item_cfg }}"
+      loop:
+        - /tmp/molecule_test/etc/nginx/nginx.conf
+        - /tmp/molecule_test/etc/nginx/conf.d/security.conf
+      loop_control:
+        loop_var: item_cfg
+      register: nginx_cfg_stat
+
+    - name: Assert global nginx config files exist and are non-empty
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isreg']
+          - item_result['stat']['size'] > 0
+        fail_msg: "Required nginx config file is missing or empty"
+      loop: "{{ nginx_cfg_stat['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Slurp nginx.conf to verify key directives
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/nginx/nginx.conf
+      register: nginx_conf_content
+
+    - name: Assert nginx.conf contains required directives
+      ansible.builtin.assert:
+        that:
+          - "'worker_processes' in (nginx_conf_content['content'] | b64decode)"
+          - "'keepalive_timeout' in (nginx_conf_content['content'] | b64decode)"
+          - "'gzip on' in (nginx_conf_content['content'] | b64decode)"
+          - "'sites-enabled' in (nginx_conf_content['content'] | b64decode)"
+        fail_msg: "nginx.conf is missing required directives"
+
+    - name: Slurp security.conf to verify key directives
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/nginx/conf.d/security.conf
+      register: security_conf_content
+
+    - name: Assert security.conf contains required directives
+      ansible.builtin.assert:
+        that:
+          - "'server_tokens off' in (security_conf_content['content'] | b64decode)"
+          - "'limit_req_zone' in (security_conf_content['content'] | b64decode)"
+          - "'ssl_protocols' in (security_conf_content['content'] | b64decode)"
+          - "'TLSv1.2' in (security_conf_content['content'] | b64decode)"
+        fail_msg: "security.conf is missing required security directives"
+
+    # ----------------------------------------------------------
+    # 2. Virtual host site configs (sites-available)
+    # ----------------------------------------------------------
+    - name: Stat sites-available config files
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/nginx/sites-available/{{ item_site }}"
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_site
+      register: sites_available_stat
+
+    - name: Assert sites-available config files exist and are non-empty
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isreg']
+          - item_result['stat']['size'] > 0
+        fail_msg: "sites-available config file is missing or empty"
+      loop: "{{ sites_available_stat['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Slurp each site config and verify key directives
+      ansible.builtin.slurp:
+        src: "/tmp/molecule_test/etc/nginx/sites-available/{{ item_site }}"
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_site
+      register: site_conf_slurp
+
+    - name: Assert each site config contains required nginx directives
+      ansible.builtin.assert:
+        that:
+          - "'server_name' in (item_result['content'] | b64decode)"
+          - "'listen 80' in (item_result['content'] | b64decode)"
+          - "'listen 443' in (item_result['content'] | b64decode)"
+          - "'ssl_certificate' in (item_result['content'] | b64decode)"
+          - "'return 301' in (item_result['content'] | b64decode)"
+          - "'Strict-Transport-Security' in (item_result['content'] | b64decode)"
+          - "'X-Frame-Options' in (item_result['content'] | b64decode)"
+          - "'X-Content-Type-Options' in (item_result['content'] | b64decode)"
+        fail_msg: "Site config is missing required nginx directives"
+      loop: "{{ site_conf_slurp['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    # ----------------------------------------------------------
+    # 3. sites-enabled symlinks
+    # ----------------------------------------------------------
+    - name: Stat sites-enabled symlinks
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/nginx/sites-enabled/{{ item_link }}"
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_link
+      register: sites_enabled_stat
+
+    - name: Assert sites-enabled symlinks exist and are symlinks
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['islnk']
+        fail_msg: "sites-enabled symlink is missing or is not a symlink"
+      loop: "{{ sites_enabled_stat['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    # ----------------------------------------------------------
+    # 4. Default site must NOT exist
+    # ----------------------------------------------------------
+    - name: Stat default nginx site (must be absent)
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/nginx/sites-enabled/default
+      register: default_site_stat
+
+    - name: Assert default nginx site has been removed
+      ansible.builtin.assert:
+        that:
+          - not default_site_stat['stat']['exists']
+        fail_msg: "Default nginx site still exists — it should have been removed"
+
+    # ----------------------------------------------------------
+    # 5. Document root index.html files
+    # ----------------------------------------------------------
+    - name: Stat document root index.html files
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/opt/server/{{ item_docroot }}/index.html"
+      loop:
+        - test
+        - ci
+        - status
+      loop_control:
+        loop_var: item_docroot
+      register: docroot_stat
+
+    - name: Assert document root index.html files exist and are non-empty
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isreg']
+          - item_result['stat']['size'] > 0
+        fail_msg: "Document root index.html is missing or empty"
+      loop: "{{ docroot_stat['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Slurp document root index.html files to verify content
+      ansible.builtin.slurp:
+        src: "/tmp/molecule_test/opt/server/{{ item_docroot }}/index.html"
+      loop:
+        - test
+        - ci
+        - status
+      loop_control:
+        loop_var: item_docroot
+      register: docroot_slurp
+
+    - name: Assert document root index.html files contain HTML content
+      ansible.builtin.assert:
+        that:
+          - "'<!DOCTYPE html>' in (item_result['content'] | b64decode)"
+          - "'<html' in (item_result['content'] | b64decode)"
+        fail_msg: "Document root index.html does not contain valid HTML"
+      loop: "{{ docroot_slurp['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    # ----------------------------------------------------------
+    # 6. Service checks (container-unsafe — tagged molecule-notest)
+    # ----------------------------------------------------------
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+      tags: molecule-notest
+
+    - name: Assert nginx service is active
+      ansible.builtin.assert:
+        that:
+          - "'nginx.service' in ansible_facts['services']"
+          - "ansible_facts['services']['nginx.service']['state'] == 'running'"
+        fail_msg: "nginx service is not running"
+      tags: molecule-notest
+
+    - name: Assert fail2ban service is active
+      ansible.builtin.assert:
+        that:
+          - "'fail2ban.service' in ansible_facts['services']"
+          - "ansible_facts['services']['fail2ban.service']['state'] == 'running'"
+        fail_msg: "fail2ban service is not running"
+      tags: molecule-notest
+
+    # ----------------------------------------------------------
+    # 7. Port checks (container-unsafe — tagged molecule-notest)
+    # ----------------------------------------------------------
+    - name: Check nginx is listening on port 80
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 80
+        timeout: 5
+        state: started
+      tags: molecule-notest
+
+    - name: Check nginx is listening on port 443
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 443
+        timeout: 5
+        state: started
+      tags: molecule-notest
+
+# ============================================================
+# Play 2: Verify SSL files, security configs, and SSH hardening
+# ============================================================
+- name: Verify SSL certificates, security configs, and SSH hardening
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    # ----------------------------------------------------------
+    # 1. SSL certificate files
+    # ----------------------------------------------------------
+    - name: Stat SSL certificate files
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/ssl/certs/{{ item_cert }}.crt"
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_cert
+      register: ssl_cert_stat
+
+    - name: Assert SSL certificate files exist and are non-empty
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isreg']
+          - item_result['stat']['size'] > 0
+        fail_msg: "SSL certificate file is missing or empty"
+      loop: "{{ ssl_cert_stat['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    # ----------------------------------------------------------
+    # 2. SSL private key files
+    # ----------------------------------------------------------
+    - name: Stat SSL private key files
+      ansible.builtin.stat:
+        path: "/tmp/molecule_test/etc/ssl/private/{{ item_key }}.key"
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_key
+      register: ssl_key_stat
+
+    - name: Assert SSL private key files exist and are non-empty
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isreg']
+          - item_result['stat']['size'] > 0
+        fail_msg: "SSL private key file is missing or empty"
+      loop: "{{ ssl_key_stat['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    # ----------------------------------------------------------
+    # 3. SSL directory structure
+    # ----------------------------------------------------------
+    - name: Stat SSL directories
+      ansible.builtin.stat:
+        path: "{{ item_ssldir }}"
+      loop:
+        - /tmp/molecule_test/etc/ssl/certs
+        - /tmp/molecule_test/etc/ssl/private
+      loop_control:
+        loop_var: item_ssldir
+      register: ssl_dir_stat
+
+    - name: Assert SSL directories exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isdir']
+        fail_msg: "SSL directory is missing"
+      loop: "{{ ssl_dir_stat['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    # ----------------------------------------------------------
+    # 4. fail2ban jail.local
+    # ----------------------------------------------------------
+    - name: Stat fail2ban jail.local
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/fail2ban/jail.local
+      register: jail_local_stat
+
+    - name: Assert fail2ban jail.local exists and is non-empty
+      ansible.builtin.assert:
+        that:
+          - jail_local_stat['stat']['exists']
+          - jail_local_stat['stat']['isreg']
+          - jail_local_stat['stat']['size'] > 0
+        fail_msg: "fail2ban jail.local is missing or empty"
+
+    - name: Slurp fail2ban jail.local to verify jail configuration
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/fail2ban/jail.local
+      register: jail_local_content
+
+    - name: Assert fail2ban jail.local contains all required jails
+      ansible.builtin.assert:
+        that:
+          - "'bantime = 3600' in (jail_local_content['content'] | b64decode)"
+          - "'findtime = 600' in (jail_local_content['content'] | b64decode)"
+          - "'maxretry = 3' in (jail_local_content['content'] | b64decode)"
+          - "'[sshd]' in (jail_local_content['content'] | b64decode)"
+          - "'[nginx-http-auth]' in (jail_local_content['content'] | b64decode)"
+          - "'[nginx-limit-req]' in (jail_local_content['content'] | b64decode)"
+          - "'[nginx-botsearch]' in (jail_local_content['content'] | b64decode)"
+        fail_msg: "fail2ban jail.local is missing required jail sections or settings"
+
+    # ----------------------------------------------------------
+    # 5. sysctl security hardening config
+    # ----------------------------------------------------------
+    - name: Stat sysctl security config
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/sysctl.d/99-security.conf
+      register: sysctl_stat
+
+    - name: Assert sysctl security config exists and is non-empty
+      ansible.builtin.assert:
+        that:
+          - sysctl_stat['stat']['exists']
+          - sysctl_stat['stat']['isreg']
+          - sysctl_stat['stat']['size'] > 0
+        fail_msg: "sysctl 99-security.conf is missing or empty"
+
+    - name: Slurp sysctl security config to verify hardening settings
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/sysctl.d/99-security.conf
+      register: sysctl_content
+
+    - name: Assert sysctl config contains required kernel hardening parameters
+      ansible.builtin.assert:
+        that:
+          - "'rp_filter' in (sysctl_content['content'] | b64decode)"
+          - "'accept_redirects = 0' in (sysctl_content['content'] | b64decode)"
+          - "'tcp_syncookies = 1' in (sysctl_content['content'] | b64decode)"
+          - "'icmp_echo_ignore_all = 1' in (sysctl_content['content'] | b64decode)"
+          - "'disable_ipv6 = 1' in (sysctl_content['content'] | b64decode)"
+        fail_msg: "sysctl 99-security.conf is missing required kernel hardening parameters"
+
+    # ----------------------------------------------------------
+    # 6. SSH hardening (sshd_config)
+    # ----------------------------------------------------------
+    - name: Stat sshd_config
+      ansible.builtin.stat:
+        path: /tmp/molecule_test/etc/ssh/sshd_config
+      register: sshd_config_stat
+
+    - name: Assert sshd_config exists and is non-empty
+      ansible.builtin.assert:
+        that:
+          - sshd_config_stat['stat']['exists']
+          - sshd_config_stat['stat']['isreg']
+          - sshd_config_stat['stat']['size'] > 0
+        fail_msg: "sshd_config is missing or empty"
+
+    - name: Slurp sshd_config to verify SSH hardening settings
+      ansible.builtin.slurp:
+        src: /tmp/molecule_test/etc/ssh/sshd_config
+      register: sshd_config_content
+
+    - name: Assert sshd_config contains SSH hardening directives
+      ansible.builtin.assert:
+        that:
+          - "'PermitRootLogin no' in (sshd_config_content['content'] | b64decode)"
+          - "'PasswordAuthentication no' in (sshd_config_content['content'] | b64decode)"
+        fail_msg: "sshd_config is missing required SSH hardening directives"
+
+    # ----------------------------------------------------------
+    # 7. HTTP/HTTPS endpoint checks (container-unsafe — tagged molecule-notest)
+    # ----------------------------------------------------------
+    - name: Check HTTP redirect for test.cluster.local
+      ansible.builtin.uri:
+        url: http://test.cluster.local
+        follow_redirects: none
+        status_code: 301
+      tags: molecule-notest
+
+    - name: Check HTTPS response for test.cluster.local
+      ansible.builtin.uri:
+        url: https://test.cluster.local
+        validate_certs: false
+        status_code: 200
+      tags: molecule-notest
+
+    - name: Check HTTP redirect for ci.cluster.local
+      ansible.builtin.uri:
+        url: http://ci.cluster.local
+        follow_redirects: none
+        status_code: 301
+      tags: molecule-notest
+
+    - name: Check HTTPS response for ci.cluster.local
+      ansible.builtin.uri:
+        url: https://ci.cluster.local
+        validate_certs: false
+        status_code: 200
+      tags: molecule-notest
+
+    - name: Check HTTP redirect for status.cluster.local
+      ansible.builtin.uri:
+        url: http://status.cluster.local
+        follow_redirects: none
+        status_code: 301
+      tags: molecule-notest
+
+    - name: Check HTTPS response for status.cluster.local
+      ansible.builtin.uri:
+        url: https://status.cluster.local
+        validate_certs: false
+        status_code: 200
+      tags: molecule-notest
