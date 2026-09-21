@@ -1,0 +1,26 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Hardened Nginx web server hosting three SSL-enabled virtual hosts with a full security baseline including UFW firewall rules, fail2ban intrusion prevention, kernel sysctl hardening, and SSH hardening. Generates self-signed RSA 2048-bit TLS certificates and manages sites-available/sites-enabled symlinks with HTTP\u2192HTTPS redirects and HSTS.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Dual caching layer deploying Memcached (port 11211, 64 MB RAM) and Redis (port 6379, password-authenticated, compiled from source at version 3.2.11) managed via systemd. Includes a post-configuration compatibility fix that strips deprecated Redis directives from the generated config file.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Deploys a FastAPI Python ASGI application from GitHub, installs system dependencies, creates a Python virtual environment, provisions a PostgreSQL database and user, writes a .env configuration file, and manages the application as a systemd service running on port 8000 via uvicorn.",
+    "technology": "Chef"
+  },
+  {
+    "name": "nginx",
+    "path": "123-fc2c2f/modules/nginx/ansible/roles/nginx",
+    "description": "General-purpose Nginx installation and configuration role supporting both RedHat (via DNF + EPEL) and Debian/Ubuntu families. Manages the main nginx.conf, a default site, and an arbitrary list of named virtual host configurations with SELinux compatibility on RedHat.",
+    "technology": "Ansible"
+  }
+]
