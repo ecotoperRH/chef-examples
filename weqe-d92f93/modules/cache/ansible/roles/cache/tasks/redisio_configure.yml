@@ -1,7 +1,0 @@
----
-- name: Configure Redis server instances
-  ansible.builtin.include_tasks: redisio_configure_instance.yml
-  loop: "{{ cache_redis_servers }}"
-  loop_control:
-    loop_var: item_redis_server
-    label: "{{ item_redis_server['port'] }}"
