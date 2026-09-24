@@ -1,0 +1,40 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy FastAPI tutorial application
+    description:
+      - Installs required system packages, sets up a Python virtual environment, clones the FastAPI tutorial repository, configures PostgreSQL, deploys 
+        environment and systemd unit files, and ensures services are running.
+    options:
+      fastapi_repo_url:
+        type: str
+        required: false
+        default: https://github.com/dibanez/fastapi_tutorial.git
+        description: URL of the FastAPI tutorial git repository.
+      fastapi_version:
+        type: str
+        required: false
+        default: main
+        description: Git branch or tag to checkout.
+      fastapi_project_name:
+        type: str
+        required: false
+        default: FastAPI Tutorial
+        description: Name of the FastAPI project.
+      fastapi_api_version:
+        type: str
+        required: false
+        default: 1.0.0
+        description: API version string.
+      postgres_password:
+        type: str
+        required: true
+        description: PostgreSQL password injected via AAP credential.
+      database_url:
+        type: str
+        required: true
+        description: Database connection URL injected via AAP credential.
+      secret_key:
+        type: str
+        required: true
+        description: Application secret key injected via AAP credential.

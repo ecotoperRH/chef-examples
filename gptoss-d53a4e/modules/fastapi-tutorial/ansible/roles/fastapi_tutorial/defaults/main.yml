@@ -1,0 +1,7 @@
+---
+fastapi_repo_url: https://github.com/dibanez/fastapi_tutorial.git
+fastapi_version: main
+fastapi_project_name: FastAPI Tutorial
+fastapi_api_version: 1.0.0
+# The following variables are expected to be provided via AAP credentials
+# postgres_password, database_url, secret_key are injected at runtime

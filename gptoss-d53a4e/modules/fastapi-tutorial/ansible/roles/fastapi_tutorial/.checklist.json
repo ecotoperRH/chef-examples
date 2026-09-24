@@ -1,0 +1,117 @@
+{
+  "module_name": "fastapi_tutorial",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata (generated from metadata.rb if present)",
+      "notes": "Created standard meta/main.yml"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for service reloads (e.g., systemd daemon-reload)",
+      "notes": "Created handlers file"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Argument specifications for role (depends on defaults)",
+      "notes": "Created argument_specs file"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/defaults/main.yml",
+      "status": "complete",
+      "description": "Default variables for role (e.g., DB credentials, paths)",
+      "notes": "Created defaults file"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/main.yml",
+      "status": "complete",
+      "description": "Convert default recipe to Ansible tasks",
+      "notes": "Converted Chef recipe to Ansible tasks"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration (delegated driver)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook (runs role)",
+      "notes": ""
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/create.yml",
+      "status": "complete",
+      "description": "Molecule create playbook (no-op)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "Molecule destroy playbook (no-op)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verify playbook (checks role functionality)",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/.github/workflows/ci.yml",
+      "status": "pending",
+      "description": "GitHub Actions workflow for CI",
+      "notes": ""
+    }
+  ]
+}

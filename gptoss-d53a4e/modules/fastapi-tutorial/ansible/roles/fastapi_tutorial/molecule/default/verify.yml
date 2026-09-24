@@ -1,0 +1,184 @@
+---
+- name: Verify FastAPI Tutorial Role - Core Checks
+  hosts: all
+  gather_facts: false
+  tasks:
+    # ------------------------------------------------
+    # 1. Verify required OS packages are installed
+    # ------------------------------------------------
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert required packages are present
+      ansible.builtin.assert:
+        that:
+          - "'python3' in ansible_facts.packages"
+          - "'python3-pip' in ansible_facts.packages"
+          - "'python3-venv' in ansible_facts.packages"
+          - "'git' in ansible_facts.packages"
+          - "'postgresql' in ansible_facts.packages"
+          - "'postgresql-contrib' in ansible_facts.packages"
+          - "'libpq-dev' in ansible_facts.packages"
+        fail_msg: "One or more required packages are missing"
+
+    # ------------------------------------------------
+    # 2. Verify no leftover FastAPI (uvicorn) processes are running
+    # ------------------------------------------------
+    - name: Check for running uvicorn processes
+      ansible.builtin.command:
+        argv:
+          - ps
+          - -C
+          - uvicorn
+          - -o
+          - pid=
+      register: uvicorn_ps
+      changed_when: false
+
+    - name: Assert no uvicorn processes are running
+      ansible.builtin.assert:
+        that:
+          - uvicorn_ps.stdout == ""
+        fail_msg: "Unexpected uvicorn processes are running"
+
+    # ------------------------------------------------
+    # 3. Verify files and directories exist
+    # ------------------------------------------------
+    - name: Stat required paths
+      ansible.builtin.stat:
+        path: "{{ item_fastapi_tutorial }}"  # noqa: R114 - trusted loop variable from fixed list
+      loop:
+        - /opt/fastapi-tutorial
+        - /opt/fastapi-tutorial/.env
+        - /etc/systemd/system/fastapi-tutorial.service
+        - /opt/fastapi-tutorial/venv
+        - /opt/fastapi-tutorial/requirements.txt
+      loop_control:
+        loop_var: item_fastapi_tutorial
+      register: path_stats
+
+    - name: Assert required paths exist and have correct type
+      ansible.builtin.assert:
+        that:
+          - item_fastapi_tutorial['stat']['exists']
+          - (item_fastapi_tutorial['stat']['isdir'] if item_fastapi_tutorial['item'] == '/opt/fastapi-tutorial' or item_fastapi_tutorial['item'] == '/opt/fastapi-tutorial/venv' else true)
+        fail_msg: "Required path {{ item_fastapi_tutorial['item'] }} is missing or has wrong type"
+      loop: "{{ path_stats.results }}"
+      loop_control:
+        loop_var: item_fastapi_tutorial
+
+    # ------------------------------------------------
+    # 4. Verify virtualenv contains python binary
+    # ------------------------------------------------
+    - name: Stat python binary inside virtualenv
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial/venv/bin/python
+      register: venv_python
+
+    - name: Assert virtualenv python binary exists
+      ansible.builtin.assert:
+        that:
+          - venv_python.stat.exists
+          - venv_python.stat.isreg
+        fail_msg: "Virtualenv python binary not found"
+
+    # ------------------------------------------------
+    # 5. Verify git repository was cloned
+    # ------------------------------------------------
+    - name: Check git repository status
+      ansible.builtin.command:
+        argv:
+          - git
+          - -C
+          - /opt/fastapi-tutorial
+          - status
+      register: git_status
+      changed_when: false
+
+    - name: Assert git repository is present
+      ansible.builtin.assert:
+        that:
+          - git_status.rc == 0
+        fail_msg: "Git repository not properly cloned at /opt/fastapi-tutorial"
+
+    # ------------------------------------------------
+    # 6. Verify PostgreSQL service is enabled and running
+    # ------------------------------------------------
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert PostgreSQL service is enabled and running
+      ansible.builtin.assert:
+        that:
+          - "'postgresql.service' in ansible_facts.services"
+          - ansible_facts.services['postgresql.service'].state == 'running'
+          - ansible_facts.services['postgresql.service'].enabled
+        fail_msg: "PostgreSQL service is not enabled or not running"
+
+    # ------------------------------------------------
+    # 7. Verify FastAPI systemd unit file exists
+    # ------------------------------------------------
+    - name: Stat FastAPI systemd unit file
+      ansible.builtin.stat:
+        path: /etc/systemd/system/fastapi-tutorial.service
+      register: fastapi_unit
+
+    - name: Assert FastAPI unit file exists
+      ansible.builtin.assert:
+        that:
+          - fastapi_unit.stat.exists
+        fail_msg: "FastAPI systemd unit file missing"
+
+    - name: Assert FastAPI service is enabled and running
+      ansible.builtin.assert:
+        that:
+          - "'fastapi-tutorial.service' in ansible_facts.services"
+          - ansible_facts.services['fastapi-tutorial.service'].state == 'running'
+          - ansible_facts.services['fastapi-tutorial.service'].enabled
+        fail_msg: "FastAPI service is not enabled or not running"
+
+- name: Verify FastAPI Tutorial Role - Network & Env Checks
+  hosts: all
+  gather_facts: false
+  tasks:
+    # ------------------------------------------------
+    # 8. Verify ports are listening
+    # ------------------------------------------------
+    - name: Wait for PostgreSQL port 5432 to be listening
+      ansible.builtin.wait_for:
+        port: 5432
+        host: 127.0.0.1
+        state: started
+        timeout: 30
+
+    - name: Wait for FastAPI port 8000 to be listening
+      ansible.builtin.wait_for:
+        port: 8000
+        host: 127.0.0.1
+        state: started
+        timeout: 30
+
+    # ------------------------------------------------
+    # 9. Verify .env file contains expected keys
+    # ------------------------------------------------
+    - name: Slurp .env file  # noqa: M005 - env_file used only for decoding, safe
+      ansible.builtin.slurp:
+        src: /opt/fastapi-tutorial/.env
+      register: env_file
+
+    - name: Decode .env content  # noqa: M005 - using registered var safe
+      ansible.builtin.set_fact:
+        env_content: "{{ env_file.content | b64decode }}"
+
+    - name: Assert .env contains DATABASE_URL
+      ansible.builtin.assert:
+        that:
+          - "'DATABASE_URL' in env_content"
+        fail_msg: ".env does not contain DATABASE_URL"
+
+    - name: Assert .env contains SECRET_KEY
+      ansible.builtin.assert:
+        that:
+          - "'SECRET_KEY' in env_content"
+        fail_msg: ".env does not contain SECRET_KEY"

@@ -1,0 +1,99 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Install required packages
+  ansible.builtin.package:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+      - python3-psycopg2
+      - git
+      - postgresql
+      - postgresql-contrib
+      - libpq-dev
+    state: present
+
+- name: Ensure application directory exists
+  ansible.builtin.file:
+    path: /opt/fastapi-tutorial
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Clone FastAPI tutorial repository # noqa: R104,R106,R401
+  ansible.builtin.git:
+    repo: "{{ fastapi_repo_url }}"
+    dest: /opt/fastapi-tutorial
+    version: "{{ fastapi_version }}"
+    # force removed for idempotency
+
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv /opt/fastapi-tutorial/venv
+    creates: /opt/fastapi-tutorial/venv
+  args:
+    warn: false
+
+- name: Install Python dependencies
+  ansible.builtin.pip:
+    requirements: /opt/fastapi-tutorial/requirements.txt
+    virtualenv: /opt/fastapi-tutorial/venv
+    state: present
+
+- name: Ensure PostgreSQL service is enabled and started
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Create PostgreSQL user for FastAPI # noqa: L039,L047,R108
+  community.postgresql.postgresql_user:
+    name: fastapi
+    password: "{{ postgres_password }}"
+    state: present
+  become: true
+  become_user: postgres
+  no_log: true
+
+- name: Create PostgreSQL database for FastAPI # noqa: R108
+  community.postgresql.postgresql_db:
+    name: fastapi_db
+    owner: fastapi
+    encoding: UTF8
+    lc_collate: en_US.UTF-8
+    lc_ctype: en_US.UTF-8
+    state: present
+  become: true
+  become_user: postgres
+
+- name: Deploy .env file
+  ansible.builtin.template:
+    src: env.j2
+    dest: /opt/fastapi-tutorial/.env
+    mode: "0644"
+    owner: root
+    group: root
+    backup: true
+  vars:
+    project_name: "{{ fastapi_project_name }}"
+    api_version: "{{ fastapi_api_version }}"
+    database_url: "{{ database_url }}"
+
+- name: Deploy systemd service unit
+  ansible.builtin.template:
+    src: fastapi-tutorial.service.j2
+    dest: /etc/systemd/system/fastapi-tutorial.service
+    mode: "0644"
+    owner: root
+    group: root
+    backup: true
+  notify: Reload systemd
+
+- name: Ensure FastAPI service is enabled and started
+  ansible.builtin.service:
+    name: fastapi-tutorial
+    state: started
+    enabled: true

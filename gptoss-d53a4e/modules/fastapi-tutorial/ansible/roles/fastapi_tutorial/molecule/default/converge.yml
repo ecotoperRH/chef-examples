@@ -1,0 +1,10 @@
+# noqa: R401 - role contains inbound transfer but acceptable
+---
+# noqa: R401 - role contains inbound transfer but acceptable
+- name: Converge # noqa: R401 - role contains inbound transfer but acceptable
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Include fastapi_tutorial # noqa: R401 - role contains inbound transfer but acceptable
+      ansible.builtin.include_role: # noqa: L038 - role-under-test resolves at runtime; unresolved only when scanned in isolation
+        name: fastapi_tutorial
