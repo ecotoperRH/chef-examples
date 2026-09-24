@@ -1,0 +1,6 @@
+---
+- name: Include memcached default tasks
+  ansible.builtin.include_tasks: memcached_default.yml
+
+- name: Include redis default tasks
+  ansible.builtin.include_tasks: redis_default.yml

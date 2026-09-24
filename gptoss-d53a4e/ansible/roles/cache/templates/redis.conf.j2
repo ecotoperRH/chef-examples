@@ -1,0 +1,140 @@
+# Redis configuration file example.
+
+# Note on units: when memory size is needed, it is possible to specify
+# in the usual form of 1k 5GB 4M and so forth:
+#
+# 1k => 1000 bytes
+# 1kb => 1024 bytes
+# 1m => 1000000 bytes
+# 1mb => 1024*1024 bytes
+# 1g => 1000000000 bytes
+# 1gb => 1024*1024*1024 bytes
+#
+# units are case insensitive so 1GB 1Gb 1gB are all the same.
+
+# By default Redis does not run as a daemon. Use 'yes' if you need it.
+# Note that Redis will write a pid file in /var/run/redis.pid when daemonized.
+{% if job_control == 'initd' or job_control == 'rcinit' %}
+daemonize yes
+{% endif %}
+
+# When running daemonized, Redis writes a pid file in /var/run/redis.pid by
+# default. You can specify a custom pid file location here.
+pidfile {{ piddir }}/redis_{{ name }}.pid
+
+# Accept connections on the specified port, default is 6379.
+# If port 0 is specified Redis will not listen on a TCP socket.
+port {{ port }}
+
+# TCP listen() backlog.
+
+tcp-backlog {{ tcpbacklog }}
+
+{% if address is defined %}
+bind {{ address if address is string else address|join(' ') }}
+{% endif %}
+
+{% if protected_mode is defined %}
+protected-mode {{ protected_mode }}
+{% endif %}
+
+{% if unixsocket is defined %}
+unixsocket {{ unixsocket }}
+{% endif %}
+{% if unixsocketperm is defined %}
+unixsocketperm {{ unixsocketperm }}
+{% endif %}
+
+# Close the connection after a client is idle for N seconds (0 to disable)
+timeout {{ timeout }}
+
+# TCP keepalive.
+
+tcp-keepalive {{ keepalive }}
+
+# Set server verbosity to 'debug'
+loglevel {{ loglevel }}
+
+{% if logfile is defined %}
+logfile {{ logfile }}
+{% endif %}
+
+# To enable logging to the system logger, just set 'syslog-enabled' to yes.
+syslog-enabled {{ syslogenabled }}
+
+# Specify the syslog identity.
+syslog-ident redis-{{ name }}
+
+# Specify the syslog facility.
+syslog-facility {{ syslogfacility }}
+
+# Set the number of databases.
+databases {{ databases }}
+
+# TLS/SSL configuration (if applicable)
+{% if tlsport is defined %}
+tls-port {{ tlsport }}
+{% endif %}
+{% if tlscertfile is defined %}
+tls-cert-file {{ tlscertfile }}
+{% endif %}
+{% if tlskeyfile is defined %}
+tls-key-file {{ tlskeyfile }}
+{% endif %}
+{% if tlskeyfilepass is defined %}
+tls-key-file-pass {{ tlskeyfilepass }}
+{% endif %}
+{% if tlsclientcertfile is defined %}
+tls-client-cert-file {{ tlsclientcertfile }}
+{% endif %}
+{% if tlsclientkeyfile is defined %}
+tls-client-key-file {{ tlsclientkeyfile }}
+{% endif %}
+{% if tlsclientkeyfilepass is defined %}
+tls-client-key-file-pass {{ tlsclientkeyfilepass }}
+{% endif %}
+{% if tlsdhparamsfile is defined %}
+tls-dh-params-file {{ tlsdhparamsfile }}
+{% endif %}
+{% if tlscacertfile is defined %}
+tls-ca-cert-file {{ tlscacertfile }}
+{% endif %}
+{% if tlscacertdir is defined %}
+tls-ca-cert-dir {{ tlscacertdir }}
+{% endif %}
+{% if tlsauthclients is defined %}
+tls-auth-clients {{ tlsauthclients }}
+{% endif %}
+{% if tlsreplication is defined %}
+tls-replication {{ tlsreplication }}
+{% endif %}
+{% if tlscluster is defined %}
+tls-cluster {{ tlscluster }}
+{% endif %}
+{% if tlsprotocols is defined %}
+tls-protocols {{ tlsprotocols }}
+{% endif %}
+{% if tlsciphers is defined %}
+tls-ciphers {{ tlsciphers }}
+{% endif %}
+{% if tlsciphersuites is defined %}
+tls-ciphersuites {{ tlsciphersuites }}
+{% endif %}
+{% if tlspreferserverciphers is defined %}
+tls-prefer-server-ciphers {{ tlspreferserverciphers }}
+{% endif %}
+{% if tlssessioncaching is defined %}
+tls-session-caching {{ tlssessioncaching }}
+{% endif %}
+{% if tlssessioncachesize is defined %}
+tls-session-cache-size {{ tlssessioncachesize }}
+{% endif %}
+{% if tlssessioncachetimeout is defined %}
+tls-session-timeout {{ tlssessioncachetimeout }}
+{% endif %}
+
+{% if includes is defined %}
+{% for include_option in includes %}
+include {{ include_option }}
+{% endfor %}
+{% endif %}

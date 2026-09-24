@@ -1,0 +1,21 @@
+---
+- name: Install memcached package
+  ansible.builtin.package:
+    name:
+      - memcached
+    state: present
+
+- name: Ensure memcached service is enabled and started
+  ansible.builtin.service:
+    name: memcached
+    state: started
+    enabled: true
+
+- name: Create memcached log directory
+  ansible.builtin.file:
+    path: "{{ memcached.logfilepath }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ memcached.user | default('memcached') }}"
+    group: "{{ memcached.group | default('memcached') }}"
+    # noqa: R114 - trusted path from defaults

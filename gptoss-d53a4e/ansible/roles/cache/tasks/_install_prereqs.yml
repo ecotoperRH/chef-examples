@@ -1,0 +1,9 @@
+---
+- name: Install prerequisite packages for Redis
+  ansible.builtin.package:
+    name:
+      - build-essential
+      - libjemalloc-dev
+      - tcl
+      - pkg-config
+    state: present
