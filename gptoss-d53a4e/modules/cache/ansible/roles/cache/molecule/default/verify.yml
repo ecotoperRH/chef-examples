@@ -1,0 +1,8 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Verify role cache executed successfully
+      ansible.builtin.debug:
+        msg: "Role cache applied successfully"

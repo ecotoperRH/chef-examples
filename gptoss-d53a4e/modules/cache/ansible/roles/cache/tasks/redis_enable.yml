@@ -1,0 +1,9 @@
+---
+- name: Enable Redis services for each instance
+  ansible.builtin.service:
+    name: "{{ ('redis@' + (item_enable.name | default(item_enable.port))) if redisio_job_control == 'systemd' else ('redis' + (item_enable.name | default(item_enable.port))) }}"
+    state: started
+    enabled: true
+  loop: "{{ redis_instances }}"
+  loop_control:
+    loop_var: item_enable

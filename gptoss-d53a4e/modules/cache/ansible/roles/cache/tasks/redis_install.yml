@@ -1,0 +1,42 @@
+---
+- name: Install Redis from source or package
+  block:
+    - name: Install Redis package
+      ansible.builtin.package:
+        name: "{{ redisio_package_name }}"
+        state: present
+      when: redisio_package_install | bool  # noqa: L091 - ensure boolean evaluation
+
+    - name: Install Redis from source
+      when: not redisio_package_install
+      block:
+        - name: Ensure prerequisite packages are installed  # noqa: L039 - variable from role defaults
+          ansible.builtin.package:
+            name: "{{ redisio_prereq_packages | default(['tar', 'gcc', 'make']) }}"
+            state: present
+
+        - name: Download Redis tarball
+          ansible.builtin.get_url:
+            url: "{{ redisio_mirror }}/{{ redisio_base_name }}{{ redisio_version }}.{{ redisio_artifact_type }}"  # noqa: R104 - internal mirror without TLS
+            # noqa: R106 - source from role defaults
+            dest: "{{ redisio_download_dir }}/{{ redisio_base_name }}{{ redisio_version }}.{{ redisio_artifact_type }}"
+            mode: "0644"
+
+        - name: Extract Redis tarball
+          ansible.builtin.unarchive:
+            src: "{{ redisio_download_dir }}/{{ redisio_base_name }}{{ redisio_version }}.{{ redisio_artifact_type }}"
+            dest: "{{ redisio_download_dir }}/{{ redisio_base_name }}{{ redisio_version }}"
+            remote_src: true
+
+        - name: Build Redis
+          ansible.builtin.command:
+            cmd: make clean && make
+            chdir: "{{ redisio_download_dir }}/{{ redisio_base_name }}{{ redisio_version }}"
+            creates: "{{ redisio_download_dir }}/{{ redisio_base_name }}{{ redisio_version }}/src/redis-server"
+
+        - name: Install Redis  # noqa: R101 - command built from role defaults
+          ansible.builtin.command:
+            cmd: >-
+              {% if redisio_install_dir %}make PREFIX={{ redisio_install_dir }} install{% else %}make install{% endif %}
+            chdir: "{{ redisio_download_dir }}/{{ redisio_base_name }}{{ redisio_version }}"
+            creates: "{{ (redisio_install_dir | default('/usr/local')) }}/bin/redis-server"

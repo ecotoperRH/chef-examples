@@ -1,0 +1,57 @@
+# Limits settings for {{ ulimit_user }}
+{% if filehandle_limit is not none %}
+{{ ulimit_user }} - nofile {{ filehandle_limit }}
+{% else %}
+{% if filehandle_soft_limit is not none %}
+{{ ulimit_user }} soft nofile {{ filehandle_soft_limit }}
+{% endif %}
+{% if filehandle_hard_limit is not none %}
+{{ ulimit_user }} hard nofile {{ filehandle_hard_limit }}
+{% endif %}
+{% endif %}
+{% if process_limit is not none %}
+{{ ulimit_user }} - nproc {{ process_limit }}
+{% else %}
+{% if process_soft_limit is not none %}
+{{ ulimit_user }} soft nproc {{ process_soft_limit }}
+{% endif %}
+{% if process_hard_limit is not none %}
+{{ ulimit_user }} hard nproc {{ process_hard_limit }}
+{% endif %}
+{% endif %}
+{% if memory_limit is not none %}
+{{ ulimit_user }} - memlock {{ memory_limit }}
+{% endif %}
+{% if core_limit is not none %}
+{{ ulimit_user }} - core {{ core_limit }}
+{% else %}
+{% if core_soft_limit is not none %}
+{{ ulimit_user }} soft core {{ core_soft_limit }}
+{% endif %}
+{% if core_hard_limit is not none %}
+{{ ulimit_user }} hard core {{ core_hard_limit }}
+{% endif %}
+{% endif %}
+{% if stack_limit is not none %}
+{{ ulimit_user }} - stack {{ stack_limit }}
+{% else %}
+{% if stack_soft_limit is not none %}
+{{ ulimit_user }} soft stack {{ stack_soft_limit }}
+{% endif %}
+{% if stack_hard_limit is not none %}
+{{ ulimit_user }} hard stack {{ stack_hard_limit }}
+{% endif %}
+{% endif %}
+{% if rtprio_limit is not none %}
+{{ ulimit_user }} - rtprio {{ rtprio_limit }}
+{% else %}
+{% if rtprio_soft_limit is not none %}
+{{ ulimit_user }} soft rtprio {{ rtprio_soft_limit }}
+{% endif %}
+{% if rtprio_hard_limit is not none %}
+{{ ulimit_user }} hard rtprio {{ rtprio_hard_limit }}
+{% endif %}
+{% endif %}
+{% if virt_limit is not none %}
+{{ ulimit_user }} - as {{ virt_limit }}
+{% endif %}

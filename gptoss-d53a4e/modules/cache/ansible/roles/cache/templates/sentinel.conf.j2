@@ -1,0 +1,92 @@
+# Example sentinel.conf
+
+# redisio Cookbook additions
+{% if job_control == 'initd' or job_control == 'rcinit' %}
+daemonize yes
+{% endif %}
+pidfile {{ piddir }}/sentinel_{{ name }}.pid
+loglevel {{ loglevel }}
+syslog-enabled {{ syslogenabled }}
+syslog-ident redis-{{ name }}
+syslog-facility {{ syslogfacility }}
+maxclients {{ maxclients }}
+{% if logfile is defined %}logfile {{ logfile }}{% endif %}
+
+{% if sentinel_bind %}
+bind {{ sentinel_bind }}
+{% endif %}
+
+{% if protected_mode %}
+protected-mode {{ protected_mode }}
+{% endif %}
+
+# port <sentinel-port>
+# The port that this sentinel instance will run on
+port {{ sentinel_port }}
+
+{% if announce_ip %}
+sentinel announce-ip {{ announce_ip }}
+{% endif %}
+{% if announce_port %}
+sentinel announce-port {{ announce_port }}
+{% endif %}
+
+{% for current in masters %}
+{% set calc_name = current.master_name if current.master_name is defined else name if name is defined else 'master_name' %}
+sentinel monitor {{ calc_name }} {{ current.master_ip }} {{ current.master_port }} {{ current.quorum_count }}
+{% endfor %}
+
+{% for current in masters %}
+{% set calc_name = current.master_name if current.master_name is defined else name if name is defined else 'master_name' %}
+{% if current.auth_pass is defined %}sentinel auth-pass {{ calc_name }} {{ current.auth_pass }}{% endif %}
+{% endfor %}
+
+{% if version.major|int >= 6 %}
+# Using an external ACL file
+{% if aclfile %}aclfile {{ aclfile }}{% endif %}
+{% endif %}
+
+{% for current in masters %}
+{% set calc_name = current.master_name if current.master_name is defined else name if name is defined else 'master_name' %}
+{% if current.down_after_milliseconds is defined %}sentinel down-after-milliseconds {{ calc_name }} {{ current.down_after_milliseconds }}{% endif %}
+{% endfor %}
+
+{% for current in masters %}
+{% set calc_name = current.master_name if current.master_name is defined else name if name is defined else 'master_name' %}
+{% if current.parallel_syncs is defined %}sentinel parallel-syncs {{ calc_name }} {{ current.parallel_syncs }}{% endif %}
+{% endfor %}
+
+{% for current in masters %}
+{% set calc_name = current.master_name if current.master_name is defined else name if name is defined else 'master_name' %}
+{% if current.failover_timeout is defined %}sentinel failover-timeout {{ calc_name }} {{ current.failover_timeout }}{% endif %}
+{% endfor %}
+
+{% if notification_script %}sentinel notification-script {{ name }} {{ notification_script }}{% endif %}
+{% if client_reconfig_script %}sentinel client-reconfig-script {{ name }} {{ client_reconfig_script }}{% endif %}
+
+{% if tlsport %}tls-port {{ tlsport }}{% endif %}
+{% if tlscertfile %}tls-cert-file {{ tlscertfile }}{% endif %}
+{% if tlskeyfile %}tls-key-file {{ tlskeyfile }}{% endif %}
+{% if tlskeyfilepass %}tls-key-file-pass {{ tlskeyfilepass }}{% endif %}
+{% if tlsclientcertfile %}tls-client-cert-file {{ tlsclientcertfile }}{% endif %}
+{% if tlsclientkeyfile %}tls-client-key-file {{ tlsclientkeyfile }}{% endif %}
+{% if tlsclientkeyfilepass %}tls-client-key-file-pass {{ tlsclientkeyfilepass }}{% endif %}
+{% if tlsdhparamsfile %}tls-dh-params-file {{ tlsdhparamsfile }}{% endif %}
+{% if tlscacertfile %}tls-ca-cert-file {{ tlscacertfile }}{% endif %}
+{% if tlscacertdir %}tls-ca-cert-dir {{ tlscacertdir }}{% endif %}
+{% if tlsauthclients %}tls-auth-clients {{ tlsauthclients }}{% endif %}
+{% if tlsreplication %}tls-replication {{ tlsreplication }}{% endif %}
+{% if tlscluster %}tls-cluster {{ tlscluster }}{% endif %}
+{% if tlsprotocols %}tls-protocols {{ tlsprotocols }}{% endif %}
+{% if tlsciphers %}tls-ciphers {{ tlsciphers }}{% endif %}
+{% if tlsciphersuites %}tls-ciphersuites {{ tlsciphersuites }}{% endif %}
+{% if tlspreferserverciphers %}tls-prefer-server-ciphers {{ tlspreferserverciphers }}{% endif %}
+{% if tlscaching %}tls-session-caching {{ tlscaching }}{% endif %}
+{% if tlscachesize %}tls-session-cache-size {{ tlscachesize }}{% endif %}
+{% if tlscachetimeout %}tls-session-cache-timeout {{ tlscachetimeout }}{% endif %}
+
+{% if includes %}
+{% for include_option in includes %}
+include {{ include_option }}
+{% endfor %}
+{% endif %}

@@ -1,0 +1,30 @@
+---
+- name: Install Redis prerequisite packages
+  ansible.builtin.package:
+    name:
+      - tar
+    state: present
+
+- name: Ensure redis group exists
+  ansible.builtin.group:
+    name: "{{ redisio_default_settings.group }}"
+    system: true
+    state: present
+
+- name: Ensure redis user exists
+  ansible.builtin.user:
+    name: "{{ redisio_default_settings.user }}"
+    group: "{{ redisio_default_settings.group }}"
+    home: "{{ redisio_default_settings.homedir }}"
+    shell: "{{ redisio_default_settings.shell }}"
+    system: true
+    create_home: false
+    state: present
+
+- name: Ensure Redis configuration directory exists  # noqa: R114 - path from role defaults
+  ansible.builtin.file:
+    path: "{{ redisio_default_settings.configdir }}"
+    state: directory
+    owner: "{{ redisio_default_settings.user }}"
+    group: "{{ redisio_default_settings.group }}"
+    mode: "0755"

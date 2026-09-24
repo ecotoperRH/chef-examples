@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Placeholder — MoleculeAgent generates include_role converge
+      ansible.builtin.debug:
+        msg: "Role cache converge placeholder — will include_role: cache"

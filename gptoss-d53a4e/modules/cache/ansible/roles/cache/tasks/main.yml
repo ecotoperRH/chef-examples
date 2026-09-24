@@ -1,0 +1,24 @@
+---
+- name: Include Memcached tasks
+  ansible.builtin.include_tasks: memcached_default.yml
+
+- name: Include Redis IO tasks
+  ansible.builtin.include_tasks: redisio_default.yml
+
+- name: Include Redis install prereqs
+  ansible.builtin.include_tasks: redis_install_prereqs.yml
+
+- name: Include Redis install
+  ansible.builtin.include_tasks: redis_install.yml
+
+- name: Include Redis ulimit
+  ansible.builtin.include_tasks: redis_ulimit.yml
+
+- name: Include Redis disable OS default
+  ansible.builtin.include_tasks: redis_disable_os_default.yml
+
+- name: Include Redis configure
+  ansible.builtin.include_tasks: redis_configure.yml
+
+- name: Include Redis enable
+  ansible.builtin.include_tasks: redis_enable.yml

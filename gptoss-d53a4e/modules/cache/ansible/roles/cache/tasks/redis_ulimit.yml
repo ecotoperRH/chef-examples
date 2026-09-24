@@ -1,0 +1,28 @@
+---
+- name: Configure ulimit limits for users  # noqa: R114 - dest path from role defaults
+  ansible.builtin.template:
+    src: ulimit.j2
+    dest: "{{ ulimit_security_limits_directory }}/{{ item_user.key }}.conf"
+    mode: "0644"
+    backup: true
+  when: ulimit_users is mapping and ulimit_users | length > 0
+  loop: "{{ ulimit_users | dict2items }}"
+  loop_control:
+    loop_var: item_user
+  vars: "{{ item_user.value | combine({'ulimit_user': item_user.key}) }}"
+
+- name: Deploy PAM su limits template (Debian only)
+  ansible.builtin.template:
+    src: su.j2
+    dest: /etc/pam.d/su
+    mode: "0644"
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Deploy sudo PAM file (Debian only)  # noqa: R114 - src from role defaults
+  ansible.builtin.copy:
+    src: "{{ ulimit_ulimit_overriding_sudo_file_name }}"
+    dest: /etc/pam.d/sudo
+    mode: "0644"
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'

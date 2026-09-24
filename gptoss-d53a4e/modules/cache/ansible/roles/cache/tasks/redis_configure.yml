@@ -1,0 +1,29 @@
+---
+- name: Set Redis instances list
+  ansible.builtin.set_fact:
+    redis_instances: "{{ redisio_servers if redisio_servers is not none else [{'port': '6379'}] }}"
+
+- name: Deploy Redis configuration for each instance  # noqa: R114 - dest path from role defaults
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ redisio_default_settings.configdir }}/{{ (item_redis.name | default(item_redis.port)) }}.conf"
+    mode: "0644"
+    backup: true
+  loop: "{{ redis_instances }}"
+  loop_control:
+    loop_var: item_redis
+  vars:
+    redis_port: "{{ item_redis.port }}"
+    redis_bind: "{{ item_redis.bind | default('0.0.0.0') }}"
+    redis_user: "{{ redisio_default_settings.user }}"
+    redis_group: "{{ redisio_default_settings.group }}"
+    # add other settings as needed
+
+- name: Ensure Redis service is enabled and started for each instance
+  ansible.builtin.service:
+    name: "{{ ('redis@' + (item_redis.name | default(item_redis.port))) if redisio_job_control == 'systemd' else ('redis' + (item_redis.name | default(item_redis.port))) }}"
+    state: started
+    enabled: true
+  loop: "{{ redis_instances }}"
+  loop_control:
+    loop_var: item_redis

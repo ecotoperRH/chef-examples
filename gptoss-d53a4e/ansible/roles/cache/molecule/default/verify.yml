@@ -1,0 +1,63 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert memcached service is active and running
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts.services"
+          - "ansible_facts.services['memcached.service'].state == 'running'"
+        fail_msg: "Memcached service is not running"
+
+    - name: Check memcached port is listening
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        state: started
+        timeout: 5
+
+    - name: Stat important paths
+      ansible.builtin.stat:
+        path: "{{ item_cache }}"  # noqa: R114 - trusted static list of paths
+      loop:
+        - /etc/redis/redis.conf
+        - /var/log/redis
+        - /etc/pam.d/su
+        - /etc/pam.d/sudo
+      loop_control:
+        loop_var: item_cache
+      register: path_stats
+
+    - name: Assert files and directories exist
+      ansible.builtin.assert:
+        that:
+          - "item_cache['stat']['exists']"
+          - "(item_cache['item'] == '/var/log/redis') | ternary(item_cache['stat']['isdir'], true)"
+        fail_msg: "Path is missing or not a directory"
+      loop: "{{ path_stats.results }}"
+      loop_control:
+        loop_var: item_cache
+
+    - name: Set fact if Redis config exists
+      ansible.builtin.set_fact:
+        redis_config_exists: "{{ (path_stats.results | selectattr('item','equalto','/etc/redis/redis.conf') | map(attribute='stat.exists') | list)[0] | default(false) }}"
+
+    - name: Assert Redis service is active when config present
+      ansible.builtin.assert:
+        that:
+          - "'redis.service' in ansible_facts.services"
+          - "ansible_facts.services['redis.service'].state == 'running'"
+        fail_msg: "Redis service is not running"
+      when: redis_config_exists
+
+    - name: Check Redis port is listening when config present
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        state: started
+        timeout: 5
+      when: redis_config_exists

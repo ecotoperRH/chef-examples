@@ -1,0 +1,6 @@
+---
+- name: Provider configure - delegate to redis_configure and redis_enable tasks
+  ansible.builtin.include_tasks: redis_configure.yml
+
+- name: Enable Redis services after configuration
+  ansible.builtin.include_tasks: redis_enable.yml

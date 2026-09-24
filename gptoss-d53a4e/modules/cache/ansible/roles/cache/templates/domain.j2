@@ -1,0 +1,5 @@
+{% for item, entries in ulimit[domain].items() %}
+{% for type, value in entries.items() %}
+{{ domain }} {{ type }} {{ item }} {{ value }}
+{% endfor %}
+{% endfor %}

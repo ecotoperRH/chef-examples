@@ -1,0 +1,7 @@
+---
+argument_specs:
+  main:
+    short_description: Migrated to modern Ansible
+    description:
+      - Role to install and configure cache services (memcached and redis).
+    options: {}
