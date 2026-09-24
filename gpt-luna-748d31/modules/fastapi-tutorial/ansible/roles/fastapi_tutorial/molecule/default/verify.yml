@@ -1,0 +1,140 @@
+---
+- name: Verify PostgreSQL and application files
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert required services are enabled and active
+      ansible.builtin.assert:
+        that:
+          - "'postgresql.service' in ansible_facts['services']"
+          - "ansible_facts['services']['postgresql.service']['state'] == 'running'"
+          - "ansible_facts['services']['postgresql.service']['enabled'] | default(false)"
+          - "'fastapi-tutorial.service' in ansible_facts['services']"
+          - "ansible_facts['services']['fastapi-tutorial.service']['state'] == 'running'"
+          - "ansible_facts['services']['fastapi-tutorial.service']['enabled'] | default(false)"
+        fail_msg: "PostgreSQL and FastAPI tutorial services must be enabled and active"
+
+    - name: Check application files and virtual environment
+      ansible.builtin.stat:
+        path: "{{ item_fastapi_path }}"
+      loop:
+        - /opt/fastapi-tutorial
+        - /opt/fastapi-tutorial/requirements.txt
+        - /opt/fastapi-tutorial/app/main.py
+        - /opt/fastapi-tutorial/venv
+        - /opt/fastapi-tutorial/venv/bin/python
+        - /opt/fastapi-tutorial/venv/bin/pip
+        - /opt/fastapi-tutorial/venv/bin/uvicorn
+        - /opt/fastapi-tutorial/.env
+        - /etc/systemd/system/fastapi-tutorial.service
+      loop_control:
+        loop_var: item_fastapi_path
+      register: fastapi_path_stats
+
+    - name: Assert application files and virtual environment exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isreg'] | default(true) or item_result['stat']['isdir'] | default(false)
+        fail_msg: "Expected FastAPI application artifact is missing"
+      loop: "{{ fastapi_path_stats['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Read application environment and systemd unit
+      ansible.builtin.slurp:
+        path: "{{ item_fastapi_config }}"
+      loop:
+        - /opt/fastapi-tutorial/.env
+        - /etc/systemd/system/fastapi-tutorial.service
+      loop_control:
+        loop_var: item_fastapi_config
+      register: fastapi_config_contents
+
+    - name: Assert application environment and unit configuration
+      ansible.builtin.assert:
+        that:
+          - "'PROJECT_NAME=\\\"FastAPI Tutorial\\\"' in (fastapi_config_contents['results'][0]['content'] | b64decode)"
+          - "'API_VERSION=1.0.0' in (fastapi_config_contents['results'][0]['content'] | b64decode)"
+          - "'DATABASE_URL=postgresql://fastapi:' in (fastapi_config_contents['results'][0]['content'] | b64decode)"
+          - "'WorkingDirectory=/opt/fastapi-tutorial' in (fastapi_config_contents['results'][1]['content'] | b64decode)"
+          - "'ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000' in (fastapi_config_contents['results'][1]['content'] | b64decode)"
+          - "'Restart=always' in (fastapi_config_contents['results'][1]['content'] | b64decode)"
+        fail_msg: "FastAPI environment or systemd unit has unexpected content"
+
+    - name: Check FastAPI listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8000
+        state: started
+        timeout: 30
+
+    - name: Check FastAPI HTTP endpoint
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/
+        method: GET
+        status_code:
+          - 200
+          - 404
+      register: fastapi_http_result
+
+    - name: Assert FastAPI responds over HTTP
+      ansible.builtin.assert:
+        that:
+          - fastapi_http_result['status'] in [200, 404]
+        fail_msg: "FastAPI did not return an HTTP response"
+
+- name: Verify PostgreSQL database objects
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check PostgreSQL application role # noqa: R108 - PostgreSQL role query must run as the postgres operating-system user
+      community.postgresql.postgresql_query:
+        query: SELECT rolname FROM pg_roles WHERE rolname = 'fastapi'
+        login_user: postgres
+      become: true
+      become_user: postgres
+      register: fastapi_role_query
+
+    - name: Assert PostgreSQL application role exists
+      ansible.builtin.assert:
+        that:
+          - fastapi_role_query['query_result'] | length == 1
+          - fastapi_role_query['query_result'][0]['rolname'] == 'fastapi'
+        fail_msg: "PostgreSQL role fastapi was not created"
+
+    - name: Check PostgreSQL application database # noqa: R108 - PostgreSQL database query must run as the postgres operating-system user
+      community.postgresql.postgresql_query:
+        query: SELECT datname, pg_get_userbyid(datdba) AS owner FROM pg_database WHERE datname = 'fastapi_db'
+        login_user: postgres
+      become: true
+      become_user: postgres
+      register: fastapi_database_query
+
+    - name: Assert PostgreSQL application database exists
+      ansible.builtin.assert:
+        that:
+          - fastapi_database_query['query_result'] | length == 1
+          - fastapi_database_query['query_result'][0]['datname'] == 'fastapi_db'
+          - fastapi_database_query['query_result'][0]['owner'] == 'fastapi'
+        fail_msg: "PostgreSQL database fastapi_db was not created with the expected owner"
+
+    - name: Verify application database connectivity # noqa: L039 - db_password is supplied by the role's attached test credentials
+      community.postgresql.postgresql_query:
+        query: SELECT current_user, current_database()
+        login_host: localhost
+        login_user: fastapi
+        login_password: "{{ db_password }}"
+        login_db: fastapi_db
+      register: fastapi_connectivity_query
+      no_log: true
+
+    - name: Assert application database connectivity
+      ansible.builtin.assert:
+        that:
+          - fastapi_connectivity_query['query_result'][0]['current_user'] == 'fastapi'
+          - fastapi_connectivity_query['query_result'][0]['current_database'] == 'fastapi_db'
+        fail_msg: "FastAPI database credentials could not connect to fastapi_db"

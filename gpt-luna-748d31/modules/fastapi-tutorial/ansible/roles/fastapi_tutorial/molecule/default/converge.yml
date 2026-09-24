@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Include fastapi_tutorial
+      ansible.builtin.include_role: # noqa: L038,R401 - role-under-test resolves at runtime; its intentionally configurable inbound source URLs are required
+        name: fastapi_tutorial

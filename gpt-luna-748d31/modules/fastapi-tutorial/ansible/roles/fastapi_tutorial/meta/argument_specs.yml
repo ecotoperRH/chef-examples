@@ -1,0 +1,83 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure the FastAPI tutorial application
+    description:
+      - Deploys the FastAPI tutorial repository, Python environment, PostgreSQL database, and systemd service.
+    options:
+      fastapi_tutorial_app_directory:
+        type: str
+        required: false
+        default: /opt/fastapi-tutorial
+        description: Application checkout directory.
+      fastapi_tutorial_repository:
+        type: str
+        required: false
+        default: https://github.com/dibanez/fastapi_tutorial.git
+        description: Git repository containing the application.
+      fastapi_tutorial_revision:
+        type: str
+        required: false
+        default: main
+        description: Git revision to deploy.
+      fastapi_tutorial_virtualenv:
+        type: str
+        required: false
+        default: /opt/fastapi-tutorial/venv
+        description: Python virtual environment path.
+      fastapi_tutorial_service_name:
+        type: str
+        required: false
+        default: fastapi-tutorial
+        description: Systemd service name.
+      fastapi_tutorial_service_file:
+        type: str
+        required: false
+        default: /etc/systemd/system/fastapi-tutorial.service
+        description: Systemd unit file path.
+      fastapi_tutorial_listen_host:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: Address on which Uvicorn listens.
+      fastapi_tutorial_listen_port:
+        type: int
+        required: false
+        default: 8000
+        description: TCP port on which Uvicorn listens.
+      fastapi_tutorial_project_name:
+        type: str
+        required: false
+        default: FastAPI Tutorial
+        description: Application project name written to the environment file.
+      fastapi_tutorial_api_version:
+        type: str
+        required: false
+        default: 1.0.0
+        description: Application API version written to the environment file.
+      fastapi_tutorial_postgresql_service:
+        type: str
+        required: false
+        default: postgresql
+        description: PostgreSQL service name.
+      fastapi_tutorial_packages:
+        type: dict
+        required: false
+        default:
+          Debian:
+            - python3
+            - python3-pip
+            - python3-venv
+            - git
+            - postgresql
+            - postgresql-contrib
+            - libpq-dev
+          RedHat:
+            - python3
+            - python3-pip
+            - python3-venv
+            - git
+            - postgresql-server
+            - postgresql-contrib
+            - libpq-devel
+        description: Packages grouped by Ansible operating-system family.
