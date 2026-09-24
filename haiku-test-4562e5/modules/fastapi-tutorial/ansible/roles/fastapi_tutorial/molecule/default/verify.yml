@@ -1,0 +1,179 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check application directory exists
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial
+      register: app_dir_stat
+
+    - name: Assert application directory exists
+      ansible.builtin.assert:
+        that:
+          - app_dir_stat['stat']['exists']
+          - app_dir_stat['stat']['isdir']
+        fail_msg: "Application directory /opt/fastapi-tutorial does not exist"
+
+    - name: Check virtual environment exists
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial/venv
+      register: venv_stat
+
+    - name: Assert virtual environment exists
+      ansible.builtin.assert:
+        that:
+          - venv_stat['stat']['exists']
+          - venv_stat['stat']['isdir']
+        fail_msg: "Virtual environment /opt/fastapi-tutorial/venv does not exist"
+
+    - name: Check environment configuration file exists
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial/.env
+      register: env_file_stat
+
+    - name: Assert environment configuration file exists
+      ansible.builtin.assert:
+        that:
+          - env_file_stat['stat']['exists']
+          - env_file_stat['stat']['size'] > 0
+        fail_msg: "Environment configuration file /opt/fastapi-tutorial/.env does not exist or is empty"
+
+    - name: Check systemd service file exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/fastapi-tutorial.service
+      register: service_file_stat
+
+    - name: Assert systemd service file exists
+      ansible.builtin.assert:
+        that:
+          - service_file_stat['stat']['exists']
+          - service_file_stat['stat']['size'] > 0
+        fail_msg: "Systemd service file /etc/systemd/system/fastapi-tutorial.service does not exist or is empty"
+
+    - name: Check requirements.txt exists
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial/requirements.txt
+      register: requirements_stat
+
+    - name: Assert requirements.txt exists
+      ansible.builtin.assert:
+        that:
+          - requirements_stat['stat']['exists']
+          - requirements_stat['stat']['size'] > 0
+        fail_msg: "Requirements file /opt/fastapi-tutorial/requirements.txt does not exist or is empty"
+
+    - name: Get environment configuration content
+      ansible.builtin.slurp:
+        src: /opt/fastapi-tutorial/.env
+      register: env_file_content
+
+    - name: Assert environment configuration contains required variables
+      ansible.builtin.assert:
+        that:
+          - "'PROJECT_NAME' in env_file_decoded"
+          - "'API_VERSION' in env_file_decoded"
+          - "'DATABASE_URL' in env_file_decoded"
+        fail_msg: "Environment configuration missing required variables"
+      vars:
+        env_file_decoded: "{{ env_file_content['content'] | b64decode }}"
+
+    - name: Get systemd service file content
+      ansible.builtin.slurp:
+        src: /etc/systemd/system/fastapi-tutorial.service
+      register: service_file_content
+
+    - name: Assert systemd service file contains required configuration
+      ansible.builtin.assert:
+        that:
+          - "'uvicorn' in service_file_decoded"
+          - "'app.main:app' in service_file_decoded"
+          - "'8000' in service_file_decoded"
+          - "'postgresql.service' in service_file_decoded"
+        fail_msg: "Systemd service file missing required configuration"
+      vars:
+        service_file_decoded: "{{ service_file_content['content'] | b64decode }}"
+
+    - name: Check PostgreSQL service status
+      ansible.builtin.service_facts:
+
+    - name: Assert PostgreSQL service is active
+      ansible.builtin.assert:
+        that:
+          - "'postgresql.service' in ansible_facts.services"
+          - ansible_facts.services['postgresql.service']['state'] == 'running'
+        fail_msg: "PostgreSQL service is not running"
+
+    - name: Check FastAPI service status
+      ansible.builtin.service_facts:
+
+    - name: Assert FastAPI service is active
+      ansible.builtin.assert:
+        that:
+          - "'fastapi-tutorial.service' in ansible_facts.services"
+          - ansible_facts.services['fastapi-tutorial.service']['state'] == 'running'
+        fail_msg: "FastAPI service is not running"
+
+    - name: Check if port 8000 is listening
+      ansible.builtin.wait_for:
+        port: 8000
+        state: started
+        timeout: 10
+      ignore_errors: true
+      register: port_check
+
+    - name: Assert port 8000 is listening
+      ansible.builtin.assert:
+        that:
+          - port_check is not failed
+        fail_msg: "Port 8000 is not listening"
+
+    - name: Check FastAPI application health endpoint
+      ansible.builtin.uri:
+        url: http://localhost:8000/docs
+        method: GET
+        status_code: 200
+      ignore_errors: true
+      register: health_check
+
+    - name: Assert FastAPI application is responding
+      ansible.builtin.assert:
+        that:
+          - health_check is not failed
+        fail_msg: "FastAPI application is not responding on /docs endpoint"
+
+    - name: Check Python virtual environment has uvicorn installed
+      ansible.builtin.command:
+        cmd: /opt/fastapi-tutorial/venv/bin/pip list
+      register: pip_list_output
+      changed_when: false
+
+    - name: Assert uvicorn is installed in virtual environment
+      ansible.builtin.assert:
+        that:
+          - "'uvicorn' in pip_list_output['stdout']"
+        fail_msg: "uvicorn is not installed in the virtual environment"
+
+    - name: Check Python version in virtual environment
+      ansible.builtin.command:
+        cmd: /opt/fastapi-tutorial/venv/bin/python --version
+      register: python_version
+      changed_when: false
+
+    - name: Assert Python 3 is available in virtual environment
+      ansible.builtin.assert:
+        that:
+          - "'Python 3' in python_version['stdout']"
+        fail_msg: "Python 3 is not available in the virtual environment"
+
+    - name: Check git repository configuration
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial/.git
+      register: git_dir_stat
+
+    - name: Assert git repository is properly configured
+      ansible.builtin.assert:
+        that:
+          - git_dir_stat['stat']['exists']
+          - git_dir_stat['stat']['isdir']
+        fail_msg: "Git repository is not properly configured at /opt/fastapi-tutorial"

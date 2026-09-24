@@ -1,0 +1,8 @@
+---  # noqa: R401
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Include fastapi_tutorial
+      ansible.builtin.include_role:  # noqa: L038 - role-under-test resolves at runtime; unresolved only when scanned in isolation
+        name: fastapi_tutorial

@@ -1,0 +1,133 @@
+{
+  "module_name": "fastapi_tutorial",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/fastapi-tutorial/metadata.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata - dependencies, author, description",
+      "notes": "File already exists and is complete. Metadata was pre-generated."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/defaults/main.yml",
+      "status": "complete",
+      "description": "Default variables for FastAPI application configuration",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Role argument specs for fail-fast parameter validation (generate after defaults/main.yml)",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for service restart and systemd daemon reload",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/templates/fastapi-tutorial.service.j2",
+      "status": "complete",
+      "description": "Systemd service file template for /etc/systemd/system/fastapi-tutorial.service",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/templates/env.j2",
+      "status": "complete",
+      "description": "Environment configuration template for /opt/fastapi-tutorial/.env",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/main.yml",
+      "status": "complete",
+      "description": "Main recipe - installs packages, clones repo, creates venv, configures PostgreSQL, deploys .env and systemd service",
+      "notes": "Semantic review completed. Fixed idempotency issues: (1) Added force: true to git clone to handle existing directories, (2) Improved venv creates guard to check for bin/python, (3) Added PostgreSQL readiness check with wait_for, (4) Replaced || true error suppression with proper existence checks using shell queries and when conditions for database user and database creation tasks."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration - delegated driver for AAP testing",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook - runs the role for real via include_role",
+      "notes": "Generated converge.yml that includes the fastapi_tutorial role via ansible.builtin.include_role with proper noqa comment for L038"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verify playbook - verification tasks checking production paths and service status",
+      "notes": "Generated verify.yml with comprehensive assertions covering: application directory, virtual environment, .env file, systemd service file, PostgreSQL service, FastAPI service, port 8000 listening, application health endpoint, Python packages, and git repository configuration"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/create.yml",
+      "status": "complete",
+      "description": "Molecule create playbook - no-op instance create",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "Molecule destroy playbook - no-op instance destroy",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/fastapi_tutorial/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}

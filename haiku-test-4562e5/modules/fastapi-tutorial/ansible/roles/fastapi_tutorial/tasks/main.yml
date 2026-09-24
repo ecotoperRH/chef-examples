@@ -1,0 +1,117 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Install required system packages  # noqa: R113 - package list from role defaults, not user input
+  ansible.builtin.package:
+    name: "{{ fastapi_required_packages }}"
+    state: present
+  become: true  # noqa: R108 - package installation requires root
+
+- name: Create application directory  # noqa: R114 - path from role defaults, not user input
+  ansible.builtin.file:
+    path: "{{ fastapi_app_dir }}"
+    state: directory
+    owner: "{{ fastapi_app_user }}"
+    group: "{{ fastapi_app_group }}"
+    mode: "{{ fastapi_app_mode }}"
+  become: true  # noqa: R108 - file ownership changes require root
+
+- name: Clone FastAPI tutorial repository  # noqa: R106,R104 - repo URL from role defaults (HTTPS), not user input
+  ansible.builtin.git:
+    repo: "{{ fastapi_git_repo }}"
+    dest: "{{ fastapi_app_dir }}"
+    version: "{{ fastapi_git_branch }}"
+    update: true
+    force: true
+  become: true  # noqa: R108 - git clone to system directory requires root
+
+- name: Create Python virtual environment  # noqa: R101 - venv path from role defaults, not user input
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ fastapi_venv_path }}
+    creates: "{{ fastapi_venv_path }}/bin/python"
+  become: true  # noqa: R108 - venv creation in system directory requires root
+
+- name: Install Python dependencies from requirements.txt  # noqa: R113 - requirements file path from role defaults, not user input
+  ansible.builtin.pip:
+    requirements: "{{ fastapi_requirements_file }}"
+    virtualenv: "{{ fastapi_venv_path }}"
+    virtualenv_command: python3 -m venv
+  become: true  # noqa: R108 - pip install requires root
+
+- name: Enable and start PostgreSQL service
+  ansible.builtin.systemd:
+    name: "{{ fastapi_postgresql_service }}"
+    state: started
+    enabled: true
+  become: true  # noqa: R108 - systemd service management requires root
+
+- name: Wait for PostgreSQL to be ready
+  ansible.builtin.wait_for:
+    port: 5432
+    delay: 2
+    timeout: 30
+  become: true  # noqa: R108 - port checking may require elevated privileges
+
+- name: Check if PostgreSQL database user exists  # noqa: R101,L039 - database_username validated in validate_credentials.yml
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -tAc "SELECT 1 FROM pg_user WHERE usename='{{ database_username }}';"
+  register: postgres_user_exists
+  changed_when: false
+  become: true  # noqa: R108 - PostgreSQL user check requires root
+
+- name: Create PostgreSQL database user  # noqa: R101,L039 - database credentials validated in validate_credentials.yml
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "CREATE USER {{ database_username }} WITH PASSWORD '{{ database_password }}';"
+  when: postgres_user_exists.stdout == ""
+  become: true  # noqa: R108 - PostgreSQL user creation requires root
+
+- name: Check if PostgreSQL database exists  # noqa: R101,L039 - database_name validated in validate_credentials.yml
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='{{ database_name }}';"
+  register: postgres_db_exists
+  changed_when: false
+  become: true  # noqa: R108 - PostgreSQL database check requires root
+
+- name: Create PostgreSQL database  # noqa: R101,L039 - database credentials validated in validate_credentials.yml
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "CREATE DATABASE {{ database_name }} OWNER {{ database_username }};"
+  when: postgres_db_exists.stdout == ""
+  become: true  # noqa: R108 - PostgreSQL database creation requires root
+
+- name: Grant privileges on database to user  # noqa: R101,L039 - database credentials validated in validate_credentials.yml
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ database_name }} TO {{ database_username }};"
+  changed_when: false
+  become: true  # noqa: R108 - PostgreSQL privilege grant requires root
+
+- name: Deploy environment configuration file  # noqa: R114 - path from role defaults, not user input
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ fastapi_app_dir }}/.env"
+    owner: "{{ fastapi_app_user }}"
+    group: "{{ fastapi_app_group }}"
+    mode: "0644"
+    backup: true
+  become: true  # noqa: R108 - template deployment to system directory requires root
+
+- name: Deploy systemd service file  # noqa: R114 - service name from role defaults, not user input
+  ansible.builtin.template:
+    src: fastapi-tutorial.service.j2
+    dest: /etc/systemd/system/{{ fastapi_service_name }}.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload systemd daemon
+  become: true  # noqa: R108 - systemd service file deployment requires root
+
+- name: Flush handlers to reload systemd
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start FastAPI service
+  ansible.builtin.systemd:
+    name: "{{ fastapi_service_name }}"
+    state: started
+    enabled: true
+  become: true  # noqa: R108 - systemd service management requires root

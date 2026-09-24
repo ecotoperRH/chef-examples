@@ -1,0 +1,33 @@
+---
+# FastAPI Tutorial Application Configuration
+# Application directory and paths
+fastapi_app_dir: /opt/fastapi-tutorial
+fastapi_app_user: root
+fastapi_app_group: root
+fastapi_app_mode: "0755"
+# Application configuration
+fastapi_project_name: FastAPI Tutorial
+fastapi_api_version: 1.0.0
+fastapi_port: 8000
+# Git repository configuration
+fastapi_git_repo: https://github.com/dibanez/fastapi_tutorial.git
+fastapi_git_branch: main
+# Python virtual environment
+fastapi_venv_path: "{{ fastapi_app_dir }}/venv"
+fastapi_requirements_file: "{{ fastapi_app_dir }}/requirements.txt"
+# PostgreSQL configuration
+fastapi_postgresql_service: postgresql
+fastapi_postgresql_enabled: true
+# System packages required
+fastapi_required_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - git
+  - postgresql
+  - postgresql-contrib
+  - libpq-dev
+# Service configuration
+fastapi_service_name: fastapi-tutorial
+fastapi_service_enabled: true
+fastapi_service_started: true
