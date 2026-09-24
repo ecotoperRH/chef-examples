@@ -1,0 +1,167 @@
+---
+- name: Verify cache services and Redis configuration
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert Memcached is running and enabled
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts['services']"
+          - "ansible_facts['services']['memcached.service']['state'] == 'running'"
+          - "ansible_facts['services']['memcached.service']['status'] == 'enabled'"
+        fail_msg: "Memcached service is not running and enabled"
+
+    - name: Assert Redis instance is running and enabled
+      ansible.builtin.assert:
+        that:
+          - "'redis@6379.service' in ansible_facts['services']"
+          - "ansible_facts['services']['redis@6379.service']['state'] == 'running'"
+          - "ansible_facts['services']['redis@6379.service']['status'] == 'enabled'"
+        fail_msg: "Redis instance 6379 is not running and enabled"
+      when: ansible_facts['service_mgr'] == 'systemd'
+
+    - name: Wait for Memcached TCP endpoint
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        state: started
+        timeout: 10
+
+    - name: Check Memcached UDP endpoint
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -lun
+      register: memcached_udp_socket
+      changed_when: false
+
+    - name: Assert Memcached UDP endpoint is listening
+      ansible.builtin.assert:
+        that:
+          - "memcached_udp_socket['rc'] == 0"
+          - "memcached_udp_socket['stdout'] is search('(?:0\\.0\\.0\\.0|\\[::\\]):11211\\b')"
+        fail_msg: "Memcached UDP endpoint is not listening on port 11211"
+
+    - name: Wait for Redis TCP endpoint
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        state: started
+        timeout: 10
+
+    - name: Check Redis configuration and breadcrumb files
+      ansible.builtin.stat:
+        path: "{{ item_redis_file }}"  # noqa: R114 - fixed verification paths defined by the migration plan
+      loop:
+        - /etc/redis/6379.conf
+        - /etc/redis/6379.conf.breadcrumb
+      loop_control:
+        loop_var: item_redis_file
+      register: redis_file_stat_results
+
+    - name: Assert Redis configuration files exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isreg']
+          - item_result['stat']['size'] > 0
+        fail_msg: "Expected Redis configuration file is missing or empty"
+      loop: "{{ redis_file_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Read Redis configuration
+      ansible.builtin.slurp:
+        src: /etc/redis/6379.conf
+      register: redis_config_content
+
+    - name: Read Redis breadcrumb
+      ansible.builtin.slurp:
+        src: /etc/redis/6379.conf.breadcrumb
+      register: redis_breadcrumb_content
+
+    - name: Assert Redis configuration contents
+      ansible.builtin.assert:
+        that:
+          - "(redis_config_content['content'] | b64decode) is search('(?m)^\\s*port\\s+6379\\s*$')"
+          - "(redis_config_content['content'] | b64decode) is search('(?m)^\\s*requirepass\\s+\\S+')"
+          - "(redis_config_content['content'] | b64decode) is not search('(?m)^\\s*(replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority)')"
+        fail_msg: "Redis configuration does not contain the expected settings"
+
+    - name: Assert Redis breadcrumb contents
+      ansible.builtin.assert:
+        that:
+          - "(redis_breadcrumb_content['content'] | b64decode) is search('This file prevents the chef cookbook from overwritting the redis config more than once')"
+        fail_msg: "Redis configuration breadcrumb is incorrect"
+
+    - name: Check Redis runtime directories
+      ansible.builtin.stat:
+        path: "{{ item_redis_dir }}"  # noqa: R114 - fixed verification paths defined by the migration plan
+      loop:
+        - /etc/redis
+        - /var/lib/redis
+        - /var/run/redis/6379
+        - /var/log/redis
+      loop_control:
+        loop_var: item_redis_dir
+      register: redis_dir_stat_results
+
+    - name: Assert Redis runtime directories exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isdir']
+        fail_msg: "Expected Redis runtime directory is missing"
+      loop: "{{ redis_dir_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+- name: Verify Redis authentication and systemd artifacts
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Authenticate to Redis  # noqa: L039 - redis_password is supplied by the AAP credential validated by the role
+      ansible.builtin.command:  # noqa: R101 - redis-cli arguments use the credential supplied by the AAP job
+        argv:
+          - redis-cli
+          - -p
+          - "6379"
+          - -a
+          - "{{ redis_password }}"
+          - PING
+      register: redis_ping_result
+      changed_when: false
+      no_log: true
+
+    - name: Assert Redis authentication succeeds
+      ansible.builtin.assert:
+        that:
+          - redis_ping_result['rc'] == 0
+          - "redis_ping_result['stdout'] | trim == 'PONG'"
+        fail_msg: "Redis authentication or PING failed"
+
+    - name: Check systemd Redis artifacts
+      ansible.builtin.stat:
+        path: "{{ item_systemd_file }}"  # noqa: R114 - fixed verification paths defined by the migration plan
+      loop:
+        - /lib/systemd/system/redis@6379.service
+        - /etc/tmpfiles.d/redis@6379.conf
+      loop_control:
+        loop_var: item_systemd_file
+      register: systemd_file_stat_results
+      when: ansible_facts['service_mgr'] == 'systemd'
+
+    - name: Assert systemd Redis artifacts exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isreg']
+          - item_result['stat']['size'] > 0
+        fail_msg: "Expected Redis systemd artifact is missing or empty"
+      loop: "{{ systemd_file_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+      when: ansible_facts['service_mgr'] == 'systemd'

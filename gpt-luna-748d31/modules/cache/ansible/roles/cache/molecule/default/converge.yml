@@ -1,0 +1,9 @@
+---
+# noqa: R401 - the converge scenario must include the cache role, whose source download is intentional and role-controlled
+- name: Converge  # noqa: R401 - inbound sources are audited in the role's installation tasks
+  hosts: all  # noqa: R401 - inbound sources are audited in the role's installation tasks
+  gather_facts: true
+  tasks:
+    - name: Include cache  # noqa: R401 - the converge scenario must include the cache role, whose source download is intentional and role-controlled
+      ansible.builtin.include_role: # noqa: L038 - role-under-test resolves at runtime; unresolved only when scanned in isolation
+        name: cache

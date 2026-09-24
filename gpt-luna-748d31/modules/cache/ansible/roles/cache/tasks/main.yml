@@ -1,0 +1,49 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Install and configure Memcached
+  ansible.builtin.include_tasks: memcached.yml
+
+- name: Configure Redis defaults
+  ansible.builtin.include_tasks: redis_default.yml
+
+- name: Install Redis
+  ansible.builtin.include_tasks: redis_install.yml
+  when: not redis_bypass_setup | bool
+
+- name: Disable distribution Redis service
+  ansible.builtin.include_tasks: redis_disable_os_default.yml
+  when: not redis_bypass_setup | bool
+
+- name: Configure Redis ulimits
+  ansible.builtin.include_tasks: redis_ulimit.yml
+  when: not redis_bypass_setup | bool
+
+- name: Configure Redis
+  ansible.builtin.include_tasks: redis_configure.yml
+  when: not redis_bypass_setup | bool
+
+- name: Enable Redis
+  ansible.builtin.include_tasks: redis_enable.yml
+  when: not redis_bypass_setup | bool
+
+- name: Ensure Redis log directory exists
+  ansible.builtin.file:
+    path: /var/log/redis
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+    recurse: true
+  when: not redis_bypass_setup | bool
+
+- name: Remove obsolete Redis replication directives
+  ansible.builtin.replace:
+    path: "{{ redis_config_dir }}/6379.conf" # noqa: R114 - path is a role-defined configuration path
+    regexp: ^((replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority).*)$
+    replace: ""
+  when:
+    - not redis_bypass_setup | bool
+    - ansible_facts['os_family'] in ['Debian', 'RedHat']
+  notify: Restart Redis

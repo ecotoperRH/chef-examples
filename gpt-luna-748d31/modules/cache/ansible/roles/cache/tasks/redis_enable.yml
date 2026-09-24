@@ -1,0 +1,6 @@
+---
+- name: Enable and start Redis instance
+  ansible.builtin.service:
+    name: "{{ 'redis@6379' if redis_job_control == 'systemd' else 'redis6379' }}"
+    state: started
+    enabled: true

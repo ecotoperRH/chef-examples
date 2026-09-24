@@ -1,0 +1,197 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure Memcached and Redis cache services
+    description:
+      - Installs and configures Memcached and an authenticated Redis instance.
+      - The Redis password is injected by an AAP credential variable.
+    options:
+      redis_password:
+        type: str
+        required: true
+        description: Redis authentication password injected by the AAP credential type.
+      memcached_memory:
+        type: int
+        default: 64
+        description: Memcached memory allocation in megabytes.
+      memcached_port:
+        type: int
+        default: 11211
+        description: Memcached TCP port.
+      memcached_udp_port:
+        type: int
+        default: 11211
+        description: Memcached UDP port.
+      memcached_listen:
+        type: str
+        default: 0.0.0.0
+        description: Memcached listen address.
+      memcached_maxconn:
+        type: int
+        default: 1024
+        description: Maximum Memcached connections.
+      memcached_service_user:
+        type: str
+        default: memcache
+        description: Memcached service account.
+      memcached_max_object_size:
+        type: str
+        default: 1m
+        description: Maximum Memcached object size.
+      memcached_threads:
+        type: int
+        default: 4
+        description: Number of Memcached worker threads.
+      memcached_ulimit:
+        type: int
+        default: 1024
+        description: Memcached file descriptor limit.
+      memcached_version:
+        type: str
+        required: false
+        description: Optional Memcached version.
+      redis_package_install:
+        type: bool
+        default: false
+        description: Install Redis from the operating system package.
+      redis_package_name:
+        type: str
+        description: Redis package name.
+      redis_package_version:
+        type: str
+        required: false
+        description: Optional Redis package version.
+      redis_bypass_setup:
+        type: bool
+        default: false
+        description: Skip Redis installation and configuration.
+      redis_version:
+        type: str
+        default: 3.2.11
+        description: Redis source version.
+      redis_mirror:
+        type: str
+        default: http://download.redis.io/releases/
+        description: Redis source archive mirror.
+      redis_base_name:
+        type: str
+        default: redis-
+        description: Redis source archive base name.
+      redis_artifact_type:
+        type: str
+        default: tar.gz
+        description: Redis source archive type.
+      redis_safe_install:
+        type: bool
+        default: true
+        description: Whether safe source installation is enabled.
+      redis_install_dir:
+        type: str
+        required: false
+        description: Optional custom Redis installation prefix.
+      redis_config_dir:
+        type: str
+        default: /etc/redis
+        description: Redis configuration directory.
+      redis_data_dir:
+        type: str
+        default: /var/lib/redis
+        description: Redis data directory.
+      redis_pid_dir:
+        type: str
+        default: /var/run/redis/6379
+        description: Redis PID directory.
+      redis_bin_path:
+        type: str
+        default: /usr/local/bin
+        description: Redis binary directory.
+      redis_user:
+        type: str
+        default: redis
+        description: Redis service user.
+      redis_group:
+        type: str
+        default: redis
+        description: Redis service group.
+      redis_shell:
+        type: str
+        description: Redis service account shell.
+      redis_job_control:
+        type: str
+        default: systemd
+        description: Redis service manager.
+      redis_port:
+        type: int
+        default: 6379
+        description: Redis TCP port.
+      redis_databases:
+        type: int
+        default: 16
+        description: Number of Redis databases.
+      redis_maxclients:
+        type: int
+        default: 10000
+        description: Maximum Redis clients.
+      redis_loglevel:
+        type: str
+        default: notice
+        description: Redis log level.
+      redis_syslog_enabled:
+        type: str
+        default: "yes"
+        description: Whether Redis syslog logging is enabled.
+      redis_syslog_facility:
+        type: str
+        default: local0
+        description: Redis syslog facility.
+      redis_requirepass:
+        type: str
+        description: Redis authentication password setting.
+      redis_masterauth:
+        type: str
+        required: false
+        description: Redis replication authentication password.
+      redis_replicaof:
+        type: str
+        required: false
+        description: Redis replica source.
+      redis_aclfile:
+        type: str
+        required: false
+        description: Redis ACL file.
+      redis_breadcrumb:
+        type: bool
+        default: true
+        description: Create the Redis configuration breadcrumb.
+      redis_ulimit:
+        type: int
+        default: 10032
+        description: Redis file descriptor limit.
+      redis_pam_su_template:
+        type: str
+        required: false
+        description: Optional PAM su template.
+      redis_pam_sudo_source:
+        type: str
+        required: false
+        description: Optional PAM sudo source file.
+      redis_pam_sudo_cookbook:
+        type: str
+        required: false
+        description: Optional PAM sudo cookbook source.
+      redis_ulimit_users:
+        type: dict
+        default: {}
+        description: Additional Redis ulimit users.
+      redis_download_dir:
+        type: str
+        default: /var/cache/redis
+        description: Redis source download and build directory.
+      redis_init_required_start:
+        type: list
+        default: []
+        description: Services required before Redis starts.
+      redis_init_required_stop:
+        type: list
+        default: []
+        description: Services required after Redis stops.

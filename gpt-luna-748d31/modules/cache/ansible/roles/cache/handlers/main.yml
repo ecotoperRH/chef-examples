@@ -1,0 +1,14 @@
+---
+- name: Restart Memcached
+  ansible.builtin.service:
+    name: memcached
+    state: restarted
+
+- name: Restart Redis
+  ansible.builtin.service:
+    name: "{{ 'redis@6379' if redis_job_control == 'systemd' else 'redis6379' }}"
+    state: restarted
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true

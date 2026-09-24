@@ -1,0 +1,48 @@
+---
+memcached_memory: 64
+memcached_port: 11211
+memcached_udp_port: 11211
+memcached_listen: 0.0.0.0
+memcached_maxconn: 1024
+memcached_service_user: memcache
+memcached_max_object_size: 1m
+memcached_threads: 4
+memcached_ulimit: 1024
+memcached_version:
+redis_package_install: false
+redis_package_name: "{{ 'redis-server' if ansible_os_family == 'Debian' else 'redis' }}"
+redis_package_version:
+redis_bypass_setup: false
+redis_version: 3.2.11
+redis_mirror: http://download.redis.io/releases/
+redis_base_name: redis-
+redis_artifact_type: tar.gz
+redis_safe_install: true
+redis_install_dir:
+redis_config_dir: /etc/redis
+redis_data_dir: /var/lib/redis
+redis_pid_dir: /var/run/redis/6379
+redis_bin_path: /usr/local/bin
+redis_user: redis
+redis_group: redis
+redis_shell: "{{ '/bin/false' if ansible_os_family == 'Debian' else '/bin/sh' }}"
+redis_job_control: systemd
+redis_port: 6379
+redis_databases: 16
+redis_maxclients: 10000
+redis_loglevel: notice
+redis_syslog_enabled: "yes"
+redis_syslog_facility: local0
+redis_requirepass: "{{ redis_password }}"
+redis_masterauth:
+redis_replicaof:
+redis_aclfile:
+redis_breadcrumb: true
+redis_ulimit: 10032
+redis_pam_su_template:
+redis_pam_sudo_source:
+redis_pam_sudo_cookbook:
+redis_ulimit_users: {}
+redis_download_dir: /var/cache/redis
+redis_init_required_start: []
+redis_init_required_stop: []

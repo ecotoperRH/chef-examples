@@ -1,0 +1,14 @@
+[Unit]
+Description=Redis instance %i
+After=network.target
+
+[Service]
+Type=simple
+User={{ redis_user }}
+Group={{ redis_group }}
+ExecStart={{ redis_bin_path }}/redis-server {{ redis_config_dir }}/%i.conf
+LimitNOFILE={{ redis_ulimit }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

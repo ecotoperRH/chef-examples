@@ -1,0 +1,7 @@
+---
+- name: Stop and disable distribution Redis service
+  ansible.builtin.service:
+    name: "{{ 'redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis' }}"
+    state: stopped
+    enabled: false
+  when: ansible_facts['os_family'] in ['Debian', 'RedHat', 'Fedora']

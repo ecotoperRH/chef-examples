@@ -1,0 +1,18 @@
+---
+- name: Update package metadata
+  ansible.builtin.package:
+    name: tar
+    state: present
+
+- name: Include Redis installation prerequisites
+  ansible.builtin.include_tasks: redis_install_prereqs.yml
+  when: not redis_package_install | bool
+
+- name: Install Redis build dependencies
+  ansible.builtin.package:
+    name:
+      - gcc
+      - make
+      - "{{ 'libc6-dev' if ansible_facts['os_family'] == 'Debian' else 'glibc-devel' }}"
+    state: present
+  when: not redis_package_install | bool

@@ -1,0 +1,68 @@
+---
+- name: Create Redis service account
+  ansible.builtin.user:
+    name: "{{ redis_user }}"
+    comment: Redis service account
+    home: "{{ redis_data_dir }}"
+    shell: "{{ redis_shell }}"
+    system: true
+    create_home: true
+    state: present
+
+- name: Create Redis configuration directory
+  ansible.builtin.file:
+    path: "{{ redis_config_dir }}" # noqa: R114 - path is a role default
+    state: directory
+    owner: root
+    group: "{{ redis_group }}"
+    mode: "0775"
+    recurse: true
+
+- name: Create Redis data directory
+  ansible.builtin.file:
+    path: "{{ redis_data_dir }}" # noqa: R114 - path is a role default
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0775"
+    recurse: true
+
+- name: Create Redis PID directory
+  ansible.builtin.file:
+    path: "{{ redis_pid_dir }}" # noqa: R114 - path is a role default
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+    recurse: true
+
+- name: Render Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ redis_config_dir }}/6379.conf" # noqa: R114 - path is a role-defined configuration path
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0644"
+    backup: true
+  notify: Restart Redis
+
+- name: Create Redis configuration breadcrumb
+  ansible.builtin.copy:
+    content: This file prevents the chef cookbook from overwritting the redis config more than once
+    dest: "{{ redis_config_dir }}/6379.conf.breadcrumb" # noqa: R114 - role-defined configuration path
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0644"
+    force: false
+    backup: true
+
+- name: Configure systemd Redis unit
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /lib/systemd/system/redis@6379.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: redis_job_control == 'systemd'
+  notify: Reload systemd

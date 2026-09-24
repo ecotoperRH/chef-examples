@@ -1,0 +1,197 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "attributes",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/attributes/default.rb",
+      "target_path": "ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Memcached defaults and service configuration variables.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Orchestrate Memcached and Redis, create the Redis log directory, and remove replication directives after configuration.",
+      "notes": ""
+    },
+    {
+      "category": "attributes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/attributes/default.rb",
+      "target_path": "ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Redisio defaults, installation, service, and instance variables.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/memcached.yml",
+      "status": "complete",
+      "description": "Install, configure, start, and enable the Memcached instance on TCP and UDP port 11211.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_default.yml",
+      "status": "complete",
+      "description": "Redisio prerequisite, installation, OS-default disablement, and configuration orchestration.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/_install_prereqs.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_install_prereqs.yml",
+      "status": "complete",
+      "description": "Install tar and source-build prerequisites on supported platforms.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/disable_os_default.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_disable_os_default.yml",
+      "status": "complete",
+      "description": "Stop and disable the distribution-provided Redis service before managing instance 6379.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/install.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_install.yml",
+      "status": "complete",
+      "description": "Install Redis from packages or compile Redis 3.2.11 from source according to configuration.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/ulimit.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_ulimit.yml",
+      "status": "complete",
+      "description": "Configure Debian PAM artifacts and Redis/user descriptor limits.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/configure.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_configure.yml",
+      "status": "complete",
+      "description": "Create Redis users/directories, render instance configuration and service artifacts, and manage Redis 6379.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/enable.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_enable.yml",
+      "status": "complete",
+      "description": "Start and enable the Redis 6379 service.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata for the cache role and its supported platforms/services.",
+      "notes": "Created standard meta/main.yml"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Role handlers for restarting/reloading Memcached and Redis when managed configuration changes.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/attributes/default.rb",
+      "target_path": "ansible/roles/cache/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Role argument specifications; generate after defaults/main.yml so all cache inputs are validated.",
+      "notes": ""
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "AAP delegated-driver Molecule scenario configuration.",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook that includes the cache role for real.",
+      "notes": "Generated minimal converge play using include_role for cache."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verification of Memcached and Redis services, ports, authentication, configuration, ownership, and runtime artifacts.",
+      "notes": "Generated verification for Memcached, Redis services/endpoints, Redis files, configuration, directories, authentication, and systemd artifacts."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/create.yml",
+      "status": "complete",
+      "description": "No-op Molecule instance creation for delegated execution.",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "No-op Molecule instance destruction for delegated execution.",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/providers/configure.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_configure_provider.yml",
+      "status": "complete",
+      "description": "Translate the Redis configuration provider behavior, including users, directories, configuration breadcrumb, service-manager artifacts, and service resource handling.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/providers/install.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_install_provider.yml",
+      "status": "complete",
+      "description": "Translate the Redis installation provider behavior for package and source installation paths.",
+      "notes": ""
+    }
+  ]
+}

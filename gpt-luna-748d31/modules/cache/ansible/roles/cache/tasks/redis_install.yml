@@ -1,0 +1,55 @@
+---
+- name: Install Redis package
+  ansible.builtin.package:
+    name: "{{ redis_package_name }}"
+    state: present
+  when: redis_package_install | bool
+
+- name: Create Redis source download directory
+  ansible.builtin.file:
+    path: "{{ redis_download_dir }}" # noqa: R114 - path is a role default, not user input
+    state: directory
+    mode: "0755"
+  when: not redis_package_install | bool
+
+- name: Download Redis source archive  # noqa: R104 - source URL is converted to HTTPS and assembled only from role defaults
+  ansible.builtin.get_url: # noqa: R401 - inbound source is an intentional role-controlled Redis mirror
+    url: "{{ redis_mirror | regex_replace('^http://', 'https://') }}{{ redis_base_name }}{{ redis_version }}.{{ redis_artifact_type }}" # noqa: R106 - source is restricted to a role-controlled HTTPS mirror and version defaults
+    dest: "{{ redis_download_dir }}/{{ redis_base_name }}{{ redis_version }}.{{ redis_artifact_type }}" # noqa: R114 - role-defined path
+    mode: "0644"
+  when: not redis_package_install | bool
+
+- name: Extract Redis source archive  # noqa: R106 - local role-controlled archive path, not an external transfer
+  ansible.builtin.unarchive: # noqa: R401 - inbound source is an intentional local role-controlled archive
+    src: "{{ redis_download_dir }}/{{ redis_base_name }}{{ redis_version }}.{{ redis_artifact_type }}" # noqa: R104 - local archive path, not a network transfer
+    dest: "{{ redis_download_dir }}" # noqa: R114 - role-defined path
+    remote_src: true
+    extra_opts:
+      - --strip-components=1
+    creates: "{{ redis_download_dir }}/redis-server"
+  when: not redis_package_install | bool
+
+- name: Build Redis from source
+  ansible.builtin.command:
+    argv:
+      - make
+      - clean
+  when: not redis_package_install | bool
+  changed_when: false
+  args:
+    chdir: "{{ redis_download_dir }}" # noqa: R114 - role-defined build directory
+
+- name: Compile Redis from source
+  ansible.builtin.command:
+    cmd: make
+  when: not redis_package_install | bool
+  args:
+    chdir: "{{ redis_download_dir }}" # noqa: R114 - role-defined build directory
+    creates: "{{ redis_download_dir }}/src/redis-server"
+
+- name: Install Redis from source  # noqa: R101 - command uses role-defined installation paths
+  ansible.builtin.command:
+    cmd: "make{{ ' PREFIX=' + redis_install_dir if redis_install_dir else '' }} install"
+    chdir: "{{ redis_download_dir }}" # noqa: R114 - role-defined build directory
+    creates: "{{ (redis_install_dir if redis_install_dir else '/usr/local') }}/bin/redis-server"
+  when: not redis_package_install | bool

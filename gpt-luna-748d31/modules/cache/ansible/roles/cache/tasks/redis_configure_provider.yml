@@ -1,0 +1,6 @@
+---
+- name: Configure Redis instance directories and service
+  ansible.builtin.include_tasks: redis_configure.yml
+
+- name: Apply Redis descriptor limit
+  ansible.builtin.include_tasks: redis_ulimit.yml
