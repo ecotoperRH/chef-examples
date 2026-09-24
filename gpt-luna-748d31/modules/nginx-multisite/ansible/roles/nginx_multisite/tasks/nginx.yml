@@ -1,0 +1,59 @@
+---
+- name: Install nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+
+- name: Ensure nginx web group exists
+  ansible.builtin.group:
+    name: www-data
+    system: true
+    state: present
+
+- name: Ensure nginx web user exists
+  ansible.builtin.user:
+    name: www-data
+    group: www-data
+    system: true
+    create_home: false
+    state: present
+
+- name: Deploy nginx global configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+
+- name: Deploy nginx security configuration
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+
+- name: Create site document roots
+  ansible.builtin.file:
+    path: "{{ item_nginx['value']['document_root'] }}" # noqa: R114 - path from role-defined sites dictionary
+    owner: www-data
+    group: www-data
+    mode: "0755"
+    state: directory
+    recurse: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx
+
+- name: Deploy site index files
+  ansible.builtin.copy:
+    src: "{{ item_index['key'].split('.')[0] }}/index.html"
+    dest: "{{ item_index['value']['document_root'] }}/index.html" # noqa: R114 - destination is under role-defined document root
+    owner: www-data
+    group: www-data
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_index

@@ -1,0 +1,165 @@
+{
+  "module_name": "nginx_multisite",
+  "items": [
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/default.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/default.yml",
+      "status": "complete",
+      "description": "Migrate the default entry recipe and preserve security, nginx, SSL, and site task ordering.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/nginx.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/nginx.yml",
+      "status": "complete",
+      "description": "Migrate Nginx installation, global configuration, service management, document roots, and site content deployment.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/security.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/security.yml",
+      "status": "complete",
+      "description": "Migrate Fail2ban, UFW, sysctl, and SSH hardening configuration.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/ssl.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/ssl.yml",
+      "status": "complete",
+      "description": "Migrate OpenSSL packages, SSL group and directory setup, and conditional certificate generation.",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/security.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/security.conf.j2",
+      "status": "complete",
+      "description": "Convert the Nginx security configuration template.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/sites.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/sites.yml",
+      "status": "complete",
+      "description": "Migrate per-site virtual host rendering, enabled-site links, and removal of the default site.",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/fail2ban.jail.local.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/fail2ban.jail.local.j2",
+      "status": "complete",
+      "description": "Convert the Fail2ban jail configuration template.",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/nginx.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/nginx.conf.j2",
+      "status": "complete",
+      "description": "Convert the global Nginx configuration template.",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/site.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/site.conf.j2",
+      "status": "complete",
+      "description": "Convert the per-site virtual host template for test, CI, and status sites.",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/nginx-multisite/templates/default/sysctl-security.conf.erb",
+      "target_path": "ansible/roles/nginx_multisite/templates/sysctl-security.conf.j2",
+      "status": "complete",
+      "description": "Convert the kernel security sysctl template.",
+      "notes": ""
+    },
+    {
+      "category": "attributes",
+      "source_path": "cookbooks/nginx-multisite/attributes/default.rb",
+      "target_path": "ansible/roles/nginx_multisite/defaults/main.yml",
+      "status": "complete",
+      "description": "Convert Chef attributes into role defaults, including site definitions, SSL settings, and security parameters.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/tasks/main.yml",
+      "status": "complete",
+      "description": "Create the role entry point that invokes the migrated task files in the original execution order.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/handlers/main.yml",
+      "status": "complete",
+      "description": "Create handlers for any validated service reload or restart notifications used by the role.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/meta/main.yml",
+      "status": "complete",
+      "description": "Create role metadata for nginx_multisite.",
+      "notes": "Created standard meta/main.yml"
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/nginx-multisite/attributes/default.rb",
+      "target_path": "ansible/roles/nginx_multisite/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Define argument specifications for role inputs after defaults/main.yml is written.",
+      "notes": ""
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration using the delegated driver and local connection for AAP testing.",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verification tasks for production paths, services, configuration, sites, certificates, and security settings.",
+      "notes": "Verifies packages, services, production paths, rendered configs, SSH hardening, UFW, and HTTP listener."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "No-op Molecule instance destruction configuration.",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/create.yml",
+      "status": "complete",
+      "description": "No-op Molecule instance creation configuration.",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook that runs the nginx_multisite role via ansible.builtin.include_role.",
+      "notes": "Includes nginx_multisite via ansible.builtin.include_role for real execution."
+    }
+  ]
+}
