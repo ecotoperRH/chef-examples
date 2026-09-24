@@ -1,0 +1,9 @@
+---
+- name: Install prerequisite packages for Redis compilation
+  ansible.builtin.package:
+    name:
+      - tar
+      - gcc
+      - make
+      - libc6-dev
+    state: present

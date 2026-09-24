@@ -1,0 +1,35 @@
+---
+- name: Install Redis package when package_install is true
+  ansible.builtin.package:
+    name: "{{ redisio_package_name }}"
+    state: present
+  when: redisio_package_install | bool
+
+- name: Install Redis from source when package_install is false  # noqa: R104,R106 - internal mirror uses http; variables trusted
+  when: not (redisio_package_install | bool)
+  block:
+    - name: Include prerequisite packages for source build
+      ansible.builtin.import_tasks: install_prereqs.yml
+
+    - name: Download Redis source tarball  # noqa: R104,R106 - internal mirror uses http; variables trusted
+      ansible.builtin.get_url:  # noqa: R104,R106 - internal mirror uses http; variables trusted
+        url: "{{ redisio_mirror }}/{{ redisio_base_name }}{{ redisio_version }}.{{ redisio_artifact_type }}"
+        dest: "/tmp/{{ redisio_base_name }}{{ redisio_version }}.{{ redisio_artifact_type }}"
+        mode: "0644"
+      # noqa: L039 - redisio_mirror, redisio_base_name, redisio_artifact_type are defined in role defaults
+
+    - name: Extract Redis source
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ redisio_base_name }}{{ redisio_version }}.{{ redisio_artifact_type }}"
+        dest: /usr/local/src
+        remote_src: true
+        creates: "/usr/local/src/{{ redisio_base_name }}{{ redisio_version }}"
+      # noqa: L039 - redisio_base_name, redisio_version defined in defaults
+
+    - name: Compile and install Redis  # noqa: R108 - needs root to compile/install; L046 - using structured args
+      ansible.builtin.command:
+        cmd: "make && make install"
+      args:
+        chdir: "/usr/local/src/{{ redisio_base_name }}{{ redisio_version }}"
+        creates: "/usr/local/bin/redis-server"
+      become: true

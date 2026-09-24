@@ -1,0 +1,43 @@
+---
+argument_specs:
+  main:
+    short_description: Cache role for Redis and Memcached services
+    description:
+      - Installs and configures Redis and Memcached instances based on attributes.
+      - Handles package installation, service management, configuration templates, and ulimit settings.
+    options:
+      redisio_package_name:
+        type: str
+        required: false
+        default: redis-server
+        description: Name of the Redis package to install when using package manager.
+      redisio_package_install:
+        type: bool
+        required: false
+        default: false
+        description: Whether to install Redis via package manager instead of source.
+      redisio_version:
+        type: str
+        required: false
+        default: 3.2.11
+        description: Redis version to install when building from source.
+      redisio_job_control:
+        type: str
+        required: false
+        default: initd
+        description: Service manager type (initd, upstart, systemd, rcinit).
+      redisio_default_settings:
+        type: dict
+        required: false
+        default: {}
+        description: Default settings applied to each Redis instance.
+      memcached_package_name:
+        type: str
+        required: false
+        default: memcached
+        description: Name of the Memcached package.
+      memcached_config:
+        type: dict
+        required: false
+        default: {}
+        description: Configuration options for Memcached.

@@ -1,0 +1,23 @@
+---
+- name: Deploy PAM su configuration for ulimit handling  # noqa: L039 - variable defined in role defaults
+  ansible.builtin.template:
+    src: pam_su.j2
+    dest: /etc/pam.d/su
+    mode: "0644"
+    backup: true
+  when: ulimit_enabled | default(false)
+
+- name: Ensure sudo PAM file is present if provided  # noqa: L039 - variable defined in role defaults
+  ansible.builtin.copy:
+    src: sudo
+    dest: /etc/pam.d/sudo
+    mode: "0644"
+    backup: true
+  when: sudo_pam_source is defined
+
+- name: Apply user ulimit settings  # noqa: L046 - using structured args; L039 - variable defined in role defaults
+  ansible.builtin.command: ulimit -n {{ item_user['value'] }}
+  when: ulimit_users is defined and ulimit_users | length > 0
+  loop: "{{ ulimit_users | dict2items }}"
+  loop_control:
+    loop_var: item_user

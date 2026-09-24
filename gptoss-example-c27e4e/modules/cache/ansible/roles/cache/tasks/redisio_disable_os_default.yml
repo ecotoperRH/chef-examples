@@ -1,0 +1,7 @@
+---
+- name: Disable OS default Redis service  # noqa: L039 - variable defined in role defaults
+  ansible.builtin.service:
+    name: "{{ redis_os_service_name | default('redis-server') }}"
+    state: stopped
+    enabled: false
+  when: redis_os_service_name is defined

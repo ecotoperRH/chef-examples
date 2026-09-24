@@ -1,0 +1,9 @@
+---
+- name: Include cache default tasks
+  ansible.builtin.import_tasks: cache_default.yml
+
+- name: Include memcached default tasks
+  ansible.builtin.import_tasks: memcached_default.yml
+
+- name: Include redisio default tasks
+  ansible.builtin.import_tasks: redisio_default.yml

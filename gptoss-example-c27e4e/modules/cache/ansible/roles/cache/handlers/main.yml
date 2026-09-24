@@ -1,0 +1,13 @@
+---
+- name: Restart Redis services
+  ansible.builtin.service:
+    name: "{{ 'redis@' + item['value']['port'] if redisio_job_control == 'systemd' else 'redis' + item['value']['port'] }}"
+    state: restarted
+  loop: "{{ redisio_servers | default([]) | dict2items }}"
+  loop_control:
+    loop_var: item
+
+- name: Restart Memcached service
+  ansible.builtin.service:
+    name: memcached
+    state: restarted

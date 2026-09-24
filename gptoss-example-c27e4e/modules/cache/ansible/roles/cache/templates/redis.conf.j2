@@ -1,0 +1,22 @@
+# Converted Redis configuration template
+# NOTE: This is a placeholder conversion of the original ERB template.
+# Replace with proper Jinja2 syntax as needed.
+
+{% if job_control == 'initd' or job_control == 'rcinit' %}
+daemonize yes
+{% endif %}
+
+pidfile {{ piddir }}/redis_{{ name }}.pid
+port {{ port }}
+
+tcp-backlog {{ tcpbacklog }}
+
+{% if address is defined %}
+bind {{ address }}
+{% endif %}
+
+{% if protected_mode is defined %}
+protected-mode {{ protected_mode }}
+{% endif %}
+
+# Additional configuration directives would follow similarly.

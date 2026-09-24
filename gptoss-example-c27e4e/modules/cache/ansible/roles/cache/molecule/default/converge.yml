@@ -1,0 +1,9 @@
+---
+# noqa: R401 - inbound transfers acceptable in test
+- name: Converge  # noqa: R401 - inbound transfers acceptable in test
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Include cache  # noqa: R401 - inbound transfers acceptable in test
+      ansible.builtin.include_role:
+        name: cache

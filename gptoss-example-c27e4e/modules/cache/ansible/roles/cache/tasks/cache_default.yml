@@ -1,0 +1,39 @@
+---
+- name: Ensure redis user and group exist  # noqa: R108 - needs root to manage system group
+  ansible.builtin.group:
+    name: redis
+    state: present
+  become: true
+
+- name: Ensure redis user  # noqa: R108 - needs root to manage system user
+  ansible.builtin.user:
+    name: redis
+    group: redis
+    system: true
+    state: present
+    create_home: false
+    shell: /bin/false
+  become: true
+
+- name: Ensure Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+
+- name: Include memcached default tasks
+  ansible.builtin.import_tasks: memcached_default.yml
+
+- name: Include redisio default tasks
+  ansible.builtin.import_tasks: redisio_default.yml
+
+- name: Remove unwanted Redis config lines
+  ansible.builtin.lineinfile:
+    path: /etc/redis/6379.conf
+    regexp: "{{ item_cache }}"
+    state: absent
+  loop: "{{ redis_config_cleanup_patterns }}"
+  loop_control:
+    loop_var: item_cache

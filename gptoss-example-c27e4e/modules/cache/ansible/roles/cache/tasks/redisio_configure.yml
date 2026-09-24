@@ -1,0 +1,43 @@
+---
+- name: Ensure Redis configuration directory exists  # noqa: R114 - path from role defaults
+  ansible.builtin.file:
+    path: "{{ redisio_default_settings.configdir | default('/etc/redis') }}"
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+
+- name: Configure Redis instances  # noqa: R114 - dest path from trusted loop variable
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "/etc/redis/{{ item_redis['value']['port'] }}.conf"
+    mode: "0644"
+    backup: true
+  loop: "{{ redisio_servers | default([]) | dict2items }}"
+  loop_control:
+    loop_var: item_redis
+  notify: Restart Redis service
+  vars:
+    redis_port: "{{ item_redis['value']['port'] }}"
+    redis_bind: "{{ item_redis['value']['address'] | default('0.0.0.0') }}"
+    redis_requirepass: "{{ item_redis['value']['requirepass'] | default('') }}"
+
+- name: Ensure Redis service is present and enabled (initd/upstart/rcinit)  # noqa: L039 - variable defined in role defaults
+  ansible.builtin.service:
+    name: "{{ redis_service_name(item_redis['value']['port']) }}"
+    state: started
+    enabled: true
+  when: redisio_job_control in ['initd', 'upstart', 'rcinit']
+  loop: "{{ redisio_servers | default([]) | dict2items }}"
+  loop_control:
+    loop_var: item_redis
+
+- name: Ensure Redis systemd service is present and enabled
+  ansible.builtin.service:
+    name: "redis@{{ item_redis['value']['port'] }}"
+    state: started
+    enabled: true
+  when: redisio_job_control == 'systemd'
+  loop: "{{ redisio_servers | default([]) | dict2items }}"
+  loop_control:
+    loop_var: item_redis

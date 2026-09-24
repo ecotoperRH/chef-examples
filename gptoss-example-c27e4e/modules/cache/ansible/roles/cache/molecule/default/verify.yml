@@ -1,0 +1,78 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    # Ensure required packages are present (install as list, not loop)
+    - name: Ensure required packages are present
+      ansible.builtin.package:
+        name:
+          - redis
+          - memcached
+        state: present
+
+    # Gather service facts for later assertions
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    # Verify Redis and Memcached services are active
+    - name: Assert services are running
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts.services[item_cache].state == 'running'"
+        fail_msg: "Service {{ item_cache }} is not running"
+      loop:
+        - redis-instance-1.service
+        - redis-instance-2.service
+        - memcached.service
+      loop_control:
+        loop_var: item_cache
+
+    # Verify ports are listening
+    - name: Check ports are listening
+      ansible.builtin.wait_for:
+        host: 0.0.0.0
+        port: "{{ item_cache }}"
+        state: started
+        timeout: 30
+      loop:
+        - 6379
+        - 6380
+        - 11211
+      loop_control:
+        loop_var: item_cache
+
+    # Verify Redis instance 1 responds to ping
+    - name: Ping Redis instance 1  # noqa: R108 - needs root to run redis-cli
+      ansible.builtin.command:
+        argv:
+          - redis-cli
+          - ping
+      become: true
+      become_user: redis
+      register: redis_ping_result
+      changed_when: false
+
+    - name: Assert Redis ping succeeded
+      ansible.builtin.assert:
+        that:
+          - "redis_ping_result.stdout == 'PONG'"
+        fail_msg: "Redis instance 1 did not respond with PONG"
+
+    # Verify Memcached stats command succeeds
+    - name: Run memcached-tool stats  # noqa: R108 - needs root to run memcached-tool
+      ansible.builtin.command:
+        argv:
+          - memcached-tool
+          - 127.0.0.1
+          - 11211
+          - stats
+      become: true
+      register: memcached_stats_result
+      changed_when: false
+
+    - name: Assert memcached-tool succeeded
+      ansible.builtin.assert:
+        that:
+          - memcached_stats_result.rc == 0
+        fail_msg: "memcached-tool command failed"

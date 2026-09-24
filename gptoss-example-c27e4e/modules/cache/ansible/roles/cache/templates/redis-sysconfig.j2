@@ -1,0 +1,9 @@
+# Redis sysconfig template
+# This file sets environment variables for the Redis service
+# Adjust as needed for your deployment
+
+# Example variables:
+REDIS_PORT={{ redis_port | default('6379') }}
+REDIS_BIND={{ redis_bind | default('0.0.0.0') }}
+REDIS_MAXMEMORY={{ redis_maxmemory | default('256mb') }}
+REDIS_APPENDONLY={{ redis_appendonly | default('yes') }}
