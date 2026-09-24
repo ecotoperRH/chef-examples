@@ -1,0 +1,246 @@
+---
+- name: Verify package installation and services
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Verify required packages are installed
+      ansible.builtin.assert:
+        that:
+          - "'{{ item_nginx_multisite }}' in ansible_facts.packages"
+        fail_msg: "Package {{ item_nginx_multisite }} is not installed"
+      loop:
+        - nginx
+        - fail2ban
+        - ufw
+        - openssl
+        - ca-certificates
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Verify services are enabled and running
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts.services['{{ item_nginx_multisite }}.service'].state == 'running'"
+          - "ansible_facts.services['{{ item_nginx_multisite }}.service'].enabled"
+        fail_msg: "Service {{ item_nginx_multisite }} is not running or enabled"
+      loop:
+        - nginx
+        - fail2ban
+        - ufw
+        - ssh
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Check UFW status rules
+      ansible.builtin.command:
+        argv:
+          - ufw
+          - status
+          - verbose
+      register: ufw_status
+      changed_when: false
+
+    - name: Assert UFW allows SSH, HTTP and HTTPS
+      ansible.builtin.assert:
+        that:
+          - "'OpenSSH' in ufw_status.stdout or 'ssh' in ufw_status.stdout"
+          - "'80/tcp' in ufw_status.stdout"
+          - "'443/tcp' in ufw_status.stdout"
+        fail_msg: "UFW does not have required rules"
+
+    - name: Slurp SSH daemon config
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: sshd_config
+
+    - name: Decode SSH config content
+      ansible.builtin.set_fact:
+        sshd_config_content: "{{ sshd_config.content | b64decode }}"  # noqa: M005 - slurped file content is trusted
+
+    - name: Assert SSH hardening settings
+      ansible.builtin.assert:
+        that:
+          - "'PermitRootLogin no' in sshd_config_content"
+          - "'PasswordAuthentication no' in sshd_config_content"
+        fail_msg: "SSH hardening settings are missing"
+
+    - name: Gather sysctl settings
+      ansible.builtin.command:
+        argv:
+          - sysctl
+          - -a
+      register: sysctl_output
+      changed_when: false
+
+    - name: Assert sysctl security settings
+      ansible.builtin.assert:
+        that:
+          - "'net.ipv4.ip_forward = 0' in sysctl_output.stdout"
+          - "'net.ipv4.conf.all.rp_filter = 1' in sysctl_output.stdout"
+        fail_msg: "Required sysctl security settings are not present"
+
+- name: Verify Nginx configuration files, sites and document roots
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check configuration files exist
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite }}"  # noqa: R114 - path from trusted list of expected config files
+      loop:
+        - /etc/nginx/nginx.conf
+        - /etc/nginx/conf.d/security.conf
+        - /etc/nginx/sites-available/test.cluster.local
+        - /etc/nginx/sites-available/ci.cluster.local
+        - /etc/nginx/sites-available/status.cluster.local
+        - /etc/fail2ban/jail.local
+        - /etc/sysctl.d/99-security.conf
+        - /etc/ssl/certs/test.cluster.local.crt
+        - /etc/ssl/certs/ci.cluster.local.crt
+        - /etc/ssl/certs/status.cluster.local.crt
+        - /etc/ssl/private/test.cluster.local.key
+        - /etc/ssl/private/ci.cluster.local.key
+        - /etc/ssl/private/status.cluster.local.key
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: config_files
+
+    - name: Assert configuration files exist
+      ansible.builtin.assert:
+        that:
+          - item_result.stat.exists
+        fail_msg: "Configuration file missing"
+      loop: "{{ config_files.results }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Verify site symlinks in sites-enabled
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite }}"  # noqa: R114 - symlink path from trusted list
+        follow: false
+      loop:
+        - /etc/nginx/sites-enabled/test.cluster.local
+        - /etc/nginx/sites-enabled/ci.cluster.local
+        - /etc/nginx/sites-enabled/status.cluster.local
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: site_links
+
+    - name: Assert site symlinks are present and point to sites-available
+      ansible.builtin.assert:
+        that:
+          - item_result.stat.islnk
+          - "item_result.stat.lnk_source.startswith('/etc/nginx/sites-available/')"
+        fail_msg: "Symlink missing or incorrect"
+      loop: "{{ site_links.results }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Verify document root directories and index.html files
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite }}"  # noqa: R114 - path from trusted list of document roots and index files
+      loop:
+        - /opt/server/test
+        - /opt/server/ci
+        - /opt/server/status
+        - /opt/server/test/index.html
+        - /opt/server/ci/index.html
+        - /opt/server/status/index.html
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: doc_roots
+
+    - name: Assert document roots and index files exist
+      ansible.builtin.assert:
+        that:
+          - item_result.stat.exists
+        fail_msg: "Document root or index.html missing"
+      loop: "{{ doc_roots.results }}"
+      loop_control:
+        loop_var: item_result
+
+- name: Verify Nginx site reachability and TLS certificates
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check HTTP reachability for each site
+      ansible.builtin.uri:
+        url: "http://{{ item_nginx_multisite }}/"
+        method: GET
+        return_content: false
+        status_code: 200
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: http_results
+      ignore_errors: true
+
+    - name: Assert HTTP responses are successful
+      ansible.builtin.assert:
+        that:
+          - item_result.status == 200
+        fail_msg: "HTTP check failed"
+      loop: "{{ http_results.results }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Check HTTPS reachability (ignore self‑signed certs)
+      ansible.builtin.uri:
+        url: "https://{{ item_nginx_multisite }}/"
+        method: GET
+        validate_certs: false
+        return_content: false
+        status_code: 200
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: https_results
+      ignore_errors: true
+
+    - name: Assert HTTPS responses are successful
+      ansible.builtin.assert:
+        that:
+          - item_result.status == 200
+        fail_msg: "HTTPS check failed"
+      loop: "{{ https_results.results }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Verify TLS certificate subject for each site
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -noout
+          - -subject
+          - -in
+          - "/etc/ssl/certs/{{ item_nginx_multisite }}.crt"  # noqa: R101 - path from trusted list of generated certs
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: cert_subjects
+      changed_when: false
+
+    - name: Assert certificate subject contains correct CN
+      ansible.builtin.assert:
+        that:
+          - "'CN={{ item_result.item }}' in item_result.stdout"
+        fail_msg: "TLS certificate does not contain correct CN"
+      loop: "{{ cert_subjects.results }}"
+      loop_control:
+        loop_var: item_result

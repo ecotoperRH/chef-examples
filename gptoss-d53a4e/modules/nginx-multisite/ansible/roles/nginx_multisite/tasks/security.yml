@@ -1,0 +1,91 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+    state: present
+
+- name: Ensure fail2ban service is enabled and started
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: Deploy fail2ban jail configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  notify: Restart fail2ban
+
+- name: Set UFW default deny policy
+  ansible.builtin.shell:
+    cmd: ufw --force default deny
+  when: "'Default: deny' not in (lookup('ansible.builtin.shell', 'ufw status').stdout)"
+  args:
+    warn: false
+
+- name: Allow SSH through UFW
+  ansible.builtin.shell:
+    cmd: ufw allow ssh
+  when: "'22/tcp' not in (lookup('ansible.builtin.shell', 'ufw status').stdout)"
+  args:
+    warn: false
+
+- name: Allow HTTP through UFW
+  ansible.builtin.shell:
+    cmd: ufw allow http
+  when: "'80/tcp' not in (lookup('ansible.builtin.shell', 'ufw status').stdout)"
+  args:
+    warn: false
+
+- name: Allow HTTPS through UFW
+  ansible.builtin.shell:
+    cmd: ufw allow https
+  when: "'443/tcp' not in (lookup('ansible.builtin.shell', 'ufw status').stdout)"
+  args:
+    warn: false
+
+- name: Enable UFW
+  ansible.builtin.shell:
+    cmd: ufw --force enable
+  when: "'Status: active' not in (lookup('ansible.builtin.shell', 'ufw status').stdout)"
+  args:
+    warn: false
+
+- name: Deploy sysctl security configuration
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload sysctl
+
+- name: Install SSH server package
+  ansible.builtin.package:
+    name: openssh-server
+    state: present
+
+- name: Disable root SSH login
+  ansible.builtin.shell:
+    cmd: sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+  when: security_ssh_disable_root | bool
+  notify: Restart ssh
+  args:
+    warn: false
+
+- name: Disable SSH password authentication
+  ansible.builtin.shell:
+    cmd: sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  when: not security_ssh_password_auth | bool
+  notify: Restart ssh
+  args:
+    warn: false
+
+- name: Ensure ssh service is present (no action unless notified)
+  ansible.builtin.service:
+    name: ssh
+    enabled: true
+    state: started

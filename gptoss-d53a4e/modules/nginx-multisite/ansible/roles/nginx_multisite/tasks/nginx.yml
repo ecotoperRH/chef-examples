@@ -1,0 +1,52 @@
+---
+- name: Install nginx package
+  ansible.builtin.package:
+    name: nginx
+    state: present
+
+- name: Deploy nginx main configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+
+- name: Deploy nginx security configuration
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+
+- name: Ensure nginx service is enabled and started
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Create site document root directories
+  ansible.builtin.file:
+    path: "{{ item_nginx['value']['document_root'] }}" # noqa: R114 - trusted path from role-defined nginx_sites dict
+    owner: www-data
+    group: www-data
+    mode: "0755"
+    state: directory
+    recurse: true
+  loop: "{{ nginx_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx
+
+- name: Deploy index.html for each site
+  ansible.builtin.copy:
+    src: "{{ item_nginx['key'].split('.')[0] }}/index.html" # noqa: R114 - source files are static under files/
+    dest: "{{ item_nginx['value']['document_root'] }}/index.html" # noqa: R114 - trusted path from role-defined nginx_sites dict
+    owner: www-data
+    group: www-data
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx
+  # Note: source files should exist under files/ directory

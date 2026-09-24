@@ -1,0 +1,17 @@
+---
+nginx_sites:
+  test.cluster.local:
+    document_root: /opt/server/test
+    ssl_enabled: true
+  ci.cluster.local:
+    document_root: /opt/server/ci
+    ssl_enabled: true
+  status.cluster.local:
+    document_root: /opt/server/status
+    ssl_enabled: true
+nginx_ssl_certificate_path: /etc/ssl/certs
+nginx_ssl_private_key_path: /etc/ssl/private
+security_fail2ban_enabled: true
+security_ufw_enabled: true
+security_ssh_disable_root: true
+security_ssh_password_auth: false

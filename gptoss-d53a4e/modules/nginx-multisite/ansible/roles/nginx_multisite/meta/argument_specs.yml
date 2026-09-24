@@ -1,0 +1,53 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy and configure Nginx multisite with security hardening
+    description:
+      - Installs Nginx, fail2ban, ufw, and SSL packages.
+      - Configures Nginx with multiple TLS-enabled virtual hosts.
+      - Applies system security settings via sysctl and SSH hardening.
+    options:
+      nginx_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+        description: Mapping of site names to their document root and SSL enable flag.
+      nginx_ssl_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Directory path where SSL certificates are stored.
+      nginx_ssl_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Directory path where SSL private keys are stored.
+      security_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether fail2ban is enabled.
+      security_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether UFW firewall is enabled.
+      security_ssh_disable_root:
+        type: bool
+        required: false
+        default: true
+        description: Disable root SSH login.
+      security_ssh_password_auth:
+        type: bool
+        required: false
+        default: false
+        description: Disable SSH password authentication.
