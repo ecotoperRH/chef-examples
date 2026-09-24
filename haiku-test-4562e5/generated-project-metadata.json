@@ -1,0 +1,20 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Nginx reverse proxy with multi-site SSL/TLS termination, security hardening (fail2ban, UFW, SSH lockdown), and self-signed certificate generation for development environments.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Caching layer provisioning with Memcached and Redis, including Redis authentication and configuration management.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "FastAPI application deployment with Python virtual environment, PostgreSQL database setup, and systemd service management.",
+    "technology": "Chef"
+  }
+]
