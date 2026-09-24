@@ -1,0 +1,42 @@
+---
+- name: Install redis from package
+  ansible.builtin.package:
+    name: "{{ cache_redis_package_name }}"
+    state: present
+  when: cache_redis_package_install | bool
+  vars:
+    cache_redis_package_name: "{{ 'redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis' }}"
+
+- name: Install redis from source
+  when: not cache_redis_package_install | bool
+  block:
+    - name: Include redis install prereqs tasks
+      ansible.builtin.include_tasks: redis_install_prereqs.yml
+
+    - name: Install build-essential packages
+      ansible.builtin.package:
+        name:
+          - build-essential
+          - gcc
+          - make
+        state: present
+
+    - name: Download redis source
+      ansible.builtin.get_url:
+        url: "{{ cache_redis_mirror }}{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }}" # noqa: R104,R106 - URL from role defaults, not user input
+        dest: /tmp/{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }}
+        mode: "0644"
+
+    - name: Extract redis source
+      ansible.builtin.unarchive:
+        src: /tmp/{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }} # noqa: R104,R106 - source path from role defaults, not user input
+        dest: /tmp
+        remote_src: true
+
+    - name: Build redis from source
+      ansible.builtin.shell:
+        cmd: |
+          cd /tmp/{{ cache_redis_base_name }}{{ cache_redis_version }}
+          make
+          make install
+      creates: /usr/local/bin/redis-server # noqa: R101 - command constructed from role defaults, not user input

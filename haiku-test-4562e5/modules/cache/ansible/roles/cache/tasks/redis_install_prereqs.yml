@@ -1,0 +1,5 @@
+---
+- name: Install tar package
+  ansible.builtin.package:
+    name: tar
+    state: present

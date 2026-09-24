@@ -1,0 +1,123 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure Memcached and Redis cache services
+    description:
+      - Installs and configures Memcached (single instance on port 11211 with 64MB memory)
+      - Installs and configures Redis (single instance on port 6379 with password authentication)
+      - Manages systemd services for both cache services
+      - Configures ulimits and PAM settings for Redis
+    options:
+      cache_memcached_version:
+        type: str
+        required: false
+        default:
+        description: Memcached package version to install
+      cache_memcached_memory:
+        type: int
+        required: false
+        default: 64
+        description: Memcached memory allocation in MB
+      cache_memcached_port:
+        type: int
+        required: false
+        default: 11211
+        description: Memcached TCP port
+      cache_memcached_udp_port:
+        type: int
+        required: false
+        default: 11211
+        description: Memcached UDP port
+      cache_memcached_listen:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: Memcached listen address
+      cache_memcached_maxconn:
+        type: int
+        required: false
+        default: 1024
+        description: Memcached maximum concurrent connections
+      cache_memcached_max_object_size:
+        type: str
+        required: false
+        default: 1m
+        description: Memcached maximum object size
+      cache_memcached_ulimit:
+        type: int
+        required: false
+        default: 1024
+        description: Memcached file descriptor ulimit
+      cache_memcached_logfilepath:
+        type: str
+        required: false
+        default: /var/log/memcached
+        description: Memcached log file directory
+      cache_redis_package_install:
+        type: bool
+        required: false
+        default: false
+        description: Whether to install Redis from package (true) or compile from source (false)
+      cache_redis_bypass_setup:
+        type: bool
+        required: false
+        default: false
+        description: Whether to skip Redis installation and configuration
+      cache_redis_version:
+        type: str
+        required: false
+        default: 3.2.11
+        description: Redis version to install (for source compilation)
+      cache_redis_port:
+        type: int
+        required: false
+        default: 6379
+        description: Redis TCP port
+      cache_redis_memory:
+        type: str
+        required: false
+        default:
+        description: Redis maximum memory limit
+      cache_redis_loglevel:
+        type: str
+        required: false
+        default: notice
+        description: Redis log level (debug, verbose, notice, warning)
+      cache_redis_databases:
+        type: str
+        required: false
+        default: "16"
+        description: Number of Redis databases
+      cache_redis_backuptype:
+        type: str
+        required: false
+        default: rdb
+        description: Redis backup type (rdb, aof, both)
+      cache_redis_maxclients:
+        type: int
+        required: false
+        default: 10000
+        description: Redis maximum concurrent clients
+      cache_redis_servers:
+        type: list
+        elements: dict
+        required: false
+        default:
+          - port: "6379"
+            requirepass: "{{ redis_password }}"
+        description: >-
+          List of Redis server configurations. Each item should have 'port' and optionally
+          'requirepass' for authentication. The requirepass is injected by AAP credential type.
+      redis_password:
+        type: str
+        required: true
+        description: >-
+          Redis authentication password. This variable is injected by AAP credential type
+          and should not be set manually.
+      cache_ulimit_users:
+        type: dict
+        required: false
+        default: {}
+        description: >-
+          Dictionary of users and their ulimit configurations. Each key is a username,
+          and the value is a dict with optional keys like filehandle_limit, process_limit, etc.

@@ -1,0 +1,11 @@
+---
+- name: Enable and start redis services
+  ansible.builtin.systemd:
+    name: redis@{{ item_server['port'] }}
+    state: started
+    enabled: true
+    daemon_reload: true
+  when: cache_redis_job_control == 'systemd'
+  loop: "{{ cache_redis_servers }}"
+  loop_control:
+    loop_var: item_server

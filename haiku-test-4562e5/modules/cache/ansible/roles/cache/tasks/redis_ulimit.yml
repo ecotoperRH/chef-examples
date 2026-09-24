@@ -1,0 +1,45 @@
+---
+- name: Deploy PAM su configuration
+  ansible.builtin.template:
+    src: pam_su.j2
+    dest: /etc/pam.d/su
+    mode: "0644"
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Deploy PAM sudo configuration
+  ansible.builtin.copy:
+    src: pam_sudo
+    dest: /etc/pam.d/sudo
+    mode: "0644"
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Configure user ulimits
+  ansible.builtin.template:
+    src: ulimit.j2
+    dest: /etc/security/limits.d/{{ item_user_entry['key'] }}.conf # noqa: R114 - path from loop over role-defined cache_ulimit_users
+    mode: "0644"
+  when: cache_ulimit_users | length > 0
+  loop: "{{ cache_ulimit_users | dict2items }}"
+  loop_control:
+    loop_var: item_user_entry
+  vars:
+    ulimit_user: "{{ item_user_entry['key'] }}"
+    filehandle_limit: "{{ item_user_entry['value'].get('filehandle_limit') }}"
+    filehandle_soft_limit: "{{ item_user_entry['value'].get('filehandle_soft_limit') }}"
+    filehandle_hard_limit: "{{ item_user_entry['value'].get('filehandle_hard_limit') }}"
+    process_limit: "{{ item_user_entry['value'].get('process_limit') }}"
+    process_soft_limit: "{{ item_user_entry['value'].get('process_soft_limit') }}"
+    process_hard_limit: "{{ item_user_entry['value'].get('process_hard_limit') }}"
+    memory_limit: "{{ item_user_entry['value'].get('memory_limit') }}"
+    core_limit: "{{ item_user_entry['value'].get('core_limit') }}"
+    core_soft_limit: "{{ item_user_entry['value'].get('core_soft_limit') }}"
+    core_hard_limit: "{{ item_user_entry['value'].get('core_hard_limit') }}"
+    stack_limit: "{{ item_user_entry['value'].get('stack_limit') }}"
+    stack_soft_limit: "{{ item_user_entry['value'].get('stack_soft_limit') }}"
+    stack_hard_limit: "{{ item_user_entry['value'].get('stack_hard_limit') }}"
+    rtprio_limit: "{{ item_user_entry['value'].get('rtprio_limit') }}"
+    rtprio_soft_limit: "{{ item_user_entry['value'].get('rtprio_soft_limit') }}"
+    rtprio_hard_limit: "{{ item_user_entry['value'].get('rtprio_hard_limit') }}"
+    virt_limit: "{{ item_user_entry['value'].get('virt_limit') }}"

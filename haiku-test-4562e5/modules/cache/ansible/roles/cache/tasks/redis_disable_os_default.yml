@@ -1,0 +1,11 @@
+---
+- name: Determine default redis service name
+  ansible.builtin.set_fact:
+    cache_redis_default_service_name: "{{ 'redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis' }}"
+
+- name: Stop and disable default redis service
+  ansible.builtin.systemd:
+    name: "{{ cache_redis_default_service_name }}"
+    state: stopped
+    enabled: false
+  failed_when: false

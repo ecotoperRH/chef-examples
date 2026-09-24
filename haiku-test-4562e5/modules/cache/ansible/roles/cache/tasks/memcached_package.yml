@@ -1,0 +1,43 @@
+---
+- name: Install memcached package
+  ansible.builtin.package:
+    name: memcached
+    state: present
+
+- name: Determine memcached service user and group
+  ansible.builtin.set_fact:
+    cache_memcached_service_user: "{{ 'memcache' if ansible_facts['os_family'] == 'Debian' else 'memcached' }}"
+    cache_memcached_service_group: "{{ 'memcache' if ansible_facts['os_family'] == 'Debian' else 'memcached' }}"
+
+- name: Create memcached system group
+  ansible.builtin.group:
+    name: "{{ cache_memcached_service_group }}"
+    system: true
+    state: present
+
+- name: Create memcached system user
+  ansible.builtin.user:
+    name: "{{ cache_memcached_service_user }}"
+    system: true
+    create_home: false
+    group: "{{ cache_memcached_service_group }}"
+    home: /nonexistent
+    comment: Memcached
+    shell: /bin/false
+    state: present
+
+- name: Create memcached log directory
+  ansible.builtin.file:
+    path: "{{ cache_memcached_logfilepath }}" # noqa: R114 - path from role defaults
+    owner: "{{ cache_memcached_service_user }}"
+    group: "{{ cache_memcached_service_group }}"
+    mode: "0755"
+    state: directory
+
+- name: Create memcached runtime directory
+  ansible.builtin.file:
+    path: /var/run/memcached
+    owner: "{{ cache_memcached_service_user }}"
+    group: "{{ cache_memcached_service_group }}"
+    mode: "0755"
+    state: directory

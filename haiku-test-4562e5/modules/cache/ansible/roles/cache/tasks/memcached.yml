@@ -1,0 +1,18 @@
+---
+- name: Include memcached package tasks
+  ansible.builtin.include_tasks: memcached_package.yml
+
+- name: Create memcached systemd unit
+  ansible.builtin.template:
+    src: memcached.service.j2
+    dest: /etc/systemd/system/memcached.service
+    mode: "0644"
+    backup: true
+  notify: restart memcached
+
+- name: Enable and start memcached service
+  ansible.builtin.systemd:
+    name: memcached
+    state: started
+    enabled: true
+    daemon_reload: true

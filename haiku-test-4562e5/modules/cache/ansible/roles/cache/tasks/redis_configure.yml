@@ -1,0 +1,175 @@
+---
+- name: Create redis user
+  ansible.builtin.user:
+    name: "{{ cache_redis_user }}"
+    home: "{{ cache_redis_homedir }}"
+    shell: "{{ cache_redis_shell }}"
+    system: true
+    state: present
+
+- name: Create redis configuration directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_configdir }}" # noqa: R114 - path from role defaults
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0775"
+    state: directory
+
+- name: Create redis data directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_datadir }}" # noqa: R114 - path from role defaults
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0775"
+    state: directory
+
+- name: Create redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+    state: directory
+
+- name: Configure redis instances
+  when: cache_redis_servers is defined and cache_redis_servers | length > 0
+  block:
+    - name: Create redis configuration file
+      ansible.builtin.template:
+        src: redis.conf.j2
+        dest: "{{ cache_redis_configdir }}/{{ item_server['port'] }}.conf" # noqa: R114 - path from loop over role-defined cache_redis_servers
+        owner: "{{ cache_redis_user }}"
+        mode: "0644"
+        backup: true
+      loop: "{{ cache_redis_servers }}"
+      loop_control:
+        loop_var: item_server
+      vars:
+        redis_port: "{{ item_server['port'] }}"
+        redis_name: "{{ item_server['port'] }}"
+        piddir: "{{ cache_redis_base_piddir }}"
+        tcpbacklog: "{{ cache_redis_tcpbacklog }}"
+        address: "{{ cache_redis_address }}"
+        protected_mode: "{{ cache_redis_protected_mode }}"
+        unixsocket: "{{ cache_redis_unixsocket }}"
+        unixsocketperm: "{{ cache_redis_unixsocketperm }}"
+        redis_timeout: "{{ cache_redis_timeout }}"
+        keepalive: "{{ cache_redis_keepalive }}"
+        loglevel: "{{ cache_redis_loglevel }}"
+        logfile: "{{ cache_redis_logfile }}"
+        syslogenabled: "{{ cache_redis_syslogenabled }}"
+        syslogfacility: "{{ cache_redis_syslogfacility }}"
+        databases: "{{ cache_redis_databases }}"
+        tlsport: "{{ cache_redis_tlsport }}"
+        tlscertfile: "{{ cache_redis_tlscertfile }}"
+        tlskeyfile: "{{ cache_redis_tlskeyfile }}"
+        tlskeyfilepass: "{{ cache_redis_tlskeyfilepass }}"
+        tlsclientcertfile: "{{ cache_redis_tlsclientcertfile }}"
+        tlsclientkeyfile: "{{ cache_redis_tlsclientkeyfile }}"
+        tlsclientkeyfilepass: "{{ cache_redis_tlsclientkeyfilepass }}"
+        tlsdhparamsfile: "{{ cache_redis_tlsdhparamsfile }}"
+        tlscacertfile: "{{ cache_redis_tlscacertfile }}"
+        tlscacertdir: "{{ cache_redis_tlscacertdir }}"
+        tlsauthclients: "{{ cache_redis_tlsauthclients }}"
+        tlsreplication: "{{ cache_redis_tlsreplication }}"
+        tlscluster: "{{ cache_redis_tlscluster }}"
+        tlsprotocols: "{{ cache_redis_tlsprotocols }}"
+        tlsciphers: "{{ cache_redis_tlsciphers }}"
+        tlsciphersuites: "{{ cache_redis_tlsciphersuites }}"
+        tlspreferserverciphers: "{{ cache_redis_tlspreferserverciphers }}"
+        tlssessioncaching: "{{ cache_redis_tlssessioncaching }}"
+        tlssessioncachesize: "{{ cache_redis_tlssessioncachesize }}"
+        tlssessioncachetimeout: "{{ cache_redis_tlssessioncachetimeout }}"
+        backuptype: "{{ cache_redis_backuptype }}"
+        save: "{{ cache_redis_save }}"
+        stopwritesonbgsaveerror: "{{ cache_redis_stopwritesonbgsaveerror }}"
+        rdbcompression: "{{ cache_redis_rdbcompression }}"
+        rdbchecksum: "{{ cache_redis_rdbchecksum }}"
+        dbfilename: "{{ cache_redis_dbfilename }}"
+        datadir: "{{ cache_redis_datadir }}"
+        replicaof: "{{ cache_redis_replicaof }}"
+        masterauth: "{{ cache_redis_masterauth }}"
+        replicaservestaledata: "{{ cache_redis_replicaservestaledata }}"
+        replicareadonly: "{{ cache_redis_replicareadonly }}"
+        repldisklesssync: "{{ cache_redis_repldisklesssync }}"
+        repldisklesssyncdelay: "{{ cache_redis_repldisklesssyncdelay }}"
+        replpingreplicaperiod: "{{ cache_redis_replpingreplicaperiod }}"
+        repltimeout: "{{ cache_redis_repltimeout }}"
+        repldisabletcpnodelay: "{{ cache_redis_repldisabletcpnodelay }}"
+        replbacklogsize: "{{ cache_redis_replbacklogsize }}"
+        replbacklogttl: "{{ cache_redis_replbacklogttl }}"
+        replicapriority: "{{ cache_redis_replicapriority }}"
+        requirepass: "{{ item_server.get('requirepass', cache_redis_requirepass) }}"
+        rename_commands: "{{ cache_redis_rename_commands }}"
+        maxclients: "{{ cache_redis_maxclients }}"
+        maxmemory: "{{ cache_redis_maxmemory or '' }}"
+        maxmemorypolicy: "{{ cache_redis_maxmemorypolicy }}"
+        maxmemorysamples: "{{ cache_redis_maxmemorysamples }}"
+        appendfilename: "{{ cache_redis_appendfilename }}"
+        appendfsync: "{{ cache_redis_appendfsync }}"
+        noappendfsynconrewrite: "{{ cache_redis_noappendfsynconrewrite }}"
+        aofrewritepercentage: "{{ cache_redis_aofrewritepercentage }}"
+        aofrewriteminsize: "{{ cache_redis_aofrewriteminsize }}"
+        aofloadtruncated: "{{ cache_redis_aofloadtruncated }}"
+        luatimelimit: "{{ cache_redis_luatimelimit }}"
+        slowloglogslowerthan: "{{ cache_redis_slowloglogslowerthan }}"
+        slowlogmaxlen: "{{ cache_redis_slowlogmaxlen }}"
+        notifykeyspaceevents: "{{ cache_redis_notifykeyspaceevents }}"
+        hashmaxziplistentries: "{{ cache_redis_hashmaxziplistentries }}"
+        hashmaxziplistvalue: "{{ cache_redis_hashmaxziplistvalue }}"
+        setmaxintsetentries: "{{ cache_redis_setmaxintsetentries }}"
+        zsetmaxziplistentries: "{{ cache_redis_zsetmaxziplistentries }}"
+        zsetmaxziplistvalue: "{{ cache_redis_zsetmaxziplistvalue }}"
+        hllsparsemaxbytes: "{{ cache_redis_hllsparsemaxbytes }}"
+        activerehasing: "{{ cache_redis_activerehasing }}"
+        clientoutputbufferlimit: "{{ cache_redis_clientoutputbufferlimit }}"
+        hz: "{{ cache_redis_hz }}"
+        aofrewriteincrementalfsync: "{{ cache_redis_aofrewriteincrementalfsync }}"
+        clusterenabled: "{{ cache_redis_clusterenabled }}"
+        clusterconfigfile: "{{ cache_redis_clusterconfigfile }}"
+        clusternodetimeout: "{{ cache_redis_clusternodetimeout }}"
+        clusterport: "{{ cache_redis_clusterport }}"
+        includes: "{{ cache_redis_includes }}"
+        aclfile: "{{ cache_redis_aclfile }}"
+        minreplicastowrite: "{{ cache_redis_minreplicastowrite }}"
+        minreplicasmaxlag: "{{ cache_redis_minreplicasmaxlag }}"
+        version:
+          major: "{{ cache_redis_version.split('.')[0] }}"
+          minor: "{{ cache_redis_version.split('.')[1] }}"
+        job_control: "{{ cache_redis_job_control }}"
+        user: "{{ cache_redis_user }}"
+        group: "{{ cache_redis_group }}"
+        bin_path: "{{ '/usr/local/bin' if not cache_redis_package_install else '/usr/bin' }}"
+        shutdown_save: "{{ cache_redis_shutdown_save }}"
+
+    - name: Create redis systemd unit file
+      ansible.builtin.template:
+        src: redis@.service.j2
+        dest: /lib/systemd/system/redis@{{ item_server['port'] }}.service # noqa: R114 - path from loop over role-defined cache_redis_servers
+        mode: "0644"
+        backup: true
+      when: cache_redis_job_control == 'systemd'
+      loop: "{{ cache_redis_servers }}"
+      loop_control:
+        loop_var: item_server
+      vars:
+        redis_port: "{{ item_server['port'] }}"
+        user: "{{ cache_redis_user }}"
+        group: "{{ cache_redis_group }}"
+        limit_nofile: 65535
+        bin_path: "{{ '/usr/local/bin' if not cache_redis_package_install else '/usr/bin' }}"
+
+    - name: Create redis tmpfiles.d configuration
+      ansible.builtin.template:
+        src: redis_tmpfiles.j2
+        dest: /etc/tmpfiles.d/redis@{{ item_server['port'] }}.conf # noqa: R114 - path from loop over role-defined cache_redis_servers
+        mode: "0644"
+      when: cache_redis_job_control == 'systemd'
+      loop: "{{ cache_redis_servers }}"
+      loop_control:
+        loop_var: item_server
+      vars:
+        piddir: "{{ cache_redis_base_piddir }}"
+        redis_port: "{{ item_server['port'] }}"
+        user: "{{ cache_redis_user }}"
+        group: "{{ cache_redis_group }}"

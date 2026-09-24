@@ -1,0 +1,22 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    state: present
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Include redis install prereqs tasks
+  ansible.builtin.include_tasks: redis_install_prereqs.yml
+  when: not cache_redis_package_install | bool
+
+- name: Include redis install tasks
+  ansible.builtin.include_tasks: redis_install.yml
+  when: not cache_redis_bypass_setup | bool
+
+- name: Include redis disable OS default tasks
+  ansible.builtin.include_tasks: redis_disable_os_default.yml
+  when: not cache_redis_bypass_setup | bool
+
+- name: Include redis configure tasks
+  ansible.builtin.include_tasks: redis_configure.yml
+  when: not cache_redis_bypass_setup | bool

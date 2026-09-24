@@ -1,0 +1,29 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Include memcached tasks
+  ansible.builtin.include_tasks: memcached.yml
+
+- name: Include redis tasks
+  ansible.builtin.include_tasks: redis.yml
+
+- name: Fix Redis configuration
+  ansible.builtin.lineinfile:
+    path: /etc/redis/{{ item_config['port'] }}.conf
+    regexp: "{{ item_config_regexp }}"
+    state: absent
+  loop: "{{ cache_redis_servers | product(['replica-serve-stale-data', 'replica-read-only', 'repl-ping-replica-period', 'client-output-buffer-limit', 'replica-priority'])
+    | list }}"
+  loop_control:
+    loop_var: item_loop
+  vars:
+    item_config: "{{ item_loop[0] }}"
+    item_config_regexp: "^{{ item_loop[1] }}.*$" # noqa: R114 - path from loop over role-defined cache_redis_servers
+  # noqa: R115 - path from loop over role-defined cache_redis_servers
+
+- name: Include redis enable tasks
+  ansible.builtin.include_tasks: redis_enable.yml
+
+- name: Include redis ulimit tasks
+  ansible.builtin.include_tasks: redis_ulimit.yml

@@ -1,0 +1,12 @@
+[Unit]
+Description=Memcached
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/memcached -m {{ cache_memcached_memory }} -p {{ cache_memcached_port }} -u {{ cache_memcached_service_user }} -l {{ cache_memcached_listen }} -c {{ cache_memcached_maxconn }} -I {{ cache_memcached_max_object_size }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
