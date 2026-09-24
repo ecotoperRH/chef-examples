@@ -1,0 +1,185 @@
+---
+- name: Verify Services and Site Access
+  hosts: all
+  gather_facts: false
+  tasks:
+    # Service facts
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert nginx service is running
+      ansible.builtin.assert:
+        that:
+          - "'nginx.service' in ansible_facts.services"
+          - ansible_facts.services['nginx.service'].state == 'running'
+        fail_msg: "nginx service is not running"
+
+    # HTTP checks for each site
+    - name: Check HTTP response for sites
+      ansible.builtin.uri:
+        url: "http://{{ item_nginx_multisite['value'] }}/"
+        method: GET
+        return_content: false
+        status_code: 200
+      loop:
+        - { value: 'test.cluster.local' }
+        - { value: 'ci.cluster.local' }
+        - { value: 'status.cluster.local' }
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    # HTTPS checks for each site (ignore self‑signed certs)
+    - name: Check HTTPS response for sites
+      ansible.builtin.uri:
+        url: "https://{{ item_nginx_multisite['value'] }}/"
+        method: GET
+        return_content: false
+        status_code: 200
+        validate_certs: false
+      loop:
+        - { value: 'test.cluster.local' }
+        - { value: 'ci.cluster.local' }
+        - { value: 'status.cluster.local' }
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    # Document root index.html files existence
+    - name: Stat document root index.html files
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite['value'] }}/index.html"  # noqa: R114 - trusted document root paths
+      loop:
+        - { value: '/opt/server/test' }
+        - { value: '/opt/server/ci' }
+        - { value: '/opt/server/status' }
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: doc_stat_results
+
+    - name: Assert document root index.html files exist and are non‑empty
+      ansible.builtin.assert:
+        that:
+          - item_nginx_multisite['stat']['exists']
+          - item_nginx_multisite['stat']['size'] > 0
+        fail_msg: "Document root index.html missing or empty"
+      loop: "{{ doc_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    # SSL certificate files existence
+    - name: Stat SSL certificate files
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite['value'] }}"  # noqa: R114 - trusted certificate paths
+      loop:
+        - { value: '/etc/ssl/certs/test.cluster.local.crt' }
+        - { value: '/etc/ssl/certs/ci.cluster.local.crt' }
+        - { value: '/etc/ssl/certs/status.cluster.local.crt' }
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: cert_stat_results
+
+    - name: Assert SSL certificates exist
+      ansible.builtin.assert:
+        that:
+          - item_nginx_multisite['stat']['exists']
+        fail_msg: "SSL certificate missing"
+      loop: "{{ cert_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    # SSL key files existence and permissions (640)
+    - name: Stat SSL key files
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite['value'] }}"  # noqa: R114 - trusted key paths
+      loop:
+        - { value: '/etc/ssl/private/test.cluster.local.key' }
+        - { value: '/etc/ssl/private/ci.cluster.local.key' }
+        - { value: '/etc/ssl/private/status.cluster.local.key' }
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: key_stat_results
+
+    - name: Assert SSL keys exist with mode 0640
+      ansible.builtin.assert:
+        that:
+          - item_nginx_multisite['stat']['exists']
+          - item_nginx_multisite['stat']['mode'] == '0640'
+        fail_msg: "SSL key missing or incorrect permissions"
+      loop: "{{ key_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+- name: Verify Security and System Settings
+  hosts: all
+  gather_facts: false
+  tasks:
+    # Firewall rules (ufw)
+    - name: Run ufw status verbose
+      ansible.builtin.command:
+        argv:
+          - ufw
+          - status
+          - verbose
+      register: ufw_status
+      changed_when: false
+
+    - name: Assert ufw command succeeded
+      ansible.builtin.assert:
+        that:
+          - ufw_status.rc == 0
+        fail_msg: "ufw status command failed"
+
+    # Fail2ban service check
+    - name: Assert fail2ban service is running
+      ansible.builtin.assert:
+        that:
+          - "'fail2ban.service' in ansible_facts.services"
+          - ansible_facts.services['fail2ban.service'].state == 'running'
+        fail_msg: "fail2ban service is not running"
+
+    - name: Run fail2ban-client status
+      ansible.builtin.command:
+        argv:
+          - fail2ban-client
+          - status
+      register: fail2ban_client_status
+      changed_when: false
+
+    - name: Assert fail2ban-client reports OK
+      ansible.builtin.assert:
+        that:
+          - fail2ban_client_status.rc == 0
+        fail_msg: "fail2ban-client status failed"
+
+    # SSH hardening checks
+    - name: Check SSHD config for hardening settings
+      ansible.builtin.command:
+        argv:
+          - grep
+          - -E
+          - "PermitRootLogin|PasswordAuthentication"
+          - /etc/ssh/sshd_config
+      register: sshd_hardening
+      changed_when: false
+
+    - name: Assert SSH hardening settings are present
+      ansible.builtin.assert:
+        that:
+          - "'PermitRootLogin no' in sshd_hardening.stdout"
+          - "'PasswordAuthentication no' in sshd_hardening.stdout"
+        fail_msg: "SSH hardening settings missing"
+
+    # Sysctl security settings check
+    - name: Gather sysctl settings
+      ansible.builtin.command:
+        argv:
+          - sysctl
+          - -a
+      register: sysctl_all
+      changed_when: false
+
+    - name: Assert required sysctl settings are present
+      ansible.builtin.assert:
+        that:
+          - "'net.ipv4.ip_forward = 0' in sysctl_all.stdout"
+          - "'kernel.randomize_va_space = 2' in sysctl_all.stdout"
+        fail_msg: "Required sysctl security settings not found"

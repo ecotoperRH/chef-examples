@@ -1,0 +1,54 @@
+---
+- name: Install SSL related packages
+  ansible.builtin.package:
+    name:
+      - openssl
+      - ca-certificates
+    state: present
+
+- name: Ensure ssl-cert group exists
+  ansible.builtin.group:
+    name: ssl-cert
+    state: present
+
+- name: Ensure SSL certificate directory exists
+  ansible.builtin.file:  # noqa: R114 - path from role defaults
+    path: "{{ nginx_ssl_certificate_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure SSL private key directory exists
+  ansible.builtin.file:  # noqa: R114 - path from role defaults
+    path: "{{ nginx_ssl_private_key_path }}"
+    state: directory
+    owner: root
+    group: ssl-cert
+    mode: "0710"
+
+- name: Generate self-signed certificates for sites
+  ansible.builtin.command:  # noqa: R101 - command built from trusted variables
+    cmd: >
+      openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+      -keyout {{ nginx_ssl_private_key_path }}/{{ item_site['key'] }}.key \
+      -out {{ nginx_ssl_certificate_path }}/{{ item_site['key'] }}.crt \
+      -subj "/C=US/ST=Example/L=Example/O=Example Org/OU=IT/CN={{ item_site['key'] }}/emailAddress=admin@example.com"
+    creates: "{{ nginx_ssl_certificate_path }}/{{ item_site['key'] }}.crt"
+  when: item_site['value']['ssl_enabled'] | bool
+  loop: "{{ nginx_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  notify: Reload nginx
+
+- name: Set permissions on private key files
+  ansible.builtin.file:  # noqa: R114 - path from role defaults
+    path: "{{ nginx_ssl_private_key_path }}/{{ item_site['key'] }}.key"
+    owner: root
+    group: ssl-cert
+    mode: "0640"
+    state: file
+  when: item_site['value']['ssl_enabled'] | bool
+  loop: "{{ nginx_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site

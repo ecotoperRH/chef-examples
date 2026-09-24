@@ -1,0 +1,84 @@
+---
+- name: Install security related packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+    state: present
+
+- name: Ensure fail2ban service is enabled and started
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+  when: security_fail2ban_enabled | bool
+
+- name: Deploy fail2ban jail configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  notify: Restart fail2ban
+  when: security_fail2ban_enabled | bool
+
+- name: Apply ufw default deny rule
+  ansible.builtin.command:
+    cmd: ufw --force default deny
+  when: security_ufw_enabled | bool
+  changed_when: "'Default: deny' not in ufw_default.stdout"
+  register: ufw_default
+
+- name: Allow SSH through ufw
+  ansible.builtin.command:
+    cmd: ufw allow ssh
+  when: security_ufw_enabled | bool
+  changed_when: "'22/tcp' not in ufw_ssh.stdout"
+  register: ufw_ssh
+
+- name: Allow HTTP through ufw
+  ansible.builtin.command:
+    cmd: ufw allow http
+  when: security_ufw_enabled | bool
+  changed_when: "'80/tcp' not in ufw_http.stdout"
+  register: ufw_http
+
+- name: Allow HTTPS through ufw
+  ansible.builtin.command:
+    cmd: ufw allow https
+  when: security_ufw_enabled | bool
+  changed_when: "'443/tcp' not in ufw_https.stdout"
+  register: ufw_https
+
+- name: Enable ufw firewall
+  ansible.builtin.command:
+    cmd: ufw --force enable
+  when: security_ufw_enabled | bool
+  changed_when: "'Status: active' not in ufw_enable.stdout"
+  register: ufw_enable
+
+- name: Disable root login in SSH configuration
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    backup: true
+  when: security_ssh_disable_root | bool
+  notify: Restart ssh
+
+- name: Disable password authentication in SSH configuration
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    backup: true
+  when: not security_ssh_password_auth | bool
+  notify: Restart ssh
+
+- name: Deploy sysctl security configuration
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload sysctl
