@@ -1,0 +1,92 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+      - openssh-server
+    state: present
+
+- name: Enable and start fail2ban service
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+
+- name: Deploy fail2ban configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  notify: Restart fail2ban
+
+- name: Configure UFW firewall
+  block:
+    - name: Check UFW status
+      ansible.builtin.command:
+        cmd: ufw status
+      register: ufw_status
+      changed_when: false
+      check_mode: false
+
+    - name: Configure UFW default deny policy # noqa: L039 - variable registered by prior task in same block
+      ansible.builtin.command:
+        cmd: ufw --force default deny
+      when: "'Status: inactive' in ufw_status.stdout or 'deny (incoming)' not in ufw_status.stdout"
+      changed_when: true
+
+    - name: Allow SSH through UFW # noqa: L039 - variable registered by prior task in same block
+      ansible.builtin.command:
+        cmd: ufw allow ssh
+      when: "'22/tcp' not in ufw_status.stdout"
+      changed_when: true
+
+    - name: Allow HTTP through UFW # noqa: L039 - variable registered by prior task in same block
+      ansible.builtin.command:
+        cmd: ufw allow http
+      when: "'80/tcp' not in ufw_status.stdout"
+      changed_when: true
+
+    - name: Allow HTTPS through UFW # noqa: L039 - variable registered by prior task in same block
+      ansible.builtin.command:
+        cmd: ufw allow https
+      when: "'443/tcp' not in ufw_status.stdout"
+      changed_when: true
+
+    - name: Enable UFW firewall # noqa: L039 - variable registered by prior task in same block
+      ansible.builtin.command:
+        cmd: ufw --force enable
+      when: "'Status: inactive' in ufw_status.stdout"
+      changed_when: true
+  when: nginx_multisite_ufw_enabled | bool
+
+- name: Deploy sysctl security configuration
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+    backup: true
+
+- name: Reload sysctl configuration
+  ansible.builtin.command:
+    cmd: sysctl -p /etc/sysctl.d/99-security.conf
+  changed_when: false
+
+- name: Disable SSH root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    state: present
+  when: nginx_multisite_ssh_disable_root | bool
+  notify: Restart ssh
+
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    state: present
+  when: (not nginx_multisite_ssh_password_auth) | bool
+  notify: Restart ssh

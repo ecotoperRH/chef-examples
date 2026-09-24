@@ -1,0 +1,66 @@
+---
+argument_specs:
+  main:
+    short_description: Configure multi-site Nginx web server with SSL/TLS and security hardening
+    description:
+      - Deploys and configures Nginx with multiple virtual hosts
+      - Enables SSL/TLS encryption with self-signed certificates
+      - Implements security hardening via UFW firewall and Fail2Ban
+      - Configures kernel-level security tuning via sysctl
+      - Serves static HTML content from separate document roots
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+        description: >-
+          Dictionary of virtual hosts to configure. Each key is the server name,
+          and the value contains document_root and ssl_enabled settings.
+        options:
+          document_root:
+            type: str
+            required: true
+            description: Path to the document root directory for the virtual host
+          ssl_enabled:
+            type: bool
+            required: true
+            description: Whether to enable SSL/TLS for this virtual host
+      nginx_multisite_ssl_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Path where SSL certificates will be stored
+      nginx_multisite_ssl_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Path where SSL private keys will be stored
+      nginx_multisite_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to enable and configure Fail2Ban intrusion detection
+      nginx_multisite_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to enable and configure UFW firewall
+      nginx_multisite_ssh_disable_root:
+        type: bool
+        required: false
+        default: true
+        description: Whether to disable SSH root login
+      nginx_multisite_ssh_password_auth:
+        type: bool
+        required: false
+        default: false
+        description: Whether to allow SSH password authentication
