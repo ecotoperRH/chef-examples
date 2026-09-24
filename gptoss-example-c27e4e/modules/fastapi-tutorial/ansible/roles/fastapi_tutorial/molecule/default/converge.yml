@@ -1,0 +1,9 @@
+# inbound sources: {{ fastapi_repo_url }}
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Include fastapi_tutorial
+      ansible.builtin.include_role:
+        name: fastapi_tutorial

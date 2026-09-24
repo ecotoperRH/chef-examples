@@ -1,0 +1,171 @@
+---
+# -------------------------------------------------
+# Play 1: System packages and service status checks
+# -------------------------------------------------
+- name: Verify system packages and services
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Define required system packages
+      ansible.builtin.set_fact:
+        required_packages:
+          - python3
+          - python3-pip
+          - python3-venv
+          - git
+          - postgresql
+          - libpq-dev
+
+    - name: Assert required packages are present
+      ansible.builtin.assert:
+        that:
+          - "'{{ item_fastapi_tutorial }}' in ansible_facts.packages"
+        fail_msg: "Package {{ item_fastapi_tutorial }} is not installed"
+      loop: "{{ required_packages }}"
+      loop_control:
+        loop_var: item_fastapi_tutorial
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert PostgreSQL service is running
+      ansible.builtin.assert:
+        that:
+          - "'postgresql' in ansible_facts.services"
+          - "ansible_facts.services['postgresql'].state == 'running'"
+        fail_msg: "PostgreSQL service is not running"
+
+    - name: Assert FastAPI systemd unit exists and is enabled
+      ansible.builtin.assert:
+        that:
+          - "'fastapi-tutorial' in ansible_facts.services"
+          - "ansible_facts.services['fastapi-tutorial'].enabled"
+        fail_msg: "FastAPI systemd unit is missing or not enabled"
+
+# -------------------------------------------------
+# Play 2: Filesystem and virtual environment checks
+# -------------------------------------------------
+- name: Verify filesystem layout and virtualenv
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Stat virtualenv directory
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial/venv
+      register: venv_stat
+
+    - name: Assert virtualenv directory is present
+      ansible.builtin.assert:
+        that:
+          - venv_stat.stat.isdir
+        fail_msg: "Virtualenv directory /opt/fastapi-tutorial/venv is missing"
+
+    - name: Slurp .env file
+      ansible.builtin.slurp:
+        src: /opt/fastapi-tutorial/.env
+      register: env_file_content
+
+    - name: Decode .env content
+      ansible.builtin.set_fact:
+        env_content: "{{ env_file_content.content | b64decode }}"
+
+    - name: Assert .env contains required keys
+      ansible.builtin.assert:
+        that:
+          - "'PROJECT_NAME=' in env_content"
+          - "'API_VERSION=' in env_content"
+          - "'DATABASE_URL=' in env_content"
+        fail_msg: ".env file is missing required configuration entries"
+
+# -------------------------------------------------
+# Play 3: PostgreSQL role/database and DB connectivity
+# -------------------------------------------------
+- name: Verify PostgreSQL objects and connectivity
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: List PostgreSQL roles
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -c
+          - "\\du"
+        become: true
+        become_user: postgres
+      register: pg_roles
+      changed_when: false
+
+    - name: Assert fastapi role exists in PostgreSQL
+      ansible.builtin.assert:
+        that:
+          - "'fastapi' in pg_roles.stdout"
+        fail_msg: "PostgreSQL role 'fastapi' does not exist"
+
+    - name: List PostgreSQL databases
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -c
+          - "\\l"
+        become: true
+        become_user: postgres
+      register: pg_dbs
+      changed_when: false
+
+    - name: Assert fastapi_db database exists
+      ansible.builtin.assert:
+        that:
+          - "'fastapi_db' in pg_dbs.stdout"
+        fail_msg: "PostgreSQL database 'fastapi_db' does not exist"
+
+    - name: Extract DATABASE_URL from .env content
+      ansible.builtin.set_fact:
+        database_url: "{{ (env_content.split('\n') | select('search', '^DATABASE_URL=') | list).0.split('=')[1] | trim('"') }}"
+
+    - name: Test DB connectivity using virtualenv psql
+      ansible.builtin.command:
+        argv:
+          - /opt/fastapi-tutorial/venv/bin/psql
+          - "{{ database_url }}"
+          - -c
+          - "SELECT version();"
+      register: db_connectivity
+      changed_when: false
+
+    - name: Assert DB connectivity succeeded
+      ansible.builtin.assert:
+        that:
+          - db_connectivity.rc == 0
+        fail_msg: "Unable to connect to PostgreSQL using DATABASE_URL"
+
+# -------------------------------------------------
+# Play 4: FastAPI service listening and health check
+# -------------------------------------------------
+- name: Verify FastAPI service is reachable
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for FastAPI service to listen on port 8000
+      ansible.builtin.wait_for:
+        port: 8000
+        host: 0.0.0.0
+        state: started
+        timeout: 10
+
+    - name: Perform FastAPI health‑check
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/health
+        method: GET
+        status_code: 200
+        return_content: false
+      register: health_check
+
+    - name: Assert health‑check succeeded
+      ansible.builtin.assert:
+        that:
+          - health_check.status == 200
+        fail_msg: "FastAPI health‑check endpoint is not reachable or returned unexpected status"

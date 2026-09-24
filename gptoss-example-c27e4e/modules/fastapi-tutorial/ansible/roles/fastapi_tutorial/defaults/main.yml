@@ -1,0 +1,23 @@
+---
+fastapi_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - git
+  - postgresql
+  - postgresql-contrib
+  - libpq-dev
+fastapi_app_dir: /opt/fastapi-tutorial
+fastapi_repo_url: https://github.com/dibanez/fastapi_tutorial.git
+fastapi_repo_revision: main
+fastapi_venv_path: "{{ fastapi_app_dir }}/venv"
+fastapi_env_file: "{{ fastapi_app_dir }}/.env"
+fastapi_service_name: fastapi-tutorial
+fastapi_systemd_path: /etc/systemd/system/{{ fastapi_service_name }}.service
+fastapi_db_user: "{{ db_username }}"
+fastapi_db_password: "{{ db_password }}"
+fastapi_db_name: fastapi_db
+fastapi_db_host: localhost
+fastapi_db_port: 5432
+fastapi_database_url: postgresql://{{ fastapi_db_user }}:{{ fastapi_db_password }}@{{ fastapi_db_host }}/{{ fastapi_db_name }}
+fastapi_port: 8000

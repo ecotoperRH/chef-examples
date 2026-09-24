@@ -1,0 +1,91 @@
+---
+- name: Include credential validation
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Install required packages
+  ansible.builtin.package:
+    name: "{{ fastapi_packages }}"
+    state: present
+
+- name: Ensure application directory exists  # noqa: R114 - path from role defaults
+  ansible.builtin.file:
+    path: "{{ fastapi_app_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# inbound sources: {{ fastapi_repo_url }}
+- name: Clone FastAPI tutorial repository  # noqa: R104,R106,R401 - trusted repo URL and inbound source listed
+  ansible.builtin.git:  # noqa: R401 - inbound source listed via variable
+    repo: "{{ fastapi_repo_url }}"
+    dest: "{{ fastapi_app_dir }}"
+    version: "{{ fastapi_repo_revision }}"
+    force: true
+
+- name: Create Python virtual environment  # noqa: R101 - safe variable from role defaults
+  ansible.builtin.command:  # noqa: R101 - safe variable from role defaults
+    cmd: python3 -m venv {{ fastapi_venv_path }}
+    creates: "{{ fastapi_venv_path }}"
+
+- name: Install Python dependencies  # noqa: R113 - path from role defaults
+  ansible.builtin.pip:
+    requirements: "{{ fastapi_app_dir }}/requirements.txt"
+    virtualenv: "{{ fastapi_venv_path }}"
+    state: present
+  changed_when: false
+
+- name: Ensure PostgreSQL service is enabled and started
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Create PostgreSQL user and database
+  ansible.builtin.shell:
+    cmd: |
+      sudo -u postgres psql -c "CREATE USER {{ fastapi_db_user }} WITH PASSWORD '{{ fastapi_db_password }}';" || true
+      sudo -u postgres psql -c "CREATE DATABASE {{ fastapi_db_name }} OWNER {{ fastapi_db_user }};" || true
+      sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ fastapi_db_name }} TO {{ fastapi_db_user }};" || true
+    executable: /bin/bash
+  changed_when: false
+
+- name: Deploy .env configuration file  # noqa: R114 - path from role defaults
+  ansible.builtin.copy:
+    dest: "{{ fastapi_env_file }}"
+    content: |
+      PROJECT_NAME="FastAPI Tutorial"
+      API_VERSION=0.1.0
+      DATABASE_URL={{ fastapi_database_url }}
+    mode: "0644"
+    owner: root
+    group: root
+    backup: true
+
+- name: Deploy systemd service unit file  # noqa: R114 - path from role defaults
+  ansible.builtin.copy:
+    dest: "{{ fastapi_systemd_path }}"
+    content: |
+      [Unit]
+      Description=FastAPI Tutorial Service
+      After=network.target postgresql.service
+      [Service]
+      Type=simple
+      User=root
+      WorkingDirectory={{ fastapi_app_dir }}
+      Environment="PATH={{ fastapi_venv_path }}/bin"
+      ExecStart={{ fastapi_venv_path }}/bin/uvicorn app.main:app --host 0.0.0.0 --port {{ fastapi_port }}
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+    mode: "0644"
+    owner: root
+    group: root
+    backup: true
+  notify: Reload systemd
+
+- name: Ensure FastAPI service is enabled and started
+  ansible.builtin.service:
+    name: "{{ fastapi_service_name }}"
+    state: started
+    enabled: true

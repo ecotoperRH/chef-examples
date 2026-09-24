@@ -1,0 +1,89 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy FastAPI tutorial application
+    description:
+      - Installs required system packages, clones the FastAPI tutorial repository, sets up a Python virtual environment, configures PostgreSQL, creates a .env 
+        file, and manages a systemd service for the FastAPI app.
+    options:
+      fastapi_packages:
+        type: list
+        elements: str
+        required: false
+        default:
+          - python3
+          - python3-pip
+          - python3-venv
+          - git
+          - postgresql
+          - postgresql-contrib
+          - libpq-dev
+        description: List of system packages required for the FastAPI tutorial.
+      fastapi_app_dir:
+        type: str
+        required: false
+        default: /opt/fastapi-tutorial
+        description: Directory where the FastAPI application will be installed.
+      fastapi_repo_url:
+        type: str
+        required: false
+        default: https://github.com/dibanez/fastapi_tutorial.git
+        description: Git repository URL for the FastAPI tutorial source.
+      fastapi_repo_revision:
+        type: str
+        required: false
+        default: main
+        description: Git revision to checkout.
+      fastapi_venv_path:
+        type: str
+        required: false
+        default: "{{ fastapi_app_dir }}/venv"
+        description: Path to the Python virtual environment.
+      fastapi_env_file:
+        type: str
+        required: false
+        default: "{{ fastapi_app_dir }}/.env"
+        description: Path to the .env configuration file for the FastAPI app.
+      fastapi_service_name:
+        type: str
+        required: false
+        default: fastapi-tutorial
+        description: Name of the systemd service managing the FastAPI app.
+      fastapi_systemd_path:
+        type: str
+        required: false
+        default: /etc/systemd/system/{{ fastapi_service_name }}.service
+        description: Destination path for the systemd unit file.
+      fastapi_db_user:
+        type: str
+        required: true
+        description: PostgreSQL username for the FastAPI app (injected via AAP credential).
+      fastapi_db_password:
+        type: str
+        required: true
+        description: PostgreSQL password for the FastAPI app (injected via AAP credential).
+      fastapi_db_name:
+        type: str
+        required: false
+        default: fastapi_db
+        description: Name of the PostgreSQL database for the FastAPI app.
+      fastapi_db_host:
+        type: str
+        required: false
+        default: localhost
+        description: Hostname of the PostgreSQL server.
+      fastapi_db_port:
+        type: int
+        required: false
+        default: 5432
+        description: Port of the PostgreSQL server.
+      fastapi_database_url:
+        type: str
+        required: false
+        default: postgresql://{{ fastapi_db_user }}:{{ fastapi_db_password }}@{{ fastapi_db_host }}/{{ fastapi_db_name }}
+        description: Database connection URL for the FastAPI app.
+      fastapi_port:
+        type: int
+        required: false
+        default: 8000
+        description: Port on which the FastAPI service will listen.
