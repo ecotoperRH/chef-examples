@@ -1,2 +1,9 @@
+---
 # Handlers for cache role
-# Currently no handlers are required, but this file is present for future use.
+# Define any service restarts or reloads needed
+# Example handler (currently not used):
+# - name: Restart redis instance
+#   ansible.builtin.service:
+#     name: "redis@{{ item_redis['key'] }}"
+#     state: restarted
+#   listen: "restart redis"

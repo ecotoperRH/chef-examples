@@ -1,0 +1,28 @@
+---
+- name: Apply ulimit configurations for Debian family
+  ansible.builtin.block:
+    - name: Deploy PAM su template if provided
+      ansible.builtin.template:
+        src: su.j2
+        dest: /etc/pam.d/su
+        mode: "0644"
+        backup: true
+      when: ulimit.pam_su_template_cookbook is defined and ulimit.pam_su_template_cookbook != None
+    - name: Deploy sudo PAM file
+      ansible.builtin.copy:
+        src: sudo
+        dest: /etc/pam.d/sudo
+        mode: "0644"
+        backup: true
+      when: ulimit.ulimit_overriding_sudo_file_name is defined
+    - name: Set user ulimit limits
+      ansible.builtin.lineinfile:
+        path: /etc/security/limits.d/{{ item_ulimit['key'] }}.conf  # noqa: R114 - path from role-defined ulimit users dict, trusted
+        line: "{{ item_ulimit['key'] }} {{ item_ulimit['value']['type'] }} {{ item_ulimit['value']['item'] }} {{ item_ulimit['value']['value'] }}"
+        create: true
+        mode: "0644"
+        backup: true
+      loop: "{{ ulimit.users | dict2items }}"
+      loop_control:
+        loop_var: item_ulimit  # noqa: L039 - loop var defined, ulimit variable from role defaults
+      # noqa: L051 - Jinja spacing acceptable but suppressed

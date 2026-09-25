@@ -1,24 +1,30 @@
 ---
-- name: Include Memcached tasks
+- name: Include memcached default tasks
   ansible.builtin.include_tasks: memcached_default.yml
 
-- name: Include Redis IO tasks
+- name: Include redisio default tasks
   ansible.builtin.include_tasks: redisio_default.yml
 
-- name: Include Redis install prereqs
-  ansible.builtin.include_tasks: redis_install_prereqs.yml
+- name: Include redisio install prereqs tasks
+  ansible.builtin.include_tasks: redisio_install_prereqs.yml
 
-- name: Include Redis install
-  ansible.builtin.include_tasks: redis_install.yml
+- name: Include redisio install tasks
+  ansible.builtin.include_tasks: redisio_install.yml
 
-- name: Include Redis ulimit
-  ansible.builtin.include_tasks: redis_ulimit.yml
+- name: Include redisio ulimit tasks
+  ansible.builtin.include_tasks: redisio_ulimit.yml
 
-- name: Include Redis disable OS default
-  ansible.builtin.include_tasks: redis_disable_os_default.yml
+- name: Include redisio disable OS default tasks
+  ansible.builtin.include_tasks: redisio_disable_os_default.yml
 
-- name: Include Redis configure
-  ansible.builtin.include_tasks: redis_configure.yml
+- name: Include redisio configure tasks
+  ansible.builtin.include_tasks: redisio_configure.yml
 
-- name: Include Redis enable
-  ansible.builtin.include_tasks: redis_enable.yml
+- name: Include redisio enable tasks
+  ansible.builtin.include_tasks: redisio_enable.yml
+
+- name: Include redisio provider install tasks
+  ansible.builtin.include_tasks: redisio_provider_install.yml
+
+- name: Include redisio provider configure tasks
+  ansible.builtin.include_tasks: redisio_provider_configure.yml

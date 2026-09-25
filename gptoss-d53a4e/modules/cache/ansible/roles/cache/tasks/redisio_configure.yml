@@ -1,0 +1,56 @@
+---
+- name: Ensure redis system group exists
+  ansible.builtin.group:
+    name: "{{ redisio.default_settings.group }}"
+    system: true
+    state: present
+  when: redisio.default_settings.systemuser
+
+- name: Ensure redis system user exists
+  ansible.builtin.user:
+    name: "{{ redisio.default_settings.user }}"
+    group: "{{ redisio.default_settings.group }}"
+    system: true
+    create_home: false
+    shell: "{{ redisio.default_settings.shell }}"
+    home: "{{ redisio.default_settings.homedir }}"
+    state: present
+  when: redisio.default_settings.systemuser
+
+- name: Ensure Redis configuration directory exists  # noqa: R114 - path from role defaults
+  ansible.builtin.file:
+    path: "{{ redisio.default_settings.configdir }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ redisio.default_settings.user }}"
+    group: "{{ redisio.default_settings.group }}"
+
+- name: Deploy Redis configuration file for each instance  # noqa: R114 - path from role defaults
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ redisio.default_settings.configdir }}/{{ item_redis['key'] }}.conf"
+    mode: "0644"
+    backup: true
+  loop: "{{ redisio.servers | dict2items }}"
+  loop_control:
+    loop_var: item_redis
+  vars:
+    name: "{{ item_redis['key'] }}"
+    port: "{{ item_redis['value']['port'] | default('6379') }}"
+    # additional variables can be passed as needed
+
+- name: Ensure Redis service unit files are present (systemd)  # noqa: R114 - path from role defaults
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /etc/systemd/system/redis@{{ item_redis['key'] }}.service
+    mode: "0644"
+    backup: true
+  when: redisio.job_control == 'systemd'
+  loop: "{{ redisio.servers | dict2items }}"
+  loop_control:
+    loop_var: item_redis
+
+- name: Reload systemd daemon
+  ansible.builtin.command:
+    cmd: systemctl daemon-reload
+  when: redisio.job_control == 'systemd'

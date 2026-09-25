@@ -1,8 +1,55 @@
 ---
-- name: Verify
+- name: Verify cache role
   hosts: all
-  gather_facts: true
+  gather_facts: false
   tasks:
-    - name: Verify role cache executed successfully
-      ansible.builtin.debug:
-        msg: "Role cache applied successfully"
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert memcached service is running
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts.services"
+          - ansible_facts.services['memcached.service'].state == 'running'
+        fail_msg: "Memcached service is not running"
+
+    - name: Verify memcached port is listening
+      ansible.builtin.wait_for:
+        port: 11211
+        host: 127.0.0.1
+        state: started
+        timeout: 5
+
+    - name: Check important paths exist
+      ansible.builtin.stat:
+        path: "{{ item_cache }}"  # noqa: R114 - path from trusted static list
+      loop:
+        - /var/log/redis
+        - /etc/pam.d/su
+        - /etc/pam.d/sudo
+      loop_control:
+        loop_var: item_cache
+      register: path_stat_results
+
+    - name: Assert paths exist and are directories
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isdir']
+        fail_msg: "Expected path does not exist or is not a directory"
+      loop: "{{ path_stat_results.results }}"
+      loop_control:
+        loop_var: item_result
+
+    # Redis checks – only if a Redis config file exists (default may not create one)
+    - name: Stat Redis config file
+      ansible.builtin.stat:
+        path: /etc/redis/redis.conf
+      register: redis_conf_stat
+
+    - name: Assert Redis config file exists when Redis is installed  # noqa: L039 - variable from prior register
+      ansible.builtin.assert:
+        that:
+          - redis_conf_stat.stat.exists
+        fail_msg: "Redis config file not found; Redis may not be installed"
+      when: redis_conf_stat.stat.exists

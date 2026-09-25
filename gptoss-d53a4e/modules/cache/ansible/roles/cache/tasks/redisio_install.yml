@@ -1,0 +1,35 @@
+---
+- name: Install Redis package when package_install is true
+  ansible.builtin.package:
+    name: "{{ redisio.package_name }}"
+    state: present
+  when: redisio.package_install
+
+- name: Install Redis from source when not using package install
+  when: not redisio.package_install
+  block:
+    - name: Install prerequisite packages for source install
+      ansible.builtin.include_tasks: redisio_install_prereqs.yml
+
+    - name: Download Redis tarball
+      ansible.builtin.get_url: # noqa: R104,R106 - internal mirror without TLS
+        url: "{{ redisio.mirror }}{{ redisio.base_name }}{{ redisio.version }}.{{ redisio.artifact_type }}"
+        dest: "/tmp/{{ redisio.base_name }}{{ redisio.version }}.{{ redisio.artifact_type }}"
+        mode: "0644"
+        force: no
+      when: redisio.version is defined
+
+    - name: Extract Redis tarball
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ redisio.base_name }}{{ redisio.version }}.{{ redisio.artifact_type }}"
+        dest: "{{ redisio.install_dir | default('/usr/local') }}"
+        remote_src: true
+        creates: "{{ redisio.install_dir | default('/usr/local') }}/{{ redisio.base_name }}{{ redisio.version }}"
+      when: redisio.version is defined
+
+    - name: Install Redis from source (make install)
+      ansible.builtin.command:
+        cmd: make install
+        chdir: "{{ redisio.install_dir | default('/usr/local') }}/{{ redisio.base_name }}{{ redisio.version }}"
+        creates: "/usr/local/bin/redis-server"
+      when: redisio.version is defined

@@ -1,0 +1,3 @@
+---
+- name: Provider install Redis
+  ansible.builtin.include_tasks: redisio_install.yml

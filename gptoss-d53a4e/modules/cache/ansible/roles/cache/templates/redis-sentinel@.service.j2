@@ -1,11 +1,11 @@
 [Unit]
-Description=Redis sentinel (%i) persistent key-value database
+Description=Redis persistent key-value database
 After=network.target
 
 [Service]
-ExecStart={{ bin_path }}/redis-server /etc/redis/sentinel_{{ name }}.conf --sentinel --daemonize no
-User={{ user }}
-Group={{ group }}
+ExecStart={{ bin_path }}/redis-server /etc/redis/sentinel_{{ "%i" }}.conf --sentinel --daemonize no
+User=redis
+Group=redis
 LimitNOFILE={{ limit_nofile }}
 
 [Install]

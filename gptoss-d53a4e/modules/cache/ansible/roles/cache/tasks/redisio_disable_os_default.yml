@@ -1,0 +1,11 @@
+---
+- name: Determine Redis service name
+  ansible.builtin.set_fact:
+    redis_service_name: "{{ 'redis-server' if ansible_facts['os_family'] == 'Debian' else ('redis' if ansible_facts['os_family'] in ['RedHat', 'Fedora'] else None) }}"  # noqa: L076,M014 - use bracket notation, top-level fact removed
+
+- name: Stop and disable Redis service
+  ansible.builtin.service:
+    name: "{{ redis_service_name }}"
+    state: stopped
+    enabled: false
+  when: redis_service_name is defined

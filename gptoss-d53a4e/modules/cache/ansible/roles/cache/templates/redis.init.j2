@@ -17,26 +17,26 @@
 REDISNAME={{ name }}
 REDISPORT={{ port }}
 {% if platform in ['ubuntu','debian','fedora'] %}
-EXEC="su -s /bin/sh -c '{{ bin_path }}/redis-server {{ configdir }}/${{ REDISNAME }}.conf' {{ user }}"
+EXEC="su -s /bin/sh -c '{{ bin_path }}/redis-server {{ configdir }}/${{ '{' }}REDISNAME{{ '}' }}.conf' {{ user }}"
 {% else %}
-EXEC="runuser {{ user }} -c \"{{ bin_path }}/redis-server {{ configdir }}/${{ REDISNAME }}.conf\""
+EXEC="runuser {{ user }} -c \"{{ bin_path }}/redis-server {{ configdir }}/${{ '{' }}REDISNAME{{ '}' }}.conf\""
 {% endif %}
 CLIEXEC={{ bin_path }}/redis-cli
 
-{% if unixsocket is not defined %}
 {% set connection_string = '' %}
-{% set connection_string = connection_string + ' -p ' + port|string %}
-{% if address is defined %}
-{% set connection_string = connection_string + ' -h ' + (address[0] if address is iterable else address) %}
-{% endif %}
+{% if unixsocket is not defined or unixsocket == None %}
+  {% set connection_string = connection_string + ' -p ' + port|string %}
+  {% if address %}
+    {% set connection_string = connection_string + ' -h ' + (address[0] if address is iterable else address) %}
+  {% endif %}
 {% else %}
-{% set connection_string = ' -s ' + unixsocket %}
+  {% set connection_string = connection_string + ' -s ' + unixsocket %}
 {% endif %}
-{% if requirepass is defined %}
-{% set connection_string = connection_string + " -a '" + requirepass + "'" %}
+{% if requirepass is defined and requirepass %}
+  {% set connection_string = connection_string + " -a '{{ requirepass }}'" %}
 {% endif %}
 
-PIDFILE={{ piddir }}/redis_${{ REDISNAME }}.pid
+PIDFILE={{ piddir }}/redis_${REDISNAME}.pid
 
 if [ ! -d {{ piddir }} ]; then
     mkdir -p {{ piddir }}

@@ -11,6 +11,7 @@ script
   fi
 end script
 
+# If the job exits, restart it. Give up with more than 10 restarts in 30 seconds.
 respawn
 respawn limit 10 30
 

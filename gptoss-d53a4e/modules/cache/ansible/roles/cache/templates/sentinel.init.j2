@@ -18,13 +18,13 @@
 
 SENTINELNAME={{ name }}
 {% if platform in ['ubuntu','debian','fedora'] %}
-EXEC="su -s /bin/sh -c '{{ bin_path }}/redis-server {{ configdir }}/${{ SENTINELNAME }}.conf --sentinel' {{ user }}"
+EXEC="su -s /bin/sh -c '{{ bin_path }}/redis-server {{ configdir }}/${{ '{' }}SENTINELNAME{{ '}' }}.conf --sentinel' {{ user }}"
 {% else %}
-EXEC="runuser {{ user }} -c \"{{ bin_path }}/redis-server {{ configdir }}/${{ SENTINELNAME }}.conf --sentinel\""
+EXEC="runuser {{ user }} -c \"{{ bin_path }}/redis-server {{ configdir }}/${{ '{' }}SENTINELNAME{{ '}' }}.conf --sentinel\""
 {% endif %}
 CLIEXEC={{ bin_path }}/redis-cli
 
-PIDFILE={{ piddir }}/${{ SENTINELNAME }}.pid
+PIDFILE={{ piddir }}/{{ name }}.pid
 
 if [ ! -d {{ piddir }} ]; then
     mkdir -p {{ piddir }}
@@ -59,9 +59,7 @@ case "$1" in
         else
                 PID=$(cat $PIDFILE)
                 echo "Stopping ..."
-
                 kill ${PID}
-
                 while [ -x /proc/${PID} ]
                 do
                     echo "Waiting for Redis to shutdown ..."

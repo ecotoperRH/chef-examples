@@ -1,10 +1,10 @@
 [Unit]
-Description=Redis ({{ name }}) persistent key-value database
+Description=Redis (%i) persistent key-value database
 Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart={{ bin_path }}/redis-server /etc/redis/{{ name }}.conf --daemonize no
+ExecStart={{ bin_path }}/redis-server /etc/redis/%i.conf --daemonize no
 User={{ user }}
 Group={{ group }}
 LimitNOFILE={{ limit_nofile }}

@@ -1,0 +1,3 @@
+---
+- name: Provider configure Redis
+  ansible.builtin.include_tasks: redisio_configure.yml

@@ -1,7 +1,68 @@
 ---
 argument_specs:
   main:
-    short_description: Migrated to modern Ansible
-    description:
-      - Role to install and configure cache services (memcached and redis).
-    options: {}
+    options:
+      memcached:
+        type: dict
+        description: Memcached configuration options
+        required: false
+        suboptions:
+          version:
+            type: raw
+          memory:
+            type: int
+          port:
+            type: int
+          udp_port:
+            type: int
+          listen:
+            type: str
+          maxconn:
+            type: int
+          max_object_size:
+            type: str
+          experimental_options:
+            type: list
+          extra_cli_options:
+            type: list
+          ulimit:
+            type: int
+          logfilepath:
+            type: str
+      redisio:
+        type: dict
+        description: Redis configuration options
+        required: false
+        suboptions:
+          package_install:
+            type: bool
+          package_name:
+            type: str
+          safe_install:
+            type: bool
+          bypass_setup:
+            type: bool
+          mirror:
+            type: str
+          base_name:
+            type: str
+          artifact_type:
+            type: str
+          base_piddir:
+            type: str
+          version:
+            type: str
+          install_dir:
+            type: str
+          job_control:
+            type: str
+          init:
+            type: dict
+          default_settings:
+            type: dict
+          servers:
+            type: dict
+          bin_path:
+            type: str
+          ulimit:
+            type: dict

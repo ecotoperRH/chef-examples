@@ -13,9 +13,9 @@
 #
 # Define profiles here to run separate redis instances:
 #
-#redis_profiles="foo bar" #  Script uses /usr/local/etc/redis-{{ name }}.conf respectively.
+#redis_profiles="foo bar" #  Script uses /usr/local/etc/redis-NAME.conf respectively.
 #                            For correct script working please update pidfile entries in
-#                            redis-{{ name }}.conf files.
+#                            redis-NAME.conf files.
 
 . /etc/rc.subr
 
@@ -33,8 +33,8 @@ load_rc_config "$name"
 : ${redis_user="{{ user }}"}
 : ${redis_config="{{ configdir }}/{{ name }}.conf"}
 
-command_args="{{ redis_config }}"
-required_files="{{ redis_config }}"
+command_args="${redis_config}"
+required_files="${redis_config}"
 
 _profile_exists() {
         for _p in ${redis_profiles}; do

@@ -12,7 +12,7 @@
 
 . /etc/rc.subr
 
-name="sentinel_{{ name }}"
+name="redis_{{ name }}"
 rcvar="${name}_enable"
 
 command="{{ bin_path }}/redis-sentinel"
@@ -24,8 +24,8 @@ load_rc_config "$name"
 : ${sentinel_user="{{ user }}"}
 : ${sentinel_config="{{ configdir }}/{{ name }}.conf"}
 
-command_args="{{ sentinel_config }} --daemonize yes --pidfile ${pidfile}"
-required_files="{{ sentinel_config }}"
+command_args="${sentinel_config} --daemonize yes --pidfile ${pidfile}"
+required_files="${sentinel_config}"
 start_precmd="sentinel_checks"
 restart_precmd="sentinel_checks"
 

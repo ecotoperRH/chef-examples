@@ -1,0 +1,6 @@
+---
+- name: Install Redis prerequisite packages
+  ansible.builtin.package:
+    name:
+      - tar
+    state: present
