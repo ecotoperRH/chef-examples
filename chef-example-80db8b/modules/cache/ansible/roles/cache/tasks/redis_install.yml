@@ -1,0 +1,77 @@
+---
+# redis_install.yml — Install Redis from source (equivalent to redisio::install,
+# redisio::_install_prereqs, redisio::disable_os_default, redisio::default)
+
+- name: Update apt cache (Debian/Ubuntu)
+  ansible.builtin.apt: # noqa: L044 - update_cache-only task; no package is being installed, state is not applicable
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Install Redis build prerequisites
+  ansible.builtin.package:
+    name:
+      - tar
+      - gcc
+      - make
+    state: present
+
+- name: Stop and disable OS-default Redis service (prevents conflict with source-compiled)
+  ansible.builtin.service:
+    name: "{{ cache_redis_os_default_service }}"
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Check if Redis binary already exists (safe_install guard)
+  ansible.builtin.stat:
+    path: "{{ cache_redis_bin_path }}/redis-server"
+  register: cache_redis_binary_stat
+
+- name: Create Redis build directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_install_dir }}" # noqa: R114 - path from role-defined variable, not user input
+    state: directory
+    mode: "0755"
+  when: not cache_redis_binary_stat.stat.exists or not cache_redis_safe_install # noqa: L039 - registered by the preceding stat task in this file
+
+- name: Download Redis source tarball # noqa: R104 - URL scheme is role-configurable via cache_redis_download_url, not an uncontrolled HTTP source
+  ansible.builtin.get_url:
+    url: "{{ cache_redis_download_url }}" # noqa: R106 - URL comes from role defaults (cache_redis_download_url), not externally controlled user input
+    dest: "{{ cache_redis_install_dir }}/redis-{{ cache_redis_version }}.tar.gz" # noqa: R114 - path from role-defined variable
+    mode: "0644"
+  when: not cache_redis_binary_stat.stat.exists or not cache_redis_safe_install # noqa: L039 - registered by the preceding stat task in this file
+
+- name: Create Redis source extraction directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_install_dir }}/redis-{{ cache_redis_version }}" # noqa: R114 - path from role-defined variable
+    state: directory
+    mode: "0755"
+  when: not cache_redis_binary_stat.stat.exists or not cache_redis_safe_install # noqa: L039 - registered by the preceding stat task in this file
+
+- name: Extract Redis source tarball # noqa: R104 - src is a local tarball on the managed node (remote_src: true), not a network transfer
+  ansible.builtin.unarchive:
+    src: "{{ cache_redis_install_dir }}/redis-{{ cache_redis_version }}.tar.gz" # noqa: R106 R114 - src is a local path on the managed node (remote_src: true); parameterisation comes from role defaults only
+    dest: "{{ cache_redis_install_dir }}/redis-{{ cache_redis_version }}" # noqa: R114 - path from role-defined variable
+    remote_src: true
+    extra_opts:
+      - --strip-components=1
+  when: not cache_redis_binary_stat.stat.exists or not cache_redis_safe_install # noqa: L039 - registered by the preceding stat task in this file
+
+- name: Build Redis from source (make clean && make) # noqa: R101 - command constructed from role defaults (cache_redis_install_dir, cache_redis_version), not user input
+  ansible.builtin.shell:
+    cmd: |
+      cd {{ cache_redis_install_dir }}/redis-{{ cache_redis_version }} && \
+      make clean && \
+      make
+    creates: "{{ cache_redis_install_dir }}/redis-{{ cache_redis_version }}/src/redis-server"
+  when: not cache_redis_binary_stat.stat.exists or not cache_redis_safe_install # noqa: L039 - registered by the preceding stat task in this file
+
+- name: Install Redis binaries (make install) # noqa: R101 - command constructed from role defaults (cache_redis_install_dir, cache_redis_version), not user input
+  ansible.builtin.shell:
+    cmd: |
+      cd {{ cache_redis_install_dir }}/redis-{{ cache_redis_version }} && \
+      make install
+  when: not cache_redis_binary_stat.stat.exists or not cache_redis_safe_install # noqa: L039 - registered by the preceding stat task in this file
+  args:
+    creates: "{{ cache_redis_bin_path }}/redis-server"

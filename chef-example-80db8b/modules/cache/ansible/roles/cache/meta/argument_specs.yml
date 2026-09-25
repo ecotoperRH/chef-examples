@@ -1,0 +1,238 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure Memcached and Redis caching services
+    description:
+      - Installs and configures Memcached as a system package and Redis compiled from source (version 3.2.11).
+      - Manages systemd service units for both services.
+      - Redis authentication password is injected at runtime via AAP credential type.
+    options:
+      # -------------------------------------------------------------------
+      # Memcached options
+      # -------------------------------------------------------------------
+      cache_memcached_version:
+        type: str
+        required: false
+        default:
+        description: >-
+          Memcached package version to install. null means latest available.
+      cache_memcached_memory:
+        type: int
+        required: false
+        default: 64
+        description: Amount of memory (MB) allocated to Memcached.
+      cache_memcached_port:
+        type: int
+        required: false
+        default: 11211
+        description: TCP port Memcached listens on.
+      cache_memcached_udp_port:
+        type: int
+        required: false
+        default: 11211
+        description: UDP port Memcached listens on.
+      cache_memcached_listen:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: IP address Memcached binds to.
+      cache_memcached_maxconn:
+        type: int
+        required: false
+        default: 1024
+        description: Maximum simultaneous connections for Memcached.
+      cache_memcached_max_object_size:
+        type: str
+        required: false
+        default: 1m
+        description: Maximum size of a single Memcached object.
+      cache_memcached_ulimit:
+        type: int
+        required: false
+        default: 1024
+        description: File descriptor ulimit for the Memcached process.
+      cache_memcached_logfilepath:
+        type: str
+        required: false
+        default: /var/log/memcached
+        description: Directory for Memcached log files.
+      cache_memcached_experimental_options:
+        type: list
+        elements: str
+        required: false
+        default: []
+        description: List of experimental CLI options passed to Memcached.
+      cache_memcached_extra_cli_options:
+        type: list
+        elements: str
+        required: false
+        default: []
+        description: List of extra CLI options passed to Memcached.
+      cache_memcached_user:
+        type: str
+        required: false
+        default: memcache
+        description: >-
+          OS user that runs Memcached. Defaults to 'memcache' on Debian/Ubuntu
+          and 'memcached' on RHEL/Fedora.
+      cache_memcached_group:
+        type: str
+        required: false
+        default: memcache
+        description: >-
+          OS group for the Memcached user. Defaults to 'memcache' on Debian/Ubuntu
+          and 'memcached' on RHEL/Fedora.
+      # -------------------------------------------------------------------
+      # Redis options
+      # -------------------------------------------------------------------
+      redis_password:
+        type: str
+        required: true
+        description: >-
+          Redis authentication password (requirepass directive). Injected at
+          runtime by the AAP 'Redis Credentials' credential type. Do NOT set
+          a default — this must come from the AAP credential store.
+      cache_redis_version:
+        type: str
+        required: false
+        default: 3.2.11
+        description: Redis version to compile from source.
+      cache_redis_download_url:
+        type: str
+        required: false
+        default: http://download.redis.io/releases/redis-3.2.11.tar.gz
+        description: URL to download the Redis source tarball.
+      cache_redis_safe_install:
+        type: bool
+        required: false
+        default: true
+        description: >-
+          When true, skip compilation and installation if the redis-server
+          binary already exists (idempotent re-runs).
+      cache_redis_bin_path:
+        type: str
+        required: false
+        default: /usr/local/bin
+        description: Directory where Redis binaries are installed.
+      cache_redis_install_dir:
+        type: str
+        required: false
+        default: /tmp/redis-build
+        description: Temporary directory used for downloading and building Redis.
+      cache_redis_port:
+        type: int
+        required: false
+        default: 6379
+        description: TCP port Redis listens on.
+      cache_redis_name:
+        type: str
+        required: false
+        default: "6379"
+        description: >-
+          Logical name for the Redis instance (used in config file names,
+          systemd unit names, and syslog identity).
+      cache_redis_user:
+        type: str
+        required: false
+        default: redis
+        description: OS user that runs Redis.
+      cache_redis_group:
+        type: str
+        required: false
+        default: redis
+        description: OS group for the Redis user.
+      cache_redis_homedir:
+        type: str
+        required: false
+        default: /var/lib/redis
+        description: Home directory for the Redis system user.
+      cache_redis_shell:
+        type: str
+        required: false
+        default: /bin/false
+        description: Login shell for the Redis system user.
+      cache_redis_configdir:
+        type: str
+        required: false
+        default: /etc/redis
+        description: Directory where Redis configuration files are stored.
+      cache_redis_datadir:
+        type: str
+        required: false
+        default: /var/lib/redis
+        description: Directory where Redis persists RDB/AOF data files.
+      cache_redis_base_piddir:
+        type: str
+        required: false
+        default: /var/run/redis
+        description: Base directory for Redis PID files (instance subdirectory is appended).
+      cache_redis_logdir:
+        type: str
+        required: false
+        default: /var/log/redis
+        description: Directory for Redis log files.
+      cache_redis_loglevel:
+        type: str
+        required: false
+        default: notice
+        description: "Redis log verbosity: debug, verbose, notice, or warning."
+      cache_redis_syslogenabled:
+        type: str
+        required: false
+        default: "yes"
+        description: Whether Redis logs to syslog ('yes' or 'no').
+      cache_redis_syslogfacility:
+        type: str
+        required: false
+        default: local0
+        description: Syslog facility used by Redis.
+      cache_redis_databases:
+        type: str
+        required: false
+        default: "16"
+        description: Number of Redis databases.
+      cache_redis_backuptype:
+        type: str
+        required: false
+        default: rdb
+        description: "Persistence type: 'rdb', 'aof', or 'both'."
+      cache_redis_maxclients:
+        type: int
+        required: false
+        default: 10000
+        description: Maximum number of simultaneous Redis client connections.
+      cache_redis_limit_nofile:
+        type: int
+        required: false
+        default: 10032
+        description: >-
+          File descriptor limit for the Redis process (LimitNOFILE in systemd unit).
+          Should be maxclients + 32.
+      cache_redis_appendfsync:
+        type: str
+        required: false
+        default: everysec
+        description: "AOF fsync policy: 'always', 'everysec', or 'no'."
+      cache_redis_job_control:
+        type: str
+        required: false
+        default: systemd
+        description: "Init system type: 'systemd', 'initd', 'upstart', or 'rcinit'."
+      cache_redis_os_default_service:
+        type: str
+        required: false
+        default: redis-server
+        description: >-
+          Name of the OS-packaged Redis service to stop and disable (prevents
+          conflict with the source-compiled instance). Defaults to 'redis-server'
+          on Debian/Ubuntu and 'redis' on RHEL/Fedora.
+      cache_redis_clusterenabled:
+        type: str
+        required: false
+        default: "no"
+        description: Whether Redis cluster mode is enabled ('yes' or 'no').
+      cache_redis_clusternodetimeout:
+        type: int
+        required: false
+        default: 5000
+        description: Redis cluster node timeout in milliseconds.

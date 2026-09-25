@@ -1,0 +1,11 @@
+--- # noqa: R401 - audit rule; inbound transfers are in the role under test, not this converge play
+- name: Converge
+  hosts: all
+  gather_facts: true
+  vars:
+    # Molecule test credential — mirrors the AAP-injected redis_password variable
+    redis_password: redis_secure_password_123
+  tasks:
+    - name: Include cache
+      ansible.builtin.include_role: # noqa: L038 - role-under-test resolves at runtime; unresolved only when scanned in isolation
+        name: cache

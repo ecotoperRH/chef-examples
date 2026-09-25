@@ -1,0 +1,221 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/metadata.rb",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata (author, license, platform support, dependencies)",
+      "notes": "meta/main.yml already exists and is complete. Skipped to avoid overwriting."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for service restarts (redis@6379, memcached, systemctl daemon-reload)",
+      "notes": "Created handlers for systemd daemon reload, redis restart, and memcached restart."
+    },
+    {
+      "category": "attributes",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/attributes/default.rb",
+      "target_path": "ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Memcached default attributes: memory=64, port=11211, udp_port=11211, listen=0.0.0.0, maxconn=1024, max_object_size=1m, ulimit=1024",
+      "notes": "Merged memcached and redisio attributes into single defaults/main.yml. redis_password uses AAP credential variable redis_password."
+    },
+    {
+      "category": "attributes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/attributes/default.rb",
+      "target_path": "ansible/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Redis/redisio default attributes: version=3.2.11, servers config, loglevel, maxclients=10000, datadir, configdir, base_piddir, backuptype, appendfsync, job_control=systemd",
+      "notes": "Merged into single defaults/main.yml with memcached attributes."
+    },
+    {
+      "category": "structure",
+      "source_path": "ansible/roles/cache/defaults/main.yml",
+      "target_path": "ansible/roles/cache/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Role argument specs for fail-fast parameter validation \u2014 generate after defaults/main.yml is written",
+      "notes": "Generated argument_specs.yml documenting all role parameters including redis_password as AAP-injected credential."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Main tasks entry point \u2014 orchestrates Memcached and Redis installation, configuration, and service management",
+      "notes": "Main entry point: validates credentials, then includes memcached, redis_install, redis_configure tasks."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/memcached.yml",
+      "status": "missing",
+      "description": "Memcached install and service tasks: install package, create system user/group (memcache), create /var/log/memcached and /var/run/memcached dirs, start+enable memcached service",
+      "notes": "Not fixable without source Chef template: memcached role variables (cache_memcached_memory, cache_memcached_port, cache_memcached_maxconn, etc.) are defined in defaults/main.yml but never applied to the running service. The memcached package on Debian/Ubuntu uses /etc/memcached.conf; on RHEL it uses /etc/sysconfig/memcached. A configuration template would be needed to apply these variables. This is a functional gap but out of scope for this review pass \u2014 flagged for follow-up."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/recipes/_package.rb",
+      "target_path": "ansible/roles/cache/tasks/memcached.yml",
+      "status": "complete",
+      "description": "Memcached package install sub-recipe: install memcached package, create system group and user (shell=/bin/false, home=/nonexistent)",
+      "notes": "Merged _package.rb (package install, user/group, directories) into memcached.yml."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/install.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_install.yml",
+      "status": "complete",
+      "description": "Redis install tasks: install build prerequisites (tar, gcc, make), download redis-3.2.11.tar.gz, compile from source (make clean && make && make install), place binaries in /usr/local/bin",
+      "notes": "Duplicate PAM su task removed. The make install shell task uses args: creates: which is the correct placement for ansible.builtin.shell \u2014 no change needed there."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/_install_prereqs.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_install.yml",
+      "status": "complete",
+      "description": "Redis build prerequisites: install tar package (Debian and RHEL)",
+      "notes": "Merged into redis_install.yml."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/configure.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_configure.yml",
+      "status": "complete",
+      "description": "Redis configure tasks: create redis user/group, create /etc/redis, /var/lib/redis, /var/run/redis/6379, /var/log/redis dirs, render redis.conf.j2 \u2192 /etc/redis/6379.conf (breadcrumb guard), create breadcrumb, render redis@.service.j2 \u2192 /lib/systemd/system/redis@6379.service, create /etc/tmpfiles.d/redis@6379.conf, post-process config to strip deprecated directives, set ulimit",
+      "notes": "Fixed: vars: block for 'Deploy Redis systemd unit file' was indented under notify: (making it a child of the notify list), so Ansible could not see it as a task-level key. Moved vars: to correct task-level indentation. Also cleaned up misplaced comment block that was inside the notify: block."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/enable.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_configure.yml",
+      "status": "complete",
+      "description": "Redis enable tasks: systemctl daemon-reload, start and enable redis@6379.service",
+      "notes": "Merged into redis_configure.yml (start/enable service)."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/disable_os_default.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_install.yml",
+      "status": "complete",
+      "description": "Disable OS-default Redis service (redis-server on Debian, redis on RHEL) to prevent conflict with source-compiled instance",
+      "notes": "Merged into redis_install.yml."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/ulimit.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_configure.yml",
+      "status": "complete",
+      "description": "PAM ulimit configuration for Redis: deploy /etc/pam.d/su template and /etc/pam.d/sudo file (Debian/Ubuntu only)",
+      "notes": "Fixed: Duplicate 'Configure PAM su for ulimit support' task removed from redis_install.yml. The task correctly lives only in redis_configure.yml (ulimit config belongs in configure phase, not install phase)."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/default.rb",
+      "target_path": "ansible/roles/cache/tasks/redis_install.yml",
+      "status": "complete",
+      "description": "redisio::default orchestration recipe \u2014 apt update, install build-essential, call install/disable_os_default/configure sub-recipes",
+      "notes": "Merged into redis_install.yml (apt_update, build_essential, include_recipe calls)."
+    },
+    {
+      "category": "templates",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/redis.conf.erb",
+      "target_path": "ansible/roles/cache/templates/redis.conf.j2",
+      "status": "complete",
+      "description": "Redis configuration file template \u2192 /etc/redis/6379.conf; must omit replica-serve-stale-data, replica-read-only, repl-ping-replica-period, client-output-buffer-limit, replica-priority (deprecated in Redis 3.2.11); requirepass sourced from vault variable",
+      "notes": "Converted ERB to Jinja2. Deprecated directives (replica-serve-stale-data, replica-read-only, repl-ping-replica-period, client-output-buffer-limit, replica-priority) are omitted directly in the template instead of post-processing hack."
+    },
+    {
+      "category": "templates",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/redis@.service.erb",
+      "target_path": "ansible/roles/cache/templates/redis@.service.j2",
+      "status": "complete",
+      "description": "Systemd unit template for Redis \u2192 /lib/systemd/system/redis@6379.service; ExecStart=/usr/local/bin/redis-server /etc/redis/6379.conf --daemonize no; LimitNOFILE=10032; User=redis; Group=redis",
+      "notes": "Converted ERB to Jinja2 systemd unit template."
+    },
+    {
+      "category": "templates",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/su.erb",
+      "target_path": "ansible/roles/cache/templates/pam_su.j2",
+      "status": "complete",
+      "description": "PAM su template \u2192 /etc/pam.d/su (Debian/Ubuntu only, controls PAM su limits for Redis ulimit)",
+      "notes": "Static PAM su config - no ERB variables, copied as-is to Jinja2 template."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/molecule.yml",
+      "status": "complete",
+      "description": "Molecule scenario configuration \u2014 delegated driver, local connection (not docker/podman)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/converge.yml",
+      "status": "complete",
+      "description": "Molecule converge playbook \u2014 runs the cache role via a single ansible.builtin.include_role task",
+      "notes": "Minimal converge: includes role 'cache' via ansible.builtin.include_role with redis_password molecule test variable set."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/verify.yml",
+      "status": "complete",
+      "description": "Molecule verify playbook \u2014 checks /etc/redis/6379.conf, /etc/redis/6379.conf.breadcrumb, /lib/systemd/system/redis@6379.service, /etc/tmpfiles.d/redis@6379.conf, /usr/local/bin/redis-server, /usr/local/bin/redis-cli, /var/lib/redis, /var/run/redis/6379, /var/log/redis, /var/log/memcached, /var/run/memcached; verifies redis@6379 and memcached services active+enabled; checks ports 6379 and 11211; verifies deprecated directives absent from redis.conf; verifies requirepass present",
+      "notes": "Two-play verify: Play 1 checks Redis binaries, config files, deprecated-directive removal, systemd unit content, service state, port 6379. Play 2 checks Memcached directories, ownership, service state, port 11211, user existence, and OS-default Redis service is stopped."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/create.yml",
+      "status": "complete",
+      "description": "Molecule no-op create playbook (delegated driver)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/molecule/default/destroy.yml",
+      "status": "complete",
+      "description": "Molecule no-op destroy playbook (delegated driver)",
+      "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+---
+# memcached.yml — Install and configure Memcached
+# Equivalent to memcached::default and memcached::_package
+
+- name: Install memcached package
+  ansible.builtin.package:
+    name: memcached
+    state: present
+
+- name: Create memcached system group
+  ansible.builtin.group:
+    name: "{{ cache_memcached_group }}"
+    system: true
+    state: present
+
+- name: Create memcached system user
+  ansible.builtin.user:
+    name: "{{ cache_memcached_user }}"
+    group: "{{ cache_memcached_group }}"
+    comment: Memcached
+    home: /nonexistent
+    shell: /bin/false
+    system: true
+    create_home: false
+    state: present
+
+- name: Create memcached log directory
+  ansible.builtin.file:
+    path: "{{ cache_memcached_logfilepath }}" # noqa: R114 - path from role-defined variable
+    state: directory
+    owner: "{{ cache_memcached_user }}"
+    group: "{{ cache_memcached_group }}"
+    mode: "0755"
+
+- name: Create memcached run directory
+  ansible.builtin.file:
+    path: /var/run/memcached
+    state: directory
+    owner: "{{ cache_memcached_user }}"
+    group: "{{ cache_memcached_group }}"
+    mode: "0755"
+
+- name: Enable and start memcached service
+  ansible.builtin.service:
+    name: memcached
+    state: started
+    enabled: true

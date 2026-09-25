@@ -1,0 +1,262 @@
+---
+# =============================================================================
+# Play 1 — Redis: binaries, config files, directories, systemd unit
+# =============================================================================
+- name: Verify Redis installation and configuration
+  hosts: all
+  gather_facts: false
+  vars:
+    redis_password: redis_secure_password_123
+
+  tasks:
+    # -------------------------------------------------------------------------
+    # Redis binary verification
+    # -------------------------------------------------------------------------
+    - name: Stat Redis binaries
+      ansible.builtin.stat:
+        path: "{{ item_bin }}"
+      loop:
+        - /usr/local/bin/redis-server
+        - /usr/local/bin/redis-cli
+      loop_control:
+        loop_var: item_bin
+      register: cache_redis_bin_stats
+
+    - name: Assert Redis binaries exist and are executable
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['executable']
+        fail_msg: "Redis binary not found or not executable"
+      loop: "{{ cache_redis_bin_stats['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    # -------------------------------------------------------------------------
+    # Redis config and sentinel files
+    # -------------------------------------------------------------------------
+    - name: Stat Redis config and breadcrumb files
+      ansible.builtin.stat:
+        path: "{{ item_cfg }}"  # noqa: R114 - fixed literal paths defined in this test
+      loop:
+        - /etc/redis/6379.conf
+        - /etc/redis/6379.conf.breadcrumb
+        - /lib/systemd/system/redis@6379.service
+        - /etc/tmpfiles.d/redis@6379.conf
+      loop_control:
+        loop_var: item_cfg
+      register: cache_redis_file_stats
+
+    - name: Assert Redis config and unit files exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['size'] > 0
+        fail_msg: "Expected Redis file not found or empty"
+      loop: "{{ cache_redis_file_stats['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    # -------------------------------------------------------------------------
+    # Redis directories
+    # -------------------------------------------------------------------------
+    - name: Stat Redis directories
+      ansible.builtin.stat:
+        path: "{{ item_dir }}"  # noqa: R114 - fixed literal paths defined in this test
+      loop:
+        - /etc/redis
+        - /var/lib/redis
+        - /var/run/redis/6379
+        - /var/log/redis
+      loop_control:
+        loop_var: item_dir
+      register: cache_redis_dir_stats
+
+    - name: Assert Redis directories exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isdir']
+        fail_msg: "Expected Redis directory not found"
+      loop: "{{ cache_redis_dir_stats['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    # -------------------------------------------------------------------------
+    # Redis config content — key directives present
+    # -------------------------------------------------------------------------
+    - name: Slurp Redis config file
+      ansible.builtin.slurp:
+        src: /etc/redis/6379.conf
+      register: cache_redis_conf_slurp
+
+    - name: Assert required Redis config directives are present
+      ansible.builtin.assert:
+        that:
+          - cache_redis_conf_slurp['content'] | b64decode | regex_search('^port 6379', multiline=True)
+          - cache_redis_conf_slurp['content'] | b64decode | regex_search('^requirepass redis_secure_password_123', multiline=True)
+          - cache_redis_conf_slurp['content'] | b64decode | regex_search('^loglevel notice', multiline=True)
+          - cache_redis_conf_slurp['content'] | b64decode | regex_search('^maxclients 10000', multiline=True)
+        fail_msg: "One or more required Redis config directives are missing"
+
+    # -------------------------------------------------------------------------
+    # Redis config content — deprecated directives must be absent
+    # -------------------------------------------------------------------------
+    - name: Assert deprecated Redis directives are absent from config
+      ansible.builtin.assert:
+        that:
+          - not (cache_redis_conf_slurp['content'] | b64decode | regex_search('^replica-serve-stale-data', multiline=True))
+          - not (cache_redis_conf_slurp['content'] | b64decode | regex_search('^replica-read-only', multiline=True))
+          - not (cache_redis_conf_slurp['content'] | b64decode | regex_search('^repl-ping-replica-period', multiline=True))
+          - not (cache_redis_conf_slurp['content'] | b64decode | regex_search('^client-output-buffer-limit', multiline=True))
+          - not (cache_redis_conf_slurp['content'] | b64decode | regex_search('^replica-priority', multiline=True))
+        fail_msg: "Deprecated Redis directive found in config — should have been stripped"
+
+    # -------------------------------------------------------------------------
+    # Systemd unit file content
+    # -------------------------------------------------------------------------
+    - name: Slurp Redis systemd unit file
+      ansible.builtin.slurp:
+        src: /lib/systemd/system/redis@6379.service
+      register: cache_redis_unit_slurp
+
+    - name: Assert Redis systemd unit has correct ExecStart and LimitNOFILE
+      ansible.builtin.assert:
+        that:
+          - >-
+            cache_redis_unit_slurp['content'] | b64decode |
+            regex_search('ExecStart=/usr/local/bin/redis-server /etc/redis/6379.conf --daemonize no', multiline=True)
+          - cache_redis_unit_slurp['content'] | b64decode | regex_search('LimitNOFILE=10032', multiline=True)
+        fail_msg: "Redis systemd unit file is missing expected ExecStart or LimitNOFILE directives"
+
+    # -------------------------------------------------------------------------
+    # Redis service state
+    # -------------------------------------------------------------------------
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert Redis service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'redis@6379.service' in ansible_facts['services']"
+          - ansible_facts['services']['redis@6379.service']['state'] == 'running'
+          - ansible_facts['services']['redis@6379.service']['status'] == 'enabled'
+        fail_msg: "redis@6379.service is not running or not enabled"
+
+    # -------------------------------------------------------------------------
+    # Redis TCP port is listening
+    # -------------------------------------------------------------------------
+    - name: Assert Redis is listening on port 6379
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        timeout: 10
+        state: started
+        msg: "Redis is not listening on port 6379"
+
+# =============================================================================
+# Play 2 — Memcached: files, directories, service, port
+# =============================================================================
+- name: Verify Memcached installation and configuration
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    # -------------------------------------------------------------------------
+    # Memcached directories
+    # -------------------------------------------------------------------------
+    - name: Stat Memcached directories
+      ansible.builtin.stat:
+        path: "{{ item_mdir }}"  # noqa: R114 - fixed literal paths defined in this test
+      loop:
+        - /var/log/memcached
+        - /var/run/memcached
+      loop_control:
+        loop_var: item_mdir
+      register: cache_memcached_dir_stats
+
+    - name: Assert Memcached directories exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isdir']
+        fail_msg: "Expected Memcached directory not found"
+      loop: "{{ cache_memcached_dir_stats['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    # -------------------------------------------------------------------------
+    # Memcached directory ownership
+    # -------------------------------------------------------------------------
+    - name: Stat Memcached log directory for ownership check
+      ansible.builtin.stat:
+        path: /var/log/memcached
+      register: cache_memcached_logdir_stat
+
+    - name: Assert Memcached log directory is owned by the service user
+      ansible.builtin.assert:
+        that:
+          - cache_memcached_logdir_stat['stat']['pw_name'] in ['memcache', 'memcached']
+        fail_msg: "Memcached log directory is not owned by memcache or memcached user"
+
+    # -------------------------------------------------------------------------
+    # Memcached service state
+    # -------------------------------------------------------------------------
+    - name: Gather service facts for Memcached
+      ansible.builtin.service_facts:
+
+    - name: Assert Memcached service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts['services']"
+          - ansible_facts['services']['memcached.service']['state'] == 'running'
+          - ansible_facts['services']['memcached.service']['status'] == 'enabled'
+        fail_msg: "memcached.service is not running or not enabled"
+
+    # -------------------------------------------------------------------------
+    # Memcached TCP port is listening
+    # -------------------------------------------------------------------------
+    - name: Assert Memcached is listening on TCP port 11211
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        timeout: 10
+        state: started
+        msg: "Memcached is not listening on TCP port 11211"
+
+    # -------------------------------------------------------------------------
+    # Memcached user/group existence
+    # -------------------------------------------------------------------------
+    - name: Gather Memcached service user info
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ 'memcache' if ansible_facts['os_family'] == 'Debian' else 'memcached' }}"
+      register: cache_memcached_user_info
+
+    - name: Assert Memcached service user exists
+      ansible.builtin.assert:
+        that:
+          - cache_memcached_user_info['ansible_facts']['getent_passwd'] is defined
+          - cache_memcached_user_info['ansible_facts']['getent_passwd'] | length > 0
+        fail_msg: "Memcached service user (memcache/memcached) does not exist"
+
+    # -------------------------------------------------------------------------
+    # OS-default Redis service must be stopped/disabled (Debian: redis-server)
+    # -------------------------------------------------------------------------
+    - name: Assert OS-default Redis service is not running (Debian)
+      ansible.builtin.assert:
+        that:
+          - >-
+            ('redis-server.service' not in ansible_facts['services']) or
+            (ansible_facts['services']['redis-server.service']['state'] != 'running')
+        fail_msg: "OS-default redis-server.service is still running — should be stopped"
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Assert OS-default Redis service is not running (RHEL)
+      ansible.builtin.assert:
+        that:
+          - >-
+            ('redis.service' not in ansible_facts['services']) or
+            (ansible_facts['services']['redis.service']['state'] != 'running')
+        fail_msg: "OS-default redis.service is still running — should be stopped"
+      when: ansible_facts['os_family'] == 'RedHat'

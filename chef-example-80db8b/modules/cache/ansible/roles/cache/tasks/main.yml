@@ -1,0 +1,15 @@
+---
+# tasks/main.yml — Entry point for the cache role
+# Configures Memcached and Redis (source-compiled v3.2.11)
+
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Configure Memcached
+  ansible.builtin.include_tasks: memcached.yml
+
+- name: Install Redis from source
+  ansible.builtin.include_tasks: redis_install.yml
+
+- name: Configure and enable Redis
+  ansible.builtin.include_tasks: redis_configure.yml
