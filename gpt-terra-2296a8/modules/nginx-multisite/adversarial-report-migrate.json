@@ -1,0 +1,14 @@
+{
+  "phase": "migrate",
+  "agents_run": 1,
+  "total_findings": 3,
+  "total_critical_findings": 3,
+  "agents": [
+    {
+      "name": "No sshd config",
+      "findings": 3,
+      "critical_findings": 3,
+      "summary": "The analysis identifies three critical policy violations in the nginx_multisite Ansible role: two default-enabled modifications to /etc/ssh/sshd_config and creation of an operating-system user."
+    }
+  ]
+}
