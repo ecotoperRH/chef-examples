@@ -1,0 +1,6 @@
+#%PAM-1.0
+# Managed by Ansible - cache role
+@include common-auth
+@include common-account
+@include common-session-noninteractive
+session    required   pam_limits.so

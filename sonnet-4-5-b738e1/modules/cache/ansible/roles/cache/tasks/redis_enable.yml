@@ -1,0 +1,14 @@
+---
+- name: Enable and start Redis service (systemd)
+  ansible.builtin.service:
+    name: redis@{{ cache_redis_name }}
+    state: started
+    enabled: true
+  when: cache_redis_job_control == 'systemd'
+
+- name: Enable and start Redis service (initd/upstart/rcinit)
+  ansible.builtin.service:
+    name: redis{{ cache_redis_name }}
+    state: started
+    enabled: true
+  when: cache_redis_job_control != 'systemd'

@@ -1,0 +1,18 @@
+---
+- name: Set OS default Redis service name (Debian)
+  ansible.builtin.set_fact:
+    cache_redis_os_service_name: redis-server
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Set OS default Redis service name (RedHat/Fedora)
+  ansible.builtin.set_fact:
+    cache_redis_os_service_name: redis
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: Stop and disable OS default Redis service
+  ansible.builtin.service:
+    name: "{{ cache_redis_os_service_name }}"
+    state: stopped
+    enabled: false
+  when: cache_redis_os_service_name is defined
+  failed_when: false

@@ -1,0 +1,33 @@
+[Unit]
+Description=memcached instance memcached
+After=network.target
+
+[Service]
+User={{ cache_memcached_user }}
+LimitNOFILE={{ cache_memcached_ulimit }}
+ExecStart=/usr/bin/memcached \
+  -m {{ cache_memcached_memory }} \
+  -p {{ cache_memcached_port }} \
+  -U {{ cache_memcached_udp_port }} \
+  -l {{ cache_memcached_listen }} \
+  -c {{ cache_memcached_maxconn }} \
+  -I {{ cache_memcached_max_object_size }} \
+{% if cache_memcached_extra_cli_options | length > 0 %}
+  {{ cache_memcached_extra_cli_options | join(' ') }} \
+{% endif %}
+{% if cache_memcached_experimental_options | length > 0 %}
+  {{ cache_memcached_experimental_options | join(' ') }} \
+{% endif %}
+  -v
+Restart=on-failure
+
+# Security configurations
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateDevices=true
+CapabilityBoundingSet=CAP_SETGID CAP_SETUID CAP_SYS_RESOURCE
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

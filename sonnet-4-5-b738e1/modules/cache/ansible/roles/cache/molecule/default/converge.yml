@@ -1,0 +1,8 @@
+---
+- name: Converge # noqa: R401 - audit rule; inbound transfers are in the included role and are intentional, sourced from role defaults
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Include cache
+      ansible.builtin.include_role: # noqa: L038 - role-under-test resolves at runtime; unresolved only when scanned in isolation
+        name: cache

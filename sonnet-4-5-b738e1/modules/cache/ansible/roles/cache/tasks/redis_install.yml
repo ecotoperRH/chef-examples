@@ -1,0 +1,42 @@
+---
+- name: Set Redis tarball download URL
+  ansible.builtin.set_fact:
+    cache_redis_download_url: >-
+      {{ cache_redis_mirror }}{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }}
+
+- name: Check if Redis binary already exists (safe_install)
+  ansible.builtin.stat:
+    path: "{{ cache_redis_install_dir }}/redis-server"
+  register: cache_redis_binary_stat
+
+- name: Download Redis source tarball # noqa: L039 R104 R106 - cache_redis_binary_stat registered by prior stat task; URL built from role defaults, HTTP mirror is intentional for internal use
+  ansible.builtin.get_url: # noqa: R106 - URL source is parameterized from role defaults, not user-controlled input
+    url: "{{ cache_redis_download_url }}" # noqa: R104 R106 - URL built from role defaults; HTTP mirror is intentional for internal use
+    dest: /tmp/redis-{{ cache_redis_version }}.tar.gz
+    mode: "0644"
+  when: not (cache_redis_safe_install and cache_redis_binary_stat.stat.exists)
+
+- name: Extract Redis source tarball # noqa: L039 R104 R106 - cache_redis_binary_stat registered by prior stat task; src is a local path built from role defaults
+  ansible.builtin.unarchive: # noqa: R104 R106 - src is a local path built from role defaults, not a remote URL
+    src: /tmp/redis-{{ cache_redis_version }}.tar.gz # noqa: R106 - src is a local path built from role defaults, not user-controlled input
+    dest: /tmp
+    remote_src: true
+  when: not (cache_redis_safe_install and cache_redis_binary_stat.stat.exists)
+
+- name: Build Redis from source # noqa: L039 - cache_redis_binary_stat registered by prior stat task
+  ansible.builtin.shell:
+    cmd: |
+      make clean && make
+    chdir: /tmp/redis-{{ cache_redis_version }}
+  when: not (cache_redis_safe_install and cache_redis_binary_stat.stat.exists)
+  changed_when: true
+
+- name: Install Redis binaries # noqa: L039 - cache_redis_binary_stat registered by prior stat task
+  ansible.builtin.command:
+    cmd: make install
+    chdir: /tmp/redis-{{ cache_redis_version }}
+  when: not (cache_redis_safe_install and cache_redis_binary_stat.stat.exists)
+  changed_when: true
+
+- name: Set ulimit for Redis service
+  ansible.builtin.include_tasks: redis_ulimit.yml

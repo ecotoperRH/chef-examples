@@ -1,0 +1,95 @@
+#!/bin/sh
+#
+# Simple Redis init.d script conceived to work on Linux systems
+# as it does use of the /proc filesystem.
+#
+# description: Redis is an in memory key-value store database
+#
+### BEGIN INIT INFO
+# Provides: redis{{ cache_redis_port }}
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Required-Start: {{ cache_redis_required_start }}
+# Required-Stop: {{ cache_redis_required_stop }}
+# Description: redis{{ cache_redis_port }} init script
+### END INIT INFO
+
+REDISNAME={{ cache_redis_name }}
+REDISPORT={{ cache_redis_port }}
+{% if ansible_os_family == 'Debian' %}
+EXEC="su -s /bin/sh -c '{{ cache_redis_bin_path }}/redis-server {{ cache_redis_configdir }}/${REDISNAME}.conf' {{ cache_redis_user }}"
+{% else %}
+EXEC="runuser {{ cache_redis_user }} -c \"{{ cache_redis_bin_path }}/redis-server {{ cache_redis_configdir }}/${REDISNAME}.conf\""
+{% endif %}
+CLIEXEC={{ cache_redis_bin_path }}/redis-cli
+
+{% if cache_redis_unixsocket is none %}
+CONNECTION_ARGS="-p {{ cache_redis_port }}{% if cache_redis_address is not none %} -h {{ cache_redis_address if cache_redis_address is string else cache_redis_address[0] }}{% endif %}"
+{% else %}
+CONNECTION_ARGS="-s {{ cache_redis_unixsocket }}"
+{% endif %}
+{% if cache_redis_requirepass is not none %}
+CONNECTION_ARGS="${CONNECTION_ARGS} -a '{{ cache_redis_requirepass }}'"
+{% endif %}
+
+PIDFILE={{ cache_redis_piddir }}/redis_${REDISNAME}.pid
+
+if [ ! -d {{ cache_redis_piddir }} ]; then
+    mkdir -p {{ cache_redis_piddir }}
+    chown {{ cache_redis_user }}  {{ cache_redis_piddir }}
+fi
+
+ulimit -n {{ cache_redis_ulimit }}
+
+case "$1" in
+    status)
+        if [ -f $PIDFILE ]
+        then
+          echo "redis$REDISNAME $PIDFILE exists, pid is $(cat $PIDFILE), should be running"
+          ps -p $(cat $PIDFILE) >/dev/null 2>&1
+          exit $?
+        else
+          echo "redis$REDISNAME $PIDFILE doesn't exist"
+          exit 3
+        fi
+        ;;
+    start)
+        if [ -f $PIDFILE ]
+        then
+                echo "$PIDFILE exists, process is already running or crashed"
+                PIDNUM=`cat $PIDFILE`
+                PROCESS_RUNNING=`ps --no-headers -q $PIDNUM | wc -l`
+                if [ ! $PROCESS_RUNNING -eq 1 ]
+                then
+                        echo "The PID doesn't exists, restarting it."
+                        rm $PIDFILE
+                        eval $EXEC
+                fi
+        else
+                echo "Starting Redis server..."
+                eval $EXEC
+        fi
+        ;;
+    stop)
+        if [ ! -f $PIDFILE ]
+        then
+                echo "$PIDFILE does not exist, process is not running"
+        else
+                PID=$(cat $PIDFILE)
+                echo "Stopping ..."
+
+                {% if cache_redis_shutdown_save %}$CLIEXEC ${CONNECTION_ARGS} save{% endif %}
+                $CLIEXEC ${CONNECTION_ARGS} shutdown
+
+                while [ -x /proc/${PID} ]
+                do
+                    echo "Waiting for Redis to shutdown ..."
+                    sleep 1
+                done
+                echo "Redis stopped"
+        fi
+        ;;
+    *)
+        echo "Please use start or stop as first argument"
+        ;;
+esac

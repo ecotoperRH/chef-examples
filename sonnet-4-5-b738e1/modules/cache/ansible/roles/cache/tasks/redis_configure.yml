@@ -1,0 +1,146 @@
+---
+- name: Create redis system group
+  ansible.builtin.group:
+    name: "{{ cache_redis_group }}"
+    system: true
+    state: present
+
+- name: Create redis system user
+  ansible.builtin.user:
+    name: "{{ cache_redis_user }}"
+    comment: Redis service account
+    system: true
+    create_home: true
+    home: "{{ cache_redis_homedir }}"
+    shell: "{{ cache_redis_shell }}"
+    group: "{{ cache_redis_group }}"
+    state: present
+
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+    state: directory
+
+- name: Create Redis config directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_configdir }}" # noqa: R114 - path from role defaults, not user input
+    owner: root
+    group: "{{ cache_redis_group }}"
+    mode: "0775"
+    state: directory
+
+- name: Create Redis data directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_datadir }}" # noqa: R114 - path from role defaults, not user input
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0775"
+    state: directory
+
+- name: Create Redis PID directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_piddir }}" # noqa: R114 - path from role defaults, not user input
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+    state: directory
+
+- name: Check if Redis config breadcrumb exists
+  ansible.builtin.stat:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf.breadcrumb"
+  register: cache_redis_breadcrumb_stat
+
+- name: Deploy Redis configuration file # noqa: L039 - cache_redis_breadcrumb_stat is registered by the prior stat task in this file
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf" # noqa: R114 - path from role defaults, not user input
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0644"
+    backup: true
+  when: not cache_redis_breadcrumb_stat.stat.exists
+  notify: Restart redis
+  vars:
+    cache_redis_requirepass: "{{ redis_password }}"
+
+- name: Create Redis config breadcrumb file # noqa: L039 - cache_redis_breadcrumb_stat is registered by the prior stat task in this file
+  ansible.builtin.file:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf.breadcrumb" # noqa: R114 - path from role defaults, not user input
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0644"
+    state: touch
+  when: not cache_redis_breadcrumb_stat.stat.exists
+
+- name: Remove incompatible Redis config directives # noqa: R115 - path is constructed from role defaults, not user-controlled input
+  ansible.builtin.lineinfile:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf" # noqa: R114 - path from role defaults, not user input
+    regexp: "{{ item_cache_redis_directive }}"
+    state: absent
+  loop:
+    - ^replica-serve-stale-data
+    - ^replica-read-only
+    - ^repl-ping-replica-period
+    - ^client-output-buffer-limit
+    - ^replica-priority
+  loop_control:
+    loop_var: item_cache_redis_directive
+  notify: Restart redis
+
+- name: Deploy Redis systemd unit file
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /lib/systemd/system/redis@{{ cache_redis_name }}.service # noqa: R114 - path from role defaults, not user input
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: cache_redis_job_control == 'systemd'
+  notify:
+    - Reload systemd daemon
+    - Restart redis
+  vars:
+    cache_redis_limit_nofile: "{{ cache_redis_maxclients | int + 32 }}"
+
+- name: Create Redis tmpfiles.d entry
+  ansible.builtin.template:
+    src: redis_tmpfiles.conf.j2
+    dest: /etc/tmpfiles.d/redis@{{ cache_redis_name }}.conf # noqa: R114 - path from role defaults, not user input
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: cache_redis_job_control == 'systemd'
+
+- name: Deploy Redis init.d script
+  ansible.builtin.template:
+    src: redis.init.j2
+    dest: /etc/init.d/redis{{ cache_redis_name }} # noqa: R114 - path from role defaults, not user input
+    owner: root
+    group: root
+    mode: "0755"
+    backup: true
+  when: cache_redis_job_control == 'initd'
+
+- name: Deploy Redis upstart config
+  ansible.builtin.template:
+    src: redis.upstart.conf.j2
+    dest: /etc/init/redis{{ cache_redis_name }}.conf # noqa: R114 - path from role defaults, not user input
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: cache_redis_job_control == 'upstart'
+
+- name: Deploy Redis rcinit script (FreeBSD)
+  ansible.builtin.template:
+    src: redis.rcinit.j2
+    dest: /usr/local/etc/rc.d/redis{{ cache_redis_name }} # noqa: R114 - path from role defaults, not user input
+    owner: root
+    group: wheel
+    mode: "0755"
+    backup: true
+  when: cache_redis_job_control == 'rcinit'

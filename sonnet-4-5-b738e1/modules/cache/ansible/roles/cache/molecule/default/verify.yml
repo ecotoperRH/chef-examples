@@ -1,0 +1,274 @@
+---
+# ============================================================
+# Play 1: Verify Memcached files, directories, and service
+# ============================================================
+- name: Verify Memcached setup
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Stat memcached directories
+      ansible.builtin.stat:
+        path: "{{ item_memcached_dir }}"
+      loop:
+        - /var/log/memcached
+        - /var/run/memcached
+      loop_control:
+        loop_var: item_memcached_dir
+      register: memcached_dir_stats
+
+    - name: Assert memcached directories exist and are directories
+      ansible.builtin.assert:
+        that:
+          - item_memcached_result['stat']['exists']
+          - item_memcached_result['stat']['isdir']
+        fail_msg: "Expected memcached directory not found or not a directory"
+        success_msg: "Memcached directory exists"
+      loop: "{{ memcached_dir_stats['results'] }}"
+      loop_control:
+        loop_var: item_memcached_result
+
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert memcached service is active
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts['services']"
+          - "ansible_facts['services']['memcached.service']['state'] == 'running'"
+        fail_msg: "memcached.service is not running"
+        success_msg: "memcached.service is running"
+
+    - name: Assert memcached service is enabled
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts['services']['memcached.service']['status'] == 'enabled'"
+        fail_msg: "memcached.service is not enabled"
+        success_msg: "memcached.service is enabled"
+
+    - name: Verify memcached is listening on TCP port 11211
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        timeout: 10
+        state: started
+
+# ============================================================
+# Play 2: Verify Redis binaries and directories
+# ============================================================
+- name: Verify Redis binaries and directories
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Stat Redis binaries
+      ansible.builtin.stat:
+        path: "{{ item_redis_bin }}"
+      loop:
+        - /usr/local/bin/redis-server
+        - /usr/local/bin/redis-cli
+      loop_control:
+        loop_var: item_redis_bin
+      register: redis_bin_stats
+
+    - name: Assert Redis binaries exist and are executable
+      ansible.builtin.assert:
+        that:
+          - item_redis_bin_result['stat']['exists']
+          - item_redis_bin_result['stat']['executable']
+        fail_msg: "Expected Redis binary not found or not executable"
+        success_msg: "Redis binary exists and is executable"
+      loop: "{{ redis_bin_stats['results'] }}"
+      loop_control:
+        loop_var: item_redis_bin_result
+
+    - name: Stat Redis directories
+      ansible.builtin.stat:
+        path: "{{ item_redis_dir }}"
+      loop:
+        - /etc/redis
+        - /var/lib/redis
+        - /var/run/redis/6379
+        - /var/log/redis
+      loop_control:
+        loop_var: item_redis_dir
+      register: redis_dir_stats
+
+    - name: Assert Redis directories exist
+      ansible.builtin.assert:
+        that:
+          - item_redis_dir_result['stat']['exists']
+          - item_redis_dir_result['stat']['isdir']
+        fail_msg: "Expected Redis directory not found"
+        success_msg: "Redis directory exists"
+      loop: "{{ redis_dir_stats['results'] }}"
+      loop_control:
+        loop_var: item_redis_dir_result
+
+    - name: Stat Redis config and breadcrumb files
+      ansible.builtin.stat:
+        path: "{{ item_redis_file }}"
+      loop:
+        - /etc/redis/6379.conf
+        - /etc/redis/6379.conf.breadcrumb
+        - /lib/systemd/system/redis@6379.service
+        - /etc/tmpfiles.d/redis@6379.conf
+      loop_control:
+        loop_var: item_redis_file
+      register: redis_file_stats
+
+    - name: Assert Redis config and systemd files exist
+      ansible.builtin.assert:
+        that:
+          - item_redis_file_result['stat']['exists']
+        fail_msg: "Expected Redis file not found"
+        success_msg: "Redis file exists"
+      loop: "{{ redis_file_stats['results'] }}"
+      loop_control:
+        loop_var: item_redis_file_result
+
+# ============================================================
+# Play 3: Verify Redis configuration content
+# ============================================================
+- name: Verify Redis configuration content
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Slurp Redis configuration file
+      ansible.builtin.slurp:
+        src: /etc/redis/6379.conf
+      register: redis_conf_slurp
+
+    - name: Decode Redis config content # noqa: L039 M005 - redis_conf_slurp is registered by the prior slurp task in this play
+      ansible.builtin.set_fact:
+        redis_conf_content: "{{ redis_conf_slurp['content'] | b64decode }}" # noqa: M005 - redis_conf_slurp registered by prior slurp task; b64decode is safe
+
+    - name: Assert required Redis config directives are present
+      ansible.builtin.assert:
+        that:
+          - "'port 6379' in redis_conf_content"
+          - "'loglevel notice' in redis_conf_content"
+          - "'maxclients 10000' in redis_conf_content"
+          - "'syslog-enabled yes' in redis_conf_content"
+          - "'databases 16' in redis_conf_content"
+        fail_msg: "One or more required Redis config directives are missing"
+        success_msg: "All required Redis config directives are present"
+
+    - name: Assert incompatible Redis directives were removed
+      ansible.builtin.assert:
+        that:
+          - "redis_conf_content is not search('^replica-serve-stale-data', multiline=True)"
+          - "redis_conf_content is not search('^replica-read-only', multiline=True)"
+          - "redis_conf_content is not search('^repl-ping-replica-period', multiline=True)"
+          - "redis_conf_content is not search('^client-output-buffer-limit', multiline=True)"
+          - "redis_conf_content is not search('^replica-priority', multiline=True)"
+        fail_msg: "One or more incompatible Redis directives were not removed"
+        success_msg: "All incompatible Redis directives have been removed"
+
+    - name: Slurp Redis systemd unit file
+      ansible.builtin.slurp:
+        src: /lib/systemd/system/redis@6379.service
+      register: redis_service_slurp
+
+    - name: Assert Redis systemd unit references correct binary and config
+      ansible.builtin.assert:
+        that:
+          - "'/usr/local/bin/redis-server' in (redis_service_slurp['content'] | b64decode)"
+          - "'/etc/redis/%i.conf' in (redis_service_slurp['content'] | b64decode)"
+        fail_msg: "Redis systemd unit file does not reference expected binary or config path"
+        success_msg: "Redis systemd unit file content is correct"
+
+    - name: Slurp Redis tmpfiles.d entry
+      ansible.builtin.slurp:
+        src: /etc/tmpfiles.d/redis@6379.conf
+      register: redis_tmpfiles_slurp
+
+    - name: Assert Redis tmpfiles.d entry references correct PID directory
+      ansible.builtin.assert:
+        that:
+          - "'/var/run/redis/6379' in (redis_tmpfiles_slurp['content'] | b64decode)"
+        fail_msg: "Redis tmpfiles.d entry does not reference expected PID directory"
+        success_msg: "Redis tmpfiles.d entry is correct"
+
+# ============================================================
+# Play 4: Verify Redis service state and connectivity
+# ============================================================
+- name: Verify Redis service and connectivity
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert redis@6379 service is active
+      ansible.builtin.assert:
+        that:
+          - "'redis@6379.service' in ansible_facts['services']"
+          - "ansible_facts['services']['redis@6379.service']['state'] == 'running'"
+        fail_msg: "redis@6379.service is not running"
+        success_msg: "redis@6379.service is running"
+
+    - name: Assert redis@6379 service is enabled
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts['services']['redis@6379.service']['status'] == 'enabled'"
+        fail_msg: "redis@6379.service is not enabled"
+        success_msg: "redis@6379.service is enabled"
+
+    - name: Verify Redis is listening on TCP port 6379
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        timeout: 10
+        state: started
+
+    - name: Verify Redis responds to PING with correct password # noqa: L039 R101 - redis_password comes from role vars/inventory; parameterized command is intentional for auth verification
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/redis-cli
+          - -p
+          - "6379"
+          - -a
+          - "{{ redis_password }}" # noqa: R101 - redis_password comes from role vars/inventory, not user-controlled input
+          - PING
+      register: redis_ping_result
+      changed_when: false
+      no_log: true
+
+    - name: Assert Redis PING returns PONG
+      ansible.builtin.assert:
+        that:
+          - "redis_ping_result['stdout'] == 'PONG'"
+        fail_msg: "Redis did not respond with PONG"
+        success_msg: "Redis responded with PONG"
+
+    - name: Verify Redis rejects unauthenticated connections
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/redis-cli
+          - -p
+          - "6379"
+          - PING
+      register: redis_noauth_result
+      changed_when: false
+      failed_when: false
+
+    - name: Assert Redis requires authentication
+      ansible.builtin.assert:
+        that:
+          - "'NOAUTH' in redis_noauth_result['stdout'] or redis_noauth_result['rc'] != 0"
+        fail_msg: "Redis accepted unauthenticated connection — password not enforced"
+        success_msg: "Redis correctly requires authentication"
+
+    - name: Verify Redis version is 3.2.11
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/redis-server
+          - --version
+      register: redis_version_result
+      changed_when: false
+
+    - name: Assert Redis version is 3.2.11
+      ansible.builtin.assert:
+        that:
+          - "'3.2.11' in redis_version_result['stdout']"
+        fail_msg: "Redis version is not 3.2.11"
+        success_msg: "Redis version is 3.2.11"

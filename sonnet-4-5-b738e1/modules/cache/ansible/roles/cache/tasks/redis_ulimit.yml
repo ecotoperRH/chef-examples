@@ -1,0 +1,37 @@
+---
+- name: Create security limits directory
+  ansible.builtin.file:
+    path: /etc/security/limits.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Set Redis file handle ulimit via limits.d
+  ansible.builtin.template:
+    src: redis_limits.conf.j2
+    dest: /etc/security/limits.d/redis.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+
+- name: Configure PAM su for ulimit support (Debian only)
+  ansible.builtin.template:
+    src: pam_su.j2
+    dest: /etc/pam.d/su
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Configure PAM sudo for ulimit support (Debian only)
+  ansible.builtin.copy:
+    src: pam_sudo
+    dest: /etc/pam.d/sudo
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'

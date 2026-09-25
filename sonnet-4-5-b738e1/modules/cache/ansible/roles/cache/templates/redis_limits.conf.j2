@@ -1,0 +1,4 @@
+# Redis ulimit configuration
+# Managed by Ansible - cache role
+{{ cache_redis_user }} soft nofile {{ cache_redis_limit_nofile }}
+{{ cache_redis_user }} hard nofile {{ cache_redis_limit_nofile }}
