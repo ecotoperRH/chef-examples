@@ -1,0 +1,83 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy the FastAPI tutorial application with PostgreSQL
+    description:
+      - Installs and configures the FastAPI tutorial Uvicorn service and its PostgreSQL database.
+    options:
+      fastapi_tutorial_app_dir:
+        type: str
+        required: false
+        default: /opt/fastapi-tutorial
+        description: Absolute directory used for the application checkout.
+      fastapi_tutorial_repo:
+        type: str
+        required: false
+        default: https://github.com/dibanez/fastapi_tutorial.git
+        description: Git repository containing the FastAPI application.
+      fastapi_tutorial_revision:
+        type: str
+        required: false
+        default: main
+        description: Git revision checked out for the application.
+      fastapi_tutorial_venv_dir:
+        type: str
+        required: false
+        default: /opt/fastapi-tutorial/venv
+        description: Absolute directory used for the Python virtual environment.
+      fastapi_tutorial_user:
+        type: str
+        required: false
+        default: root
+        description: Operating-system user that owns and runs the application.
+      fastapi_tutorial_group:
+        type: str
+        required: false
+        default: root
+        description: Operating-system group that owns application files.
+      fastapi_tutorial_database_name:
+        type: str
+        required: false
+        default: fastapi_db
+        description: PostgreSQL database name for the application.
+      fastapi_tutorial_database_user:
+        type: str
+        required: false
+        default: fastapi
+        description: PostgreSQL role used by the application.
+      fastapi_tutorial_database_host:
+        type: str
+        required: false
+        default: localhost
+        description: PostgreSQL host used by the application and readiness check.
+      fastapi_tutorial_database_port:
+        type: int
+        required: false
+        default: 5432
+        description: PostgreSQL TCP port used for readiness checks.
+      fastapi_tutorial_listen_host:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: Interface on which Uvicorn listens.
+      fastapi_tutorial_listen_port:
+        type: int
+        required: false
+        default: 8000
+        description: TCP port on which Uvicorn listens.
+      fastapi_tutorial_postgresql_service:
+        type: str
+        required: false
+        default: "{{ 'postgresql' if ansible_os_family == 'Debian' else 'postgresql' }}"
+        description: PostgreSQL service name for the managed platform.
+      fastapi_tutorial_packages:
+        type: list
+        elements: str
+        required: false
+        default: "{{ ['python3', 'python3-pip', 'python3-venv', 'git', 'postgresql', 'postgresql-contrib', 'libpq-dev', 'python3-psycopg2'] if ansible_os_family ==
+          'Debian' else ['python3', 'python3-pip', 'git', 'postgresql-server', 'postgresql-contrib', 'postgresql-devel', 'python3-psycopg2'] }}"
+        description: Platform-specific packages required by the application and PostgreSQL.
+      db_password:
+        type: str
+        required: true
+        description: PostgreSQL password injected by the AAP credential type.

@@ -1,0 +1,16 @@
+---
+fastapi_tutorial_app_dir: /opt/fastapi-tutorial
+fastapi_tutorial_repo: https://github.com/dibanez/fastapi_tutorial.git
+fastapi_tutorial_revision: main
+fastapi_tutorial_venv_dir: /opt/fastapi-tutorial/venv
+fastapi_tutorial_user: root
+fastapi_tutorial_group: root
+fastapi_tutorial_database_name: fastapi_db
+fastapi_tutorial_database_user: fastapi
+fastapi_tutorial_database_host: localhost
+fastapi_tutorial_database_port: 5432
+fastapi_tutorial_listen_host: 0.0.0.0
+fastapi_tutorial_listen_port: 8000
+fastapi_tutorial_postgresql_service: "{{ 'postgresql' if ansible_os_family == 'Debian' else 'postgresql' }}"
+fastapi_tutorial_packages: "{{ ['python3', 'python3-pip', 'python3-venv', 'git', 'postgresql', 'postgresql-contrib', 'libpq-dev', 'python3-psycopg2'] if ansible_os_family
+  == 'Debian' else ['python3', 'python3-pip', 'git', 'postgresql-server', 'postgresql-contrib', 'postgresql-devel', 'python3-psycopg2'] }}"

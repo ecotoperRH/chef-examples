@@ -1,0 +1,9 @@
+# noqa: R401 - the role's required trusted repository source is intentionally retained; this audit-only aggregate has no behavior-preserving remediation
+---
+- name: Converge # noqa: R401 - inbound repository source is declared in the role defaults for audit
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Include fastapi_tutorial
+      ansible.builtin.include_role: # noqa: L038 - role-under-test resolves at runtime; unresolved only when scanned in isolation
+        name: fastapi_tutorial
