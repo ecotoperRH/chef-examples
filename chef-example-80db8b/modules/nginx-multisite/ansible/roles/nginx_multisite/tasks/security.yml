@@ -1,0 +1,261 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+      - openssh-server
+    state: present
+
+- name: Deploy fail2ban jail configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  notify: Restart fail2ban
+
+- name: Enable and start fail2ban service
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: Set UFW default policy to deny # noqa: command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: ufw --force default deny
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: "'Default incoming policy changed' in nginx_multisite_ufw_default.stdout"
+  register: nginx_multisite_ufw_default
+
+- name: Allow SSH through UFW # noqa: command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: ufw allow ssh
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: "'Rules updated' in nginx_multisite_ufw_ssh.stdout"
+  register: nginx_multisite_ufw_ssh
+
+- name: Allow HTTP through UFW # noqa: command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: ufw allow http
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: "'Rules updated' in nginx_multisite_ufw_http.stdout"
+  register: nginx_multisite_ufw_http
+
+- name: Allow HTTPS through UFW # noqa: command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: ufw allow https
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: "'Rules updated' in nginx_multisite_ufw_https.stdout"
+  register: nginx_multisite_ufw_https
+
+- name: Enable UFW # noqa: command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: ufw --force enable
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: "'Firewall is active and enabled' in nginx_multisite_ufw_enable.stdout"
+  register: nginx_multisite_ufw_enable
+
+- name: Set kernel sysctl - IP spoofing protection (default rp_filter)
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.rp_filter
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - IP spoofing protection (all rp_filter)
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.rp_filter
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv4 accept_redirects all
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.accept_redirects
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv6 accept_redirects all
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.accept_redirects
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv4 accept_redirects default
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.accept_redirects
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv6 accept_redirects default
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.default.accept_redirects
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable send_redirects all
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.send_redirects
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable send_redirects default
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.send_redirects
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv4 accept_source_route all
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.accept_source_route
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv6 accept_source_route all
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.accept_source_route
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv4 accept_source_route default
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.accept_source_route
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv6 accept_source_route default
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.default.accept_source_route
+    value: "0"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - log martians all
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.log_martians
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - log martians default
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.log_martians
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - ignore ICMP echo
+  ansible.posix.sysctl:
+    name: net.ipv4.icmp_echo_ignore_all
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - ignore ICMP broadcasts
+  ansible.posix.sysctl:
+    name: net.ipv4.icmp_echo_ignore_broadcasts
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv6 all
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.disable_ipv6
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv6 default
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.default.disable_ipv6
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - disable IPv6 loopback
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.lo.disable_ipv6
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - TCP syncookies
+  ansible.posix.sysctl:
+    name: net.ipv4.tcp_syncookies
+    value: "1"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - TCP max syn backlog
+  ansible.posix.sysctl:
+    name: net.ipv4.tcp_max_syn_backlog
+    value: "2048"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - TCP synack retries
+  ansible.posix.sysctl:
+    name: net.ipv4.tcp_synack_retries
+    value: "2"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Set kernel sysctl - TCP syn retries
+  ansible.posix.sysctl:
+    name: net.ipv4.tcp_syn_retries
+    value: "5"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    reload: true
+
+- name: Disable SSH root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    state: present
+    backup: true
+  when: nginx_multisite_ssh_disable_root | bool
+  notify: Restart ssh
+
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    state: present
+    backup: true
+  when: not nginx_multisite_ssh_password_auth | bool
+  notify: Restart ssh
