@@ -1,0 +1,425 @@
+---
+- name: Verify system security and Nginx configuration
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Collect installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert required packages are installed
+      ansible.builtin.assert:
+        that:
+          - "'nginx' in ansible_facts['packages']"
+          - "'fail2ban' in ansible_facts['packages']"
+          - "'ufw' in ansible_facts['packages']"
+          - "'openssl' in ansible_facts['packages']"
+          - "'ca-certificates' in ansible_facts['packages']"
+        fail_msg: "Required Nginx security packages are not installed"
+
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert managed services are running
+      ansible.builtin.assert:
+        that:
+          - "'nginx.service' in ansible_facts['services']"
+          - "ansible_facts['services']['nginx.service']['state'] == 'running'"
+          - "'fail2ban.service' in ansible_facts['services']"
+          - "ansible_facts['services']['fail2ban.service']['state'] == 'running'"
+          - >-
+            ('ssh.service' in ansible_facts['services']) or
+            ('sshd.service' in ansible_facts['services'])
+        fail_msg: "Nginx, Fail2ban, or SSH service is not available"
+
+    - name: Validate Nginx configuration syntax
+      ansible.builtin.command:
+        argv:
+          - nginx
+          - -t
+      changed_when: false
+
+    - name: Check rendered security and Nginx configuration files
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite }}"
+      loop:
+        - /etc/fail2ban/jail.local
+        - /etc/sysctl.d/99-security.conf
+        - /etc/ssh/sshd_config
+        - /etc/nginx/nginx.conf
+        - /etc/nginx/conf.d/security.conf
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: nginx_multisite_config_stats
+
+    - name: Assert rendered security and Nginx configuration files exist
+      ansible.builtin.assert:
+        that:
+          - "item_result['stat']['exists']"
+          - "item_result['stat']['isreg']"
+          - "item_result['stat']['size'] > 0"
+        fail_msg: "Expected configuration file is missing or empty"
+      loop: "{{ nginx_multisite_config_stats['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Read required configuration content
+      ansible.builtin.slurp:
+        src: "{{ item_nginx_multisite['path'] }}"
+      loop:
+        - path: /etc/nginx/nginx.conf
+          required: worker_processes
+        - path: /etc/nginx/nginx.conf
+          required: worker_connections
+        - path: /etc/nginx/nginx.conf
+          required: access_log
+        - path: /etc/nginx/nginx.conf
+          required: error_log
+        - path: /etc/nginx/conf.d/security.conf
+          required: server_tokens
+        - path: /etc/nginx/conf.d/security.conf
+          required: limit_req_zone
+        - path: /etc/nginx/conf.d/security.conf
+          required: ssl_protocols
+        - path: /etc/nginx/conf.d/security.conf
+          required: client_max_body_size
+        - path: /etc/ssh/sshd_config
+          required: PermitRootLogin no
+        - path: /etc/ssh/sshd_config
+          required: PasswordAuthentication no
+        - path: /etc/fail2ban/jail.local
+          required: bantime = 3600
+        - path: /etc/fail2ban/jail.local
+          required: findtime = 600
+        - path: /etc/fail2ban/jail.local
+          required: maxretry = 3
+        - path: /etc/sysctl.d/99-security.conf
+          required: net.ipv4.conf.all.rp_filter = 1
+        - path: /etc/sysctl.d/99-security.conf
+          required: net.ipv4.conf.all.accept_redirects = 0
+        - path: /etc/sysctl.d/99-security.conf
+          required: net.ipv4.conf.all.accept_source_route = 0
+        - path: /etc/sysctl.d/99-security.conf
+          required: net.ipv4.conf.all.log_martians = 1
+        - path: /etc/sysctl.d/99-security.conf
+          required: net.ipv4.icmp_echo_ignore_all = 1
+        - path: /etc/sysctl.d/99-security.conf
+          required: net.ipv6.conf.all.disable_ipv6 = 1
+        - path: /etc/sysctl.d/99-security.conf
+          required: net.ipv4.tcp_syncookies = 1
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: nginx_multisite_config_content
+
+    - name: Assert required configuration content is present
+      ansible.builtin.assert:
+        that:
+          - "item_result['content'] | b64decode is search(item_result['item']['required'])"
+        fail_msg: "Required security or Nginx configuration is absent"
+      loop: "{{ nginx_multisite_config_content['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Check UFW policy and allowed ports
+      ansible.builtin.command:
+        argv:
+          - ufw
+          - status
+          - verbose
+      changed_when: false
+      register: nginx_multisite_ufw_status
+
+    - name: Assert UFW denies by default and permits web traffic
+      ansible.builtin.assert:
+        that:
+          - "nginx_multisite_ufw_status['stdout'] is search('Default: deny')"
+          - "nginx_multisite_ufw_status['stdout'] is search('22/tcp')"
+          - "nginx_multisite_ufw_status['stdout'] is search('80/tcp')"
+          - "nginx_multisite_ufw_status['stdout'] is search('443/tcp')"
+        fail_msg: "UFW default-deny policy or required rules are missing"
+
+    - name: Verify Fail2ban responds to its client
+      ansible.builtin.command:
+        argv:
+          - fail2ban-client
+          - ping
+      changed_when: false
+
+    - name: Verify Fail2ban jail status # noqa: R101 - jail names are a fixed role-defined verification list
+      ansible.builtin.command:
+        argv:
+          - fail2ban-client
+          - status
+          - "{{ item_nginx_multisite }}"
+      loop:
+        - sshd
+        - nginx-http-auth
+        - nginx-limit-req
+        - nginx-botsearch
+      loop_control:
+        loop_var: item_nginx_multisite
+      changed_when: false
+
+    - name: Check active kernel hardening values # noqa: R101 - sysctl keys are a fixed role-defined verification list
+      ansible.builtin.command:
+        argv:
+          - sysctl
+          - "{{ item_nginx_multisite }}"
+      loop:
+        - net.ipv4.conf.all.rp_filter
+        - net.ipv4.icmp_echo_ignore_all
+        - net.ipv4.tcp_syncookies
+      loop_control:
+        loop_var: item_nginx_multisite
+      changed_when: false
+      register: nginx_multisite_sysctl_values
+
+    - name: Assert active kernel hardening values are enabled
+      ansible.builtin.assert:
+        that:
+          - "item_result['stdout'] is search('= 1$')"
+        fail_msg: "A required kernel hardening value is not enabled"
+      loop: "{{ nginx_multisite_sysctl_values['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Verify SSH and Nginx listeners are reachable
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ item_nginx_multisite }}"
+        timeout: 10
+      loop:
+        - 22
+        - 80
+        - 443
+      loop_control:
+        loop_var: item_nginx_multisite
+
+- name: Verify TLS material and virtual hosts
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check virtual host files and TLS material
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite['path'] }}"
+      loop:
+        - path: /etc/nginx/sites-available/test.cluster.local
+          type: file
+        - path: /etc/nginx/sites-available/ci.cluster.local
+          type: file
+        - path: /etc/nginx/sites-available/status.cluster.local
+          type: file
+        - path: /etc/nginx/sites-enabled/test.cluster.local
+          type: link
+        - path: /etc/nginx/sites-enabled/ci.cluster.local
+          type: link
+        - path: /etc/nginx/sites-enabled/status.cluster.local
+          type: link
+        - path: /opt/server/test/index.html
+          type: file
+        - path: /opt/server/ci/index.html
+          type: file
+        - path: /opt/server/status/index.html
+          type: file
+        - path: /etc/ssl/certs/test.cluster.local.crt
+          type: file
+        - path: /etc/ssl/certs/ci.cluster.local.crt
+          type: file
+        - path: /etc/ssl/certs/status.cluster.local.crt
+          type: file
+        - path: /etc/ssl/private/test.cluster.local.key
+          type: private_key
+        - path: /etc/ssl/private/ci.cluster.local.key
+          type: private_key
+        - path: /etc/ssl/private/status.cluster.local.key
+          type: private_key
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: nginx_multisite_site_stats
+
+    - name: Assert virtual host files and TLS material have expected types
+      ansible.builtin.assert:
+        that:
+          - "item_result['stat']['exists']"
+          - >-
+            (item_result['item']['type'] == 'link' and item_result['stat']['islnk']) or
+            (item_result['item']['type'] != 'link' and item_result['stat']['isreg'])
+          - >-
+            item_result['item']['type'] != 'private_key' or
+            (item_result['stat']['pw_name'] == 'root' and
+            item_result['stat']['gr_name'] == 'ssl-cert' and item_result['stat']['mode'] == '0640')
+        fail_msg: "A virtual host file or TLS material file is invalid"
+      loop: "{{ nginx_multisite_site_stats['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Check enabled virtual host link targets
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite['path'] }}"
+      loop:
+        - path: /etc/nginx/sites-enabled/test.cluster.local
+          expected: /etc/nginx/sites-available/test.cluster.local
+        - path: /etc/nginx/sites-enabled/ci.cluster.local
+          expected: /etc/nginx/sites-available/ci.cluster.local
+        - path: /etc/nginx/sites-enabled/status.cluster.local
+          expected: /etc/nginx/sites-available/status.cluster.local
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: nginx_multisite_link_stats
+
+    - name: Assert enabled virtual host link targets
+      ansible.builtin.assert:
+        that:
+          - "item_result['stat']['lnk_source'] == item_result['item']['expected']"
+        fail_msg: "An enabled virtual host does not link to its available configuration"
+      loop: "{{ nginx_multisite_link_stats['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Read virtual host configurations
+      ansible.builtin.slurp:
+        src: "{{ item_nginx_multisite['path'] }}"
+      loop:
+        - path: /etc/nginx/sites-available/test.cluster.local
+          name: test.cluster.local
+          root: /opt/server/test
+        - path: /etc/nginx/sites-available/ci.cluster.local
+          name: ci.cluster.local
+          root: /opt/server/ci
+        - path: /etc/nginx/sites-available/status.cluster.local
+          name: status.cluster.local
+          root: /opt/server/status
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: nginx_multisite_site_content
+
+    - name: Assert virtual host configurations contain expected directives
+      ansible.builtin.assert:
+        that:
+          - "item_result['content'] | b64decode is search('server_name ' ~ item_result['item']['name'])"
+          - "item_result['content'] | b64decode is search('root ' ~ item_result['item']['root'])"
+          - "item_result['content'] | b64decode is search('listen 443 ssl http2')"
+        fail_msg: "A virtual host configuration is missing required directives"
+      loop: "{{ nginx_multisite_site_content['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Verify TLS certificate subjects # noqa: R101 - certificate paths and names are a fixed role-defined verification list
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -in
+          - "{{ item_nginx_multisite['certificate'] }}"
+          - -noout
+          - -subject
+          - -dates
+      loop:
+        - certificate: /etc/ssl/certs/test.cluster.local.crt
+          name: test.cluster.local
+        - certificate: /etc/ssl/certs/ci.cluster.local.crt
+          name: ci.cluster.local
+        - certificate: /etc/ssl/certs/status.cluster.local.crt
+          name: status.cluster.local
+      loop_control:
+        loop_var: item_nginx_multisite
+      changed_when: false
+      register: nginx_multisite_certificate_info
+
+    - name: Assert TLS certificate subjects match virtual hosts
+      ansible.builtin.assert:
+        that:
+          - "item_result['stdout'] is search('CN = ' ~ item_result['item']['name'])"
+          - "item_result['stdout'] is search('notBefore=')"
+          - "item_result['stdout'] is search('notAfter=')"
+        fail_msg: "A TLS certificate has an unexpected subject or validity data"
+      loop: "{{ nginx_multisite_certificate_info['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Verify HTTP virtual hosts redirect to HTTPS
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        method: HEAD
+        headers:
+          Host: "{{ item_nginx_multisite }}"
+        follow_redirects: none
+        status_code: 301
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: nginx_multisite_http_responses
+
+    - name: Assert HTTP redirects use HTTPS
+      ansible.builtin.assert:
+        that:
+          - "item_result['location'] is search('^https://')"
+        fail_msg: "A virtual host does not redirect HTTP requests to HTTPS"
+      loop: "{{ nginx_multisite_http_responses['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Verify HTTPS virtual hosts serve content
+      ansible.builtin.uri:
+        url: https://127.0.0.1/
+        method: GET
+        headers:
+          Host: "{{ item_nginx_multisite }}"
+        validate_certs: false
+        return_content: true
+        status_code: 200
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: nginx_multisite_https_responses
+
+    - name: Assert HTTPS virtual hosts return nonempty content
+      ansible.builtin.assert:
+        that:
+          - "item_result['content'] | length > 0"
+        fail_msg: "A virtual host did not return static content over HTTPS"
+      loop: "{{ nginx_multisite_https_responses['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Check default site is removed
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: nginx_multisite_default_site
+
+    - name: Assert default site is absent
+      ansible.builtin.assert:
+        that:
+          - "not nginx_multisite_default_site['stat']['exists']"
+        fail_msg: "The default Nginx virtual host is still enabled"
+
+    - name: Check Nginx log files after virtual host requests
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite }}"
+      loop:
+        - /var/log/nginx/access.log
+        - /var/log/nginx/error.log
+        - /var/log/nginx/test.cluster.local_access.log
+        - /var/log/nginx/test.cluster.local_error.log
+        - /var/log/nginx/ci.cluster.local_access.log
+        - /var/log/nginx/ci.cluster.local_error.log
+        - /var/log/nginx/status.cluster.local_access.log
+        - /var/log/nginx/status.cluster.local_error.log
+      loop_control:
+        loop_var: item_nginx_multisite
+      register: nginx_multisite_log_stats
+
+    - name: Assert Nginx log files exist
+      ansible.builtin.assert:
+        that:
+          - "item_result['stat']['exists']"
+        fail_msg: "An expected Nginx log file is missing"
+      loop: "{{ nginx_multisite_log_stats['results'] }}"
+      loop_control:
+        loop_var: item_result

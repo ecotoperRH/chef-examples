@@ -1,0 +1,101 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name: "{{ nginx_multisite_security_packages }}"
+    state: present
+
+- name: Deploy Fail2ban jail configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  when: nginx_multisite_fail2ban_enabled | bool
+  notify: Restart Fail2ban
+
+- name: Enable and start Fail2ban
+  ansible.builtin.service:
+    name: "{{ nginx_multisite_fail2ban_service }}"
+    enabled: true
+    state: started
+  when: nginx_multisite_fail2ban_enabled | bool
+
+- name: Configure UFW default deny policy
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - --force
+      - default
+      - deny
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Allow SSH through UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - allow
+      - ssh
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Allow HTTP through UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - allow
+      - http
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Allow HTTPS through UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - allow
+      - https
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Enable UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - --force
+      - enable
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Deploy kernel hardening configuration
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload security sysctl settings
+
+- name: Install OpenSSH server
+  ansible.builtin.package:
+    name: openssh-server
+    state: present
+  when: >-
+    nginx_multisite_disable_root_login or
+    nginx_multisite_disable_password_authentication
+
+- name: Disable SSH root login
+  ansible.builtin.lineinfile:
+    path: "{{ nginx_multisite_ssh_config_path }}" # noqa: R114 - path is a role default, not user input
+    regexp: ^#?PermitRootLogin\s+
+    line: PermitRootLogin no
+    create: false
+  when: nginx_multisite_disable_root_login | bool
+  notify: Restart SSH
+
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: "{{ nginx_multisite_ssh_config_path }}" # noqa: R114 - path is a role default, not user input
+    regexp: ^#?PasswordAuthentication\s+
+    line: PasswordAuthentication no
+    create: false
+  when: nginx_multisite_disable_password_authentication | bool
+  notify: Restart SSH

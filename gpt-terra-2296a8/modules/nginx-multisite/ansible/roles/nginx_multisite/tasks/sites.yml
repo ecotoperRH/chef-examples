@@ -1,0 +1,39 @@
+---
+- name: Deploy Nginx virtual host configurations
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: "{{ nginx_multisite_sites_available_path }}/{{ item_nginx_multisite['key'] }}" # noqa: R114 - path from role defaults and role-defined sites dict
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_multisite
+  notify: Reload Nginx
+  vars:
+    server_name: "{{ item_nginx_multisite['key'] }}"
+    document_root: "{{ item_nginx_multisite['value']['document_root'] }}"
+    ssl_enabled: "{{ item_nginx_multisite['value']['ssl_enabled'] }}"
+    cert_file: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_nginx_multisite['key'] }}.crt"
+    key_file: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_nginx_multisite['key'] }}.key"
+
+- name: Enable Nginx virtual hosts
+  ansible.builtin.file:
+    src: "{{ nginx_multisite_sites_available_path }}/{{ item_nginx_multisite['key'] }}" # noqa: R114 - path from role defaults and role-defined sites dict
+    dest: "{{ nginx_multisite_sites_enabled_path }}/{{ item_nginx_multisite['key'] }}" # noqa: R114 - path from role defaults and role-defined sites dict
+    state: link
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_multisite
+  notify: Reload Nginx
+
+- name: Remove default Nginx virtual host # noqa: R115 - deletion target is the fixed default filename under a role-default path
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_sites_enabled_path }}/default" # noqa: R114 - path is a role default, not user input
+    state: absent
+  notify: Reload Nginx
+
+- name: Enable and start Nginx
+  ansible.builtin.service:
+    name: "{{ nginx_multisite_service }}"
+    enabled: true
+    state: started

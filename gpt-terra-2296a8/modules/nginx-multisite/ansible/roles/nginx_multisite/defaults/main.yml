@@ -1,0 +1,34 @@
+---
+nginx_multisite_package: nginx
+nginx_multisite_service: nginx
+nginx_multisite_user: www-data
+nginx_multisite_group: www-data
+nginx_multisite_sites_available_path: /etc/nginx/sites-available
+nginx_multisite_sites_enabled_path: /etc/nginx/sites-enabled
+nginx_multisite_ssl_certificate_path: /etc/ssl/certs
+nginx_multisite_ssl_private_key_path: /etc/ssl/private
+nginx_multisite_ssl_group: ssl-cert
+nginx_multisite_fail2ban_package: fail2ban
+nginx_multisite_fail2ban_service: fail2ban
+nginx_multisite_ssh_service: "{{ 'ssh' if ansible_os_family == 'Debian' else 'sshd' }}"
+nginx_multisite_ssh_config_path: /etc/ssh/sshd_config
+nginx_multisite_security_packages:
+  - fail2ban
+  - ufw
+nginx_multisite_ssl_packages:
+  - openssl
+  - ca-certificates
+nginx_multisite_fail2ban_enabled: true
+nginx_multisite_ufw_enabled: true
+nginx_multisite_disable_root_login: true
+nginx_multisite_disable_password_authentication: true
+nginx_multisite_sites:
+  test.cluster.local:
+    document_root: /opt/server/test
+    ssl_enabled: true
+  ci.cluster.local:
+    document_root: /opt/server/ci
+    ssl_enabled: true
+  status.cluster.local:
+    document_root: /opt/server/status
+    ssl_enabled: true
