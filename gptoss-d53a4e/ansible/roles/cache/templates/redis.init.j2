@@ -16,7 +16,7 @@
 
 REDISNAME={{ name }}
 REDISPORT={{ port }}
-{% if platform in ['ubuntu','debian','fedora'] %}
+{% if platform == 'ubuntu' or platform == 'debian' or platform == 'fedora' %}
 EXEC="su -s /bin/sh -c '{{ bin_path }}/redis-server {{ configdir }}/${{ REDISNAME }}.conf' {{ user }}"
 {% else %}
 EXEC="runuser {{ user }} -c \"{{ bin_path }}/redis-server {{ configdir }}/${{ REDISNAME }}.conf\""
@@ -26,7 +26,7 @@ CLIEXEC={{ bin_path }}/redis-cli
 {% set connection_string = '' %}
 {% if unixsocket is not defined or unixsocket == None %}
   {% set connection_string = connection_string + ' -p ' + port|string %}
-  {% if address %}
+  {% if address is defined %}
     {% set connection_string = connection_string + ' -h ' + (address[0] if address is iterable else address) %}
   {% endif %}
 {% else %}
@@ -36,7 +36,7 @@ CLIEXEC={{ bin_path }}/redis-cli
   {% set connection_string = connection_string + " -a '{{ requirepass }}'" %}
 {% endif %}
 
-PIDFILE={{ piddir }}/redis_${{ REDISNAME }}.pid
+PIDFILE={{ piddir }}/redis_{{ REDISNAME }}.pid
 
 if [ ! -d {{ piddir }} ]; then
     mkdir -p {{ piddir }}
@@ -49,11 +49,11 @@ case "$1" in
     status)
         if [ -f $PIDFILE ]
         then
-          echo "redis$REDISNAME $PIDFILE exists, pid is $(cat $PIDFILE), should be running"
+          echo "redis{{ REDISNAME }} $PIDFILE exists, pid is $(cat $PIDFILE), should be running"
           ps -p $(cat $PIDFILE) >/dev/null 2>&1
           exit $?
         else
-          echo "redis$REDISNAME $PIDFILE doesn't exist"
+          echo "redis{{ REDISNAME }} $PIDFILE doesn't exist"
           exit 3
         fi
         ;;
@@ -82,7 +82,7 @@ case "$1" in
                 PID=$(cat $PIDFILE)
                 echo "Stopping ..."
 
-                {% if shutdown_save %}{{ CLIEXEC }} {{ connection_string }} save{% endif %}
+                {{ "$CLIEXEC " + connection_string + " save" if shutdown_save else '' }}
                 $CLIEXEC {{ connection_string }} shutdown
 
                 while [ -x /proc/${PID} ]
