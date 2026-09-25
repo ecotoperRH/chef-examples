@@ -1,0 +1,20 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Core Nginx web server cookbook that provisions a hardened, multi-site Nginx installation with SSL termination, per-site virtual host configuration, firewall hardening, SSH hardening, and intrusion prevention.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Caching layer cookbook that installs and configures both Memcached and Redis on the same host, delegating to community Supermarket cookbooks, with a post-install workaround to strip incompatible Redis config directives.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Application deployment cookbook that clones a FastAPI Python application from GitHub, sets up a virtual environment, provisions a PostgreSQL database, and registers the application as a systemd service running under uvicorn.",
+    "technology": "Chef"
+  }
+]
