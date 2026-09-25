@@ -1,0 +1,193 @@
+---
+# Play 1: Verify filesystem layout, git clone, and virtual environment
+- name: Verify filesystem and virtual environment
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Stat key application paths
+      ansible.builtin.stat:
+        path: "{{ item_path }}" # noqa: R114 - fixed list of role-defined production paths, not user input
+      loop:
+        - /opt/fastapi-tutorial
+        - /opt/fastapi-tutorial/venv
+        - /opt/fastapi-tutorial/requirements.txt
+        - /opt/fastapi-tutorial/venv/bin/uvicorn
+        - /opt/fastapi-tutorial/.env
+        - /etc/systemd/system/fastapi-tutorial.service
+      loop_control:
+        loop_var: item_path
+      register: path_stat_results
+
+    - name: Assert all application paths exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+        fail_msg: "Expected path does not exist"
+      loop: "{{ path_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Assert application directory has correct mode (0755)
+      ansible.builtin.assert:
+        that:
+          - path_stat_results['results'][0]['stat']['mode'] == '0755'
+          - path_stat_results['results'][0]['stat']['pw_name'] == 'root'
+        fail_msg: "Application directory has wrong permissions or owner"
+
+    - name: Assert .env file has correct mode (0640)
+      ansible.builtin.assert:
+        that:
+          - path_stat_results['results'][4]['stat']['mode'] == '0640'
+          - path_stat_results['results'][4]['stat']['pw_name'] == 'root'
+        fail_msg: ".env file has wrong permissions or owner"
+
+    - name: Assert systemd unit file has correct mode (0644)
+      ansible.builtin.assert:
+        that:
+          - path_stat_results['results'][5]['stat']['mode'] == '0644'
+          - path_stat_results['results'][5]['stat']['pw_name'] == 'root'
+        fail_msg: "Systemd unit file has wrong permissions or owner"
+
+    - name: Assert virtual environment directory exists
+      ansible.builtin.assert:
+        that:
+          - path_stat_results['results'][1]['stat']['isdir']
+        fail_msg: "Python virtual environment directory is not a directory"
+
+    - name: Slurp .env file content
+      ansible.builtin.slurp:
+        src: /opt/fastapi-tutorial/.env
+      register: env_file_content
+
+    - name: Assert .env file contains required keys
+      ansible.builtin.assert:
+        that:
+          - "'PROJECT_NAME' in (env_file_content['content'] | b64decode)"
+          - "'API_VERSION' in (env_file_content['content'] | b64decode)"
+          - "'DATABASE_URL' in (env_file_content['content'] | b64decode)"
+          - "'postgresql://' in (env_file_content['content'] | b64decode)"
+        fail_msg: ".env file is missing required configuration keys"
+
+    - name: Slurp systemd unit file content
+      ansible.builtin.slurp:
+        src: /etc/systemd/system/fastapi-tutorial.service
+      register: service_unit_content
+
+    - name: Assert systemd unit file contains required directives
+      ansible.builtin.assert:
+        that:
+          - "'uvicorn' in (service_unit_content['content'] | b64decode)"
+          - "'--port 8000' in (service_unit_content['content'] | b64decode)"
+          - "'After=network.target postgresql.service' in (service_unit_content['content'] | b64decode)"
+          - "'Restart=always' in (service_unit_content['content'] | b64decode)"
+          - "'ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn' in (service_unit_content['content'] | b64decode)"
+        fail_msg: "Systemd unit file is missing required directives"
+
+# Play 2: Verify services are running and ports are listening
+- name: Verify services and network ports
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert PostgreSQL service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'postgresql.service' in ansible_facts['services']"
+          - "ansible_facts['services']['postgresql.service']['state'] == 'running'"
+          - "ansible_facts['services']['postgresql.service']['status'] == 'enabled'"
+        fail_msg: "PostgreSQL service is not running or not enabled"
+
+    - name: Assert fastapi-tutorial service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'fastapi-tutorial.service' in ansible_facts['services']"
+          - "ansible_facts['services']['fastapi-tutorial.service']['state'] == 'running'"
+          - "ansible_facts['services']['fastapi-tutorial.service']['status'] == 'enabled'"
+        fail_msg: "fastapi-tutorial service is not running or not enabled"
+
+    - name: Wait for PostgreSQL port 5432 to be listening
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 5432
+        state: started
+        timeout: 30
+
+    - name: Wait for FastAPI port 8000 to be listening
+      ansible.builtin.wait_for:
+        host: 0.0.0.0
+        port: 8000
+        state: started
+        timeout: 30
+
+# Play 3: Verify application HTTP endpoints and PostgreSQL database
+- name: Verify application HTTP endpoints and database
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check FastAPI /docs endpoint returns HTTP 200
+      ansible.builtin.uri:
+        url: http://localhost:8000/docs
+        method: GET
+        status_code: 200
+        timeout: 30
+      register: docs_response
+
+    - name: Assert /docs response is successful
+      ansible.builtin.assert:
+        that:
+          - docs_response['status'] == 200
+        fail_msg: "FastAPI /docs endpoint did not return HTTP 200"
+
+    - name: Check FastAPI /openapi.json endpoint returns HTTP 200
+      ansible.builtin.uri:
+        url: http://localhost:8000/openapi.json
+        method: GET
+        status_code: 200
+        return_content: true
+        timeout: 30
+      register: openapi_response
+
+    - name: Assert OpenAPI JSON contains expected title
+      ansible.builtin.assert:
+        that:
+          - openapi_response['status'] == 200
+          - "'FastAPI' in openapi_response['content']"
+        fail_msg: "OpenAPI JSON response missing expected title"
+
+    - name: Verify PostgreSQL user 'fastapi' exists
+      ansible.builtin.command:
+        argv:
+          - sudo
+          - -u
+          - postgres
+          - psql
+          - -tAc
+          - "SELECT 1 FROM pg_roles WHERE rolname='fastapi';"
+      register: pg_user_check
+      changed_when: false
+
+    - name: Assert PostgreSQL user 'fastapi' exists
+      ansible.builtin.assert:
+        that:
+          - "'1' in pg_user_check['stdout']"
+        fail_msg: "PostgreSQL user 'fastapi' does not exist"
+
+    - name: Verify PostgreSQL database 'fastapi_db' exists
+      ansible.builtin.command:
+        argv:
+          - sudo
+          - -u
+          - postgres
+          - psql
+          - -tAc
+          - "SELECT 1 FROM pg_database WHERE datname='fastapi_db';"
+      register: pg_db_check
+      changed_when: false
+
+    - name: Assert PostgreSQL database 'fastapi_db' exists
+      ansible.builtin.assert:
+        that:
+          - "'1' in pg_db_check['stdout']"
+        fail_msg: "PostgreSQL database 'fastapi_db' does not exist"

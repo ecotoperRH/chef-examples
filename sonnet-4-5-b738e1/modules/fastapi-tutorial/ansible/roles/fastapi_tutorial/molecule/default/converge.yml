@@ -1,0 +1,15 @@
+---
+- name: Converge # noqa: R401 - audit rule fires because the included role performs a git clone; source URL is role-defined and intentional
+  hosts: all
+  gather_facts: true
+  vars:
+    # AAP credential variables injected here for molecule testing
+    db_username: fastapi
+    db_password: fastapi_password
+    db_name: fastapi_db
+    db_host: localhost
+    database_url: "postgresql://fastapi:fastapi_password@localhost/fastapi_db"
+  tasks:
+    - name: Include fastapi_tutorial
+      ansible.builtin.include_role: # noqa: L038 - role-under-test resolves at runtime; unresolved only when scanned in isolation
+        name: fastapi_tutorial

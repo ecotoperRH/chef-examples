@@ -1,0 +1,103 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Install required system packages
+  ansible.builtin.package:
+    name: "{{ fastapi_tutorial_packages }}"
+    state: present
+
+# PostgreSQL service must be running before DB provisioning tasks below.
+# Starting it here, immediately after the package install, also ensures it is
+# available for the full remainder of the play.
+- name: Enable and start PostgreSQL service
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Create application directory
+  ansible.builtin.file:
+    path: "{{ fastapi_tutorial_app_dir }}" # noqa: R114 - path from role-defined variable, not user input
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Clone FastAPI tutorial repository # noqa: R104 R106 - repo URL is a role-defined variable; HTTP/parameterized source is intentional and controlled by role defaults
+  ansible.builtin.git:
+    repo: "{{ fastapi_tutorial_git_repo }}"
+    dest: "{{ fastapi_tutorial_app_dir }}" # noqa: R114 - path from role-defined variable, not user input
+    version: "{{ fastapi_tutorial_git_branch }}"
+    force: true
+
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ fastapi_tutorial_venv_dir }} # noqa: R101 - venv path comes from role defaults, not user input
+    creates: "{{ fastapi_tutorial_venv_dir }}"
+
+- name: Install Python dependencies from requirements.txt
+  ansible.builtin.pip:
+    requirements: "{{ fastapi_tutorial_app_dir }}/requirements.txt" # noqa: R113 - requirements path is role-defined, not externally controlled
+    virtualenv: "{{ fastapi_tutorial_venv_dir }}"
+    state: present
+
+- name: Create PostgreSQL user # noqa: L039 R101 - db_username and db_password are role parameters defined in inventory/vars, not user input
+  ansible.builtin.shell:
+    cmd: >-
+      sudo -u postgres psql -tAc
+      "SELECT 1 FROM pg_roles WHERE rolname='{{ db_username }}'" |
+      grep -q 1 ||
+      sudo -u postgres psql -c
+      "CREATE USER {{ db_username }} WITH PASSWORD '{{ db_password }}';"
+  register: _pg_create_user
+  changed_when: "'CREATE ROLE' in _pg_create_user.stdout"
+
+- name: Create PostgreSQL database # noqa: L039 R101 - db_name and db_username are role parameters defined in inventory/vars, not user input
+  ansible.builtin.shell:
+    cmd: >-
+      sudo -u postgres psql -tAc
+      "SELECT 1 FROM pg_database WHERE datname='{{ db_name }}'" |
+      grep -q 1 ||
+      sudo -u postgres psql -c
+      "CREATE DATABASE {{ db_name }} OWNER {{ db_username }};"
+  register: _pg_create_db
+  changed_when: "'CREATE DATABASE' in _pg_create_db.stdout"
+
+- name: Grant privileges on PostgreSQL database # noqa: L039 R101 - db_name and db_username are role parameters defined in inventory/vars, not user input
+  ansible.builtin.shell:
+    cmd: >-
+      sudo -u postgres psql -c
+      "GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_username }};"
+  register: _pg_grant
+  changed_when: "'GRANT' in _pg_grant.stdout"
+
+- name: Deploy application environment file
+  ansible.builtin.template:
+    src: fastapi-tutorial.env.j2
+    dest: "{{ fastapi_tutorial_app_dir }}/.env" # noqa: R114 - path from role-defined variable, not user input
+    owner: root
+    group: root
+    mode: "0640"
+    backup: true
+
+- name: Deploy systemd unit file for fastapi-tutorial
+  ansible.builtin.template:
+    src: fastapi-tutorial.service.j2
+    dest: /etc/systemd/system/fastapi-tutorial.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify:
+    - Reload systemd daemon
+    - Restart fastapi-tutorial service
+
+- name: Flush handlers to reload systemd before enabling service
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start fastapi-tutorial service
+  ansible.builtin.service:
+    name: "{{ fastapi_tutorial_service_name }}"
+    state: started
+    enabled: true
