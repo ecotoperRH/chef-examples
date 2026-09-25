@@ -1,0 +1,33 @@
+---
+- name: Install Memcached package
+  ansible.builtin.package:
+    name:
+      - "{{ cache_memcached_package }}"
+    state: present
+
+- name: Create Memcached log directory
+  ansible.builtin.file:
+    path: "{{ cache_memcached_log_dir }}" # noqa: R114 - path is a role default
+    state: directory
+    mode: "0755"
+
+- name: Configure Memcached instance
+  ansible.builtin.blockinfile:
+    path: "{{ cache_memcached_config_path }}" # noqa: R114 - path is a role default
+    create: true
+    mode: "0644"
+    marker: "# {mark} ANSIBLE MANAGED CACHE SETTINGS"
+    block: |
+      -m {{ cache_memcached_memory_mb }}
+      -p {{ cache_memcached_port }}
+      -U {{ cache_memcached_udp_port }}
+      -l {{ cache_memcached_listen }}
+      -c {{ cache_memcached_max_connections }}
+      -I {{ cache_memcached_max_object_size }}
+  notify: Restart Memcached
+
+- name: Enable and start Memcached
+  ansible.builtin.service:
+    name: "{{ cache_memcached_service }}"
+    enabled: true
+    state: started

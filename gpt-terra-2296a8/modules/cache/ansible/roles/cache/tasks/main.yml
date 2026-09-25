@@ -1,0 +1,30 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Configure Memcached
+  ansible.builtin.include_tasks: memcached.yml
+
+- name: Configure Redis default installation sequence
+  ansible.builtin.include_tasks: redis_default.yml
+
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_log_dir }}" # noqa: R114 - path is a role default
+    state: directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+
+- name: Remove incompatible Redis configuration directives # noqa: R115 - deletion is limited to a role-default Redis configuration path
+  ansible.builtin.lineinfile:
+    path: "{{ cache_redis_config_path }}" # noqa: R114 - path is assembled from role defaults
+    regexp: ^{{ item_cache_directive }}\b.*$
+    state: absent
+  loop: "{{ cache_redis_remove_directives }}"
+  loop_control:
+    loop_var: item_cache_directive
+  notify: Restart Redis instance
+
+- name: Enable Redis instance
+  ansible.builtin.include_tasks: redis_enable.yml

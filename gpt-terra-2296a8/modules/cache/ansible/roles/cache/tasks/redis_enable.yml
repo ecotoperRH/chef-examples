@@ -1,0 +1,7 @@
+---
+- name: Enable and start Redis instance
+  ansible.builtin.systemd:
+    name: "{{ cache_redis_service }}"
+    enabled: true
+    state: started
+    daemon_reload: true

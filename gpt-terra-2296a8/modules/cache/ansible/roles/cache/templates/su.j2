@@ -1,0 +1,20 @@
+#
+# The PAM configuration file for the Shadow `su' service
+#
+# This file enables ulimit switching with `su`.
+#
+
+auth       sufficient pam_rootok.so
+# auth       required   pam_wheel.so
+# auth       sufficient pam_wheel.so trust
+# auth       required   pam_wheel.so deny group=nosu
+# account    requisite  pam_time.so
+
+session       required   pam_env.so readenv=1
+session       required   pam_env.so readenv=1 envfile=/etc/default/locale
+session    optional   pam_mail.so nopen
+session    required   pam_limits.so
+
+@include common-auth
+@include common-account
+@include common-session

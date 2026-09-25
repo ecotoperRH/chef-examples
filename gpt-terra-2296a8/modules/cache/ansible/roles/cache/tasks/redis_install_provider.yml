@@ -1,0 +1,45 @@
+---
+- name: Create Redis source download directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_download_dir }}" # noqa: R114 - path is a role default
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Check whether Redis server binary already exists
+  ansible.builtin.stat:
+    path: "{{ cache_redis_bin_path }}/redis-server" # noqa: R114 - path is a role default
+  register: cache_redis_binary
+
+- name: Download Redis source archive # noqa: M005 - cache_redis_version is a role default, not module-result data
+  ansible.builtin.get_url:
+    url: "https://download.redis.io/releases/redis-{{ cache_redis_version }}.tar.gz" # noqa: R106 - source URL is a role default for the official Redis release archive
+    dest: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}.tar.gz" # noqa: R114 - role defaults
+    mode: "0644"
+  when: not cache_redis_binary.stat.exists # noqa: L039 - cache_redis_binary is registered by the preceding stat task
+
+- name: Unpack Redis source archive # noqa: M005 - cache_redis_version is a role default, not module-result data; noqa: R104 - source is the locally downloaded archive, obtained from the official Redis HTTPS release URL
+  ansible.builtin.unarchive:
+    src: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}.tar.gz" # noqa: R106 - archive path is a role-default location
+    dest: "{{ cache_redis_download_dir }}" # noqa: R114 - path is a role default
+    remote_src: true
+    creates: "{{ cache_redis_source_dir }}/Makefile" # noqa: R114 - role defaults
+  when: not cache_redis_binary.stat.exists # noqa: L039 - cache_redis_binary is registered by the preceding stat task
+
+- name: Build Redis source
+  ansible.builtin.command:
+    argv:
+      - make
+    chdir: "{{ cache_redis_source_dir }}" # noqa: R114 - role default source location
+    creates: "{{ cache_redis_source_dir }}/src/redis-server" # noqa: R114 - role defaults
+  when: not cache_redis_binary.stat.exists # noqa: L039 - cache_redis_binary is registered by the preceding stat task
+
+- name: Install Redis binaries
+  ansible.builtin.command:
+    argv:
+      - make
+      - install
+    chdir: "{{ cache_redis_source_dir }}" # noqa: R114 - role default source location
+    creates: "{{ cache_redis_bin_path }}/redis-server" # noqa: R114 - role default binary location
+  when: not cache_redis_binary.stat.exists # noqa: L039 - cache_redis_binary is registered by the preceding stat task

@@ -1,0 +1,8 @@
+---
+- name: Converge # noqa: R401 - inbound sources are reported by the role under test and retained for integration coverage
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Include cache
+      ansible.builtin.include_role: # noqa: L038 - role-under-test resolves at runtime; unresolved only when scanned in isolation
+        name: cache

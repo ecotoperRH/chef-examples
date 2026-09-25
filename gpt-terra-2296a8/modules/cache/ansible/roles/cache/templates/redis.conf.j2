@@ -1,0 +1,53 @@
+# Redis configuration for instance {{ cache_redis_instance_name }}.
+# Generated from the redisio redis.conf.erb source configuration.
+daemonize no
+pidfile {{ cache_redis_pid_dir }}/redis_{{ cache_redis_instance_name }}.pid
+port {{ cache_redis_port }}
+tcp-backlog {{ cache_redis_tcp_backlog }}
+{% if cache_redis_bind_addresses | length > 0 %}
+bind {{ cache_redis_bind_addresses | join(' ') }}
+{% endif %}
+{% if cache_redis_protected_mode is not none %}
+protected-mode {{ cache_redis_protected_mode }}
+{% endif %}
+timeout {{ cache_redis_timeout }}
+tcp-keepalive {{ cache_redis_keepalive }}
+loglevel {{ cache_redis_log_level }}
+syslog-enabled {{ cache_redis_syslog_enabled }}
+syslog-ident redis-{{ cache_redis_instance_name }}
+syslog-facility {{ cache_redis_syslog_facility }}
+databases {{ cache_redis_databases }}
+
+# RDB persistence
+save 900 1
+save 300 10
+save 60 10000
+stop-writes-on-bgsave-error {{ cache_redis_stop_writes_on_bgsave_error }}
+rdbcompression {{ cache_redis_rdb_compression }}
+rdbchecksum {{ cache_redis_rdb_checksum }}
+dbfilename dump-{{ cache_redis_instance_name }}.rdb
+dir {{ cache_redis_data_dir }}
+
+# Authentication
+requirepass {{ redis_password }}
+
+maxclients {{ cache_redis_maxclients }}
+appendonly no
+appendfsync everysec
+no-appendfsync-on-rewrite no
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+aof-load-truncated yes
+lua-time-limit 5000
+slowlog-log-slower-than 10000
+slowlog-max-len 1024
+notify-keyspace-events ""
+hash-max-ziplist-entries 512
+hash-max-ziplist-value 64
+set-max-intset-entries 512
+zset-max-ziplist-entries 128
+zset-max-ziplist-value 64
+hll-sparse-max-bytes 3000
+activerehashing yes
+hz 10
+aof-rewrite-incremental-fsync yes

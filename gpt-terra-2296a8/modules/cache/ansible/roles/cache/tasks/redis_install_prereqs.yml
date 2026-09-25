@@ -1,0 +1,5 @@
+---
+- name: Install Redis source build prerequisites
+  ansible.builtin.package:
+    name: "{{ cache_redis_build_packages[ansible_facts['os_family']] | default(['tar']) }}"
+    state: present

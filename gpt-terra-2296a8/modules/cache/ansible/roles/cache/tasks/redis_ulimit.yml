@@ -1,0 +1,20 @@
+---
+- name: Configure PAM su limits integration on Debian systems
+  ansible.builtin.template:
+    src: su.j2
+    dest: /etc/pam.d/su
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Configure PAM sudo limits integration on Debian systems
+  ansible.builtin.copy:
+    src: sudo
+    dest: /etc/pam.d/sudo
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'

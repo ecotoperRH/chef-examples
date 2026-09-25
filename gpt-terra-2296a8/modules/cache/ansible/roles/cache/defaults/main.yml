@@ -1,0 +1,62 @@
+---
+cache_memcached_package: memcached
+cache_memcached_service: memcached
+cache_memcached_config_path: /etc/memcached.conf
+cache_memcached_log_dir: /var/log/memcached
+cache_memcached_memory_mb: 64
+cache_memcached_port: 11211
+cache_memcached_udp_port: 11211
+cache_memcached_listen: 0.0.0.0
+cache_memcached_max_connections: 1024
+cache_memcached_max_object_size: 1m
+cache_memcached_ulimit: 1024
+cache_redis_version: 3.2.11
+cache_redis_source_url: http://download.redis.io/releases/redis-{{ cache_redis_version }}.tar.gz
+cache_redis_download_dir: /usr/local/src
+cache_redis_source_dir: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}"
+cache_redis_bin_path: /usr/local/bin
+cache_redis_user: redis
+cache_redis_group: redis
+cache_redis_home: /var/lib/redis
+cache_redis_shell: /usr/sbin/nologin
+cache_redis_config_dir: /etc/redis
+cache_redis_data_dir: /var/lib/redis
+cache_redis_log_dir: /var/log/redis
+cache_redis_pid_base_dir: /var/run/redis
+cache_redis_instance_name: "6379"
+cache_redis_port: 6379
+cache_redis_pid_dir: "{{ cache_redis_pid_base_dir }}/{{ cache_redis_instance_name }}"
+cache_redis_config_path: "{{ cache_redis_config_dir }}/{{ cache_redis_instance_name }}.conf"
+cache_redis_service: redis@{{ cache_redis_instance_name }}
+cache_redis_unit_path: /lib/systemd/system/{{ cache_redis_service }}.service
+cache_redis_tmpfiles_path: /etc/tmpfiles.d/{{ cache_redis_service }}.conf
+cache_redis_breadcrumb_path: "{{ cache_redis_config_path }}.breadcrumb"
+cache_redis_tcp_backlog: 511
+cache_redis_bind_addresses: []
+cache_redis_protected_mode:
+cache_redis_timeout: 0
+cache_redis_keepalive: 0
+cache_redis_log_level: notice
+cache_redis_syslog_enabled: "yes"
+cache_redis_syslog_facility: local0
+cache_redis_databases: 16
+cache_redis_stop_writes_on_bgsave_error: "yes"
+cache_redis_rdb_compression: "yes"
+cache_redis_rdb_checksum: "yes"
+cache_redis_maxclients: 10000
+cache_redis_limit_nofile: 10032
+cache_redis_os_service: "{{ 'redis-server' if ansible_os_family == 'Debian' else 'redis' }}"
+cache_redis_build_packages:
+  Debian:
+    - build-essential
+    - tar
+  RedHat:
+    - gcc
+    - make
+    - tar
+cache_redis_remove_directives:
+  - replica-serve-stale-data
+  - replica-read-only
+  - repl-ping-replica-period
+  - client-output-buffer-limit
+  - replica-priority

@@ -1,0 +1,266 @@
+---
+- name: Verify cache services and configuration # noqa: R401 - inbound sources are reported by the role under test and retained for integration coverage
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Check cache directories and generated files
+      ansible.builtin.stat:
+        path: "{{ item_cache_path['path'] }}"
+      loop:
+        - path: /var/log/redis
+          directory: true
+        - path: /var/log/memcached
+          directory: true
+        - path: /etc/redis
+          directory: true
+        - path: /etc/redis/6379.conf
+          directory: false
+        - path: /etc/redis/6379.conf.breadcrumb
+          directory: false
+        - path: /var/lib/redis
+          directory: true
+        - path: /var/run/redis/6379
+          directory: true
+        - path: /etc/tmpfiles.d/redis@6379.conf
+          directory: false
+        - path: /lib/systemd/system/redis@6379.service
+          directory: false
+      loop_control:
+        loop_var: item_cache_path
+      register: cache_path_stats
+
+    - name: Assert cache directories and generated files exist
+      ansible.builtin.assert:
+        that:
+          - item_cache_result['stat']['exists']
+          - item_cache_result['stat']['isdir'] == item_cache_result['item']['directory']
+          - item_cache_result['stat']['size'] > 0
+        fail_msg: "Expected cache path is missing or has the wrong type"
+      loop: "{{ cache_path_stats['results'] }}"
+      loop_control:
+        loop_var: item_cache_result
+
+    - name: Check Debian PAM files
+      ansible.builtin.stat:
+        path: "{{ item_cache_pam_path }}"
+      loop:
+        - /etc/pam.d/su
+        - /etc/pam.d/sudo
+      loop_control:
+        loop_var: item_cache_pam_path
+      register: cache_pam_stats
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Assert Debian PAM files exist
+      ansible.builtin.assert:
+        that:
+          - item_cache_pam_result['stat']['exists']
+          - item_cache_pam_result['stat']['size'] > 0
+        fail_msg: "Expected Debian PAM file was not created"
+      loop: "{{ cache_pam_stats['results'] }}"
+      loop_control:
+        loop_var: item_cache_pam_result
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Read Redis instance configuration
+      ansible.builtin.slurp:
+        src: /etc/redis/6379.conf
+      register: cache_redis_config
+      no_log: true
+
+    - name: Assert Redis configuration and compatibility cleanup
+      ansible.builtin.assert:
+        that:
+          - "(cache_redis_config['content'] | b64decode) is search('(?m)^port 6379$')"
+          - "(cache_redis_config['content'] | b64decode) is search('(?m)^databases 16$')"
+          - "(cache_redis_config['content'] | b64decode) is search('(?m)^tcp-backlog 511$')"
+          - "(cache_redis_config['content'] | b64decode) is search('(?m)^maxclients 10000$')"
+          - "(cache_redis_config['content'] | b64decode) is search('(?m)^requirepass .+$')"
+          - "(cache_redis_config['content'] | b64decode) is search('(?m)^dir /var/lib/redis$')"
+          - "(cache_redis_config['content'] | b64decode) is search('(?m)^dbfilename dump-6379.rdb$')"
+          - "(cache_redis_config['content'] | b64decode) is not search('(?m)^(replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority)')"
+        fail_msg: "Redis configuration does not contain the expected instance settings"
+      no_log: true
+
+    - name: Check cache service active and enabled states
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - "{{ item_cache_service['action'] }}"
+          - "{{ item_cache_service['service'] }}"
+      loop:
+        - action: is-active
+          service: memcached
+          expected: "^active$"
+        - action: is-enabled
+          service: memcached
+          expected: "^enabled$"
+        - action: is-active
+          service: redis@6379
+          expected: "^active$"
+        - action: is-enabled
+          service: redis@6379
+          expected: "^enabled$"
+      loop_control:
+        loop_var: item_cache_service
+      register: cache_service_checks
+      changed_when: false
+
+    - name: Assert cache service states
+      ansible.builtin.assert:
+        that:
+          - item_cache_service_result['stdout'] is search(item_cache_service_result['item']['expected'])
+        fail_msg: "Cache service is not in its expected state"
+      loop: "{{ cache_service_checks['results'] }}"
+      loop_control:
+        loop_var: item_cache_service_result
+
+    - name: Check cache TCP listeners
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ item_cache_port }}"
+        state: started
+        timeout: 10
+      loop:
+        - 11211
+        - 6379
+      loop_control:
+        loop_var: item_cache_port
+
+    - name: Check Memcached UDP listener
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -lun
+      register: cache_memcached_udp_sockets
+      changed_when: false
+
+    - name: Assert Memcached listens on UDP port 11211
+      ansible.builtin.assert:
+        that:
+          - "cache_memcached_udp_sockets['stdout'] is search(':11211')"
+        fail_msg: "Memcached UDP listener is not present on port 11211"
+
+    - name: Query Memcached health endpoints # noqa: R101 - command arguments are fixed and loop input is defined in this verification play
+      ansible.builtin.command:
+        argv:
+          - nc
+          - -w
+          - "3"
+          - 127.0.0.1
+          - "11211"
+        stdin: "{{ item_cache_memcached_query['input'] }}"
+      loop:
+        - input: "version\r
+"
+          expected: "^VERSION "
+        - input: "stats\r
+"
+          expected: "^STAT "
+      loop_control:
+        loop_var: item_cache_memcached_query
+      register: cache_memcached_queries
+      changed_when: false
+
+    - name: Assert Memcached health responses
+      ansible.builtin.assert:
+        that:
+          - item_cache_memcached_result['stdout'] is search(item_cache_memcached_result['item']['expected'])
+        fail_msg: "Memcached did not return the expected health response"
+      loop: "{{ cache_memcached_queries['results'] }}"
+      loop_control:
+        loop_var: item_cache_memcached_result
+
+- name: Verify Redis runtime behavior
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check Redis source-build version
+      ansible.builtin.command:
+        argv:
+          - redis-server
+          - -v
+      register: cache_redis_version
+      changed_when: false
+
+    - name: Assert Redis source-build version
+      ansible.builtin.assert:
+        that:
+          - "cache_redis_version['stdout'] is search('v=3.2.11')"
+        fail_msg: "Redis server is not version 3.2.11"
+
+    - name: Check authenticated Redis connectivity # noqa: L039 - redis_password is required by the role's credential validation; noqa: L045 - redis-cli requires REDISCLI_AUTH to authenticate without exposing the secret in argv
+      ansible.builtin.command:
+        argv:
+          - redis-cli
+          - -h
+          - 127.0.0.1
+          - -p
+          - "6379"
+          - PING
+      environment:
+        REDISCLI_AUTH: "{{ redis_password }}"
+      register: cache_redis_ping
+      changed_when: false
+      no_log: true
+
+    - name: Assert authenticated Redis connectivity
+      ansible.builtin.assert:
+        that:
+          - cache_redis_ping['stdout'] == 'PONG'
+        fail_msg: "Redis did not return PONG after authentication"
+      no_log: true
+
+    - name: Query authenticated Redis runtime settings # noqa: L039 - redis_password is required by the role's credential validation; noqa: L045 - redis-cli requires REDISCLI_AUTH to authenticate without exposing the secret in argv; noqa: R101 - command arguments and loop input are fixed in this verification play
+      ansible.builtin.command:
+        argv:
+          - redis-cli
+          - -h
+          - 127.0.0.1
+          - -p
+          - "6379"
+          - CONFIG
+          - GET
+          - "{{ item_cache_redis_setting['name'] }}"
+      environment:
+        REDISCLI_AUTH: "{{ redis_password }}"
+      loop:
+        - name: port
+          expected: "6379"
+        - name: databases
+          expected: "16"
+        - name: tcp-backlog
+          expected: "511"
+        - name: maxclients
+          expected: "10000"
+      loop_control:
+        loop_var: item_cache_redis_setting
+      register: cache_redis_settings
+      changed_when: false
+      no_log: true
+
+    - name: Assert Redis runtime settings
+      ansible.builtin.assert:
+        that:
+          - item_cache_redis_setting_result['stdout'] is search(item_cache_redis_setting_result['item']['expected'])
+        fail_msg: "Redis did not return the expected authenticated runtime setting"
+      loop: "{{ cache_redis_settings['results'] }}"
+      loop_control:
+        loop_var: item_cache_redis_setting_result
+      no_log: true
+
+    - name: Check conflicting operating system Redis service # noqa: R101 - service name is selected only from known operating-system facts
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - "{{ 'redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis' }}"
+      register: cache_os_redis_service
+      changed_when: false
+      failed_when: false
+
+    - name: Assert conflicting operating system Redis service is inactive
+      ansible.builtin.assert:
+        that:
+          - "cache_os_redis_service['stdout'] is search('^(inactive|failed|unknown)$')"
+        fail_msg: "Conflicting operating system Redis service is active"

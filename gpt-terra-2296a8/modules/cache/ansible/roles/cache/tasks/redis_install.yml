@@ -1,0 +1,9 @@
+---
+- name: Install Redis source prerequisites
+  ansible.builtin.include_tasks: redis_install_prereqs.yml
+
+- name: Install Redis source build
+  ansible.builtin.include_tasks: redis_install_provider.yml
+
+- name: Configure Redis PAM limits
+  ansible.builtin.include_tasks: redis_ulimit.yml

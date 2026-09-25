@@ -1,0 +1,86 @@
+---
+- name: Create Redis service group
+  ansible.builtin.group:
+    name: "{{ cache_redis_group }}"
+    state: present
+    system: true
+
+- name: Create Redis service account
+  ansible.builtin.user:
+    name: "{{ cache_redis_user }}"
+    state: present
+    group: "{{ cache_redis_group }}"
+    home: "{{ cache_redis_home }}" # noqa: R114 - path is a role default
+    shell: "{{ cache_redis_shell }}"
+    system: true
+    create_home: true
+
+- name: Create Redis directories
+  ansible.builtin.file:
+    path: "{{ item_cache_redis_directory['path'] }}" # noqa: R114 - paths are from a role-defined list
+    state: directory
+    owner: "{{ item_cache_redis_directory['owner'] }}"
+    group: "{{ item_cache_redis_directory['group'] }}"
+    mode: "{{ item_cache_redis_directory['mode'] }}"
+  loop:
+    - path: "{{ cache_redis_config_dir }}"
+      owner: root
+      group: "{{ cache_redis_group }}"
+      mode: "0775"
+    - path: "{{ cache_redis_data_dir }}"
+      owner: "{{ cache_redis_user }}"
+      group: "{{ cache_redis_group }}"
+      mode: "0775"
+    - path: "{{ cache_redis_pid_dir }}"
+      owner: "{{ cache_redis_user }}"
+      group: "{{ cache_redis_group }}"
+      mode: "0755"
+  loop_control:
+    loop_var: item_cache_redis_directory
+
+- name: Check for Redis configuration breadcrumb
+  ansible.builtin.stat:
+    path: "{{ cache_redis_breadcrumb_path }}" # noqa: R114 - path is assembled from role defaults
+  register: cache_redis_breadcrumb
+
+- name: Render Redis instance configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ cache_redis_config_path }}" # noqa: R114 - path is assembled from role defaults
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0644"
+    backup: true
+  when: not cache_redis_breadcrumb.stat.exists # noqa: L039 - cache_redis_breadcrumb is registered by the preceding stat task
+  notify: Restart Redis instance
+  no_log: true
+
+- name: Create Redis configuration breadcrumb
+  ansible.builtin.copy:
+    content: Redis configuration is managed by Ansible.
+    dest: "{{ cache_redis_breadcrumb_path }}" # noqa: R114 - path is assembled from role defaults
+    owner: root
+    group: root
+    mode: "0644"
+    force: false
+    backup: true
+
+- name: Configure Redis runtime directory with systemd tmpfiles
+  ansible.builtin.copy:
+    content: "d {{ cache_redis_pid_dir }} 0755 {{ cache_redis_user }} {{ cache_redis_group }} - "
+    dest: "{{ cache_redis_tmpfiles_path }}" # noqa: R114 - path is assembled from role defaults
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload systemd daemon
+
+- name: Install Redis systemd service unit
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: "{{ cache_redis_unit_path }}" # noqa: R114 - path is assembled from role defaults
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload systemd daemon

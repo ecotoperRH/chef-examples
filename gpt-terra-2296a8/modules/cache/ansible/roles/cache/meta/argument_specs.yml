@@ -1,0 +1,221 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Memcached and a source-built Redis cache instance
+    description:
+      - Installs and configures Memcached and Redis instance 6379 with RDB persistence.
+    options:
+      cache_memcached_package:
+        type: str
+        default: memcached
+        description: Memcached package name.
+      cache_memcached_service:
+        type: str
+        default: memcached
+        description: Memcached service name.
+      cache_memcached_config_path:
+        type: path
+        default: /etc/memcached.conf
+        description: Memcached configuration path.
+      cache_memcached_log_dir:
+        type: path
+        default: /var/log/memcached
+        description: Memcached log directory.
+      cache_memcached_memory_mb:
+        type: int
+        default: 64
+        description: Memory allocated to Memcached in megabytes.
+      cache_memcached_port:
+        type: int
+        default: 11211
+        description: Memcached TCP listener port.
+      cache_memcached_udp_port:
+        type: int
+        default: 11211
+        description: Memcached UDP listener port.
+      cache_memcached_listen:
+        type: str
+        default: 0.0.0.0
+        description: Memcached listen address.
+      cache_memcached_max_connections:
+        type: int
+        default: 1024
+        description: Maximum Memcached connections.
+      cache_memcached_max_object_size:
+        type: str
+        default: 1m
+        description: Maximum Memcached object size.
+      cache_memcached_ulimit:
+        type: int
+        default: 1024
+        description: Memcached file descriptor limit.
+      cache_redis_version:
+        type: str
+        default: 3.2.11
+        description: Redis version built from source.
+      cache_redis_source_url:
+        type: str
+        default: "http://download.redis.io/releases/redis-{{ cache_redis_version }}.tar.gz"
+        description: Redis source archive URL.
+      cache_redis_download_dir:
+        type: path
+        default: /usr/local/src
+        description: Redis source download directory.
+      cache_redis_source_dir:
+        type: path
+        default: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}"
+        description: Redis extracted source directory.
+      cache_redis_bin_path:
+        type: path
+        default: /usr/local/bin
+        description: Redis binary installation directory.
+      cache_redis_user:
+        type: str
+        default: redis
+        description: Redis service account name.
+      cache_redis_group:
+        type: str
+        default: redis
+        description: Redis service group name.
+      cache_redis_home:
+        type: path
+        default: /var/lib/redis
+        description: Redis service account home directory.
+      cache_redis_shell:
+        type: path
+        default: /usr/sbin/nologin
+        description: Redis service account shell.
+      cache_redis_config_dir:
+        type: path
+        default: /etc/redis
+        description: Redis configuration directory.
+      cache_redis_data_dir:
+        type: path
+        default: /var/lib/redis
+        description: Redis data directory.
+      cache_redis_log_dir:
+        type: path
+        default: /var/log/redis
+        description: Redis log directory.
+      cache_redis_pid_base_dir:
+        type: path
+        default: /var/run/redis
+        description: Redis runtime base directory.
+      cache_redis_instance_name:
+        type: str
+        default: "6379"
+        description: Redis instance identifier.
+      cache_redis_port:
+        type: int
+        default: 6379
+        description: Redis TCP listener port.
+      cache_redis_pid_dir:
+        type: path
+        default: "{{ cache_redis_pid_base_dir }}/{{ cache_redis_instance_name }}"
+        description: Redis instance runtime directory.
+      cache_redis_config_path:
+        type: path
+        default: "{{ cache_redis_config_dir }}/{{ cache_redis_instance_name }}.conf"
+        description: Redis instance configuration path.
+      cache_redis_service:
+        type: str
+        default: "redis@{{ cache_redis_instance_name }}"
+        description: Redis systemd service name.
+      cache_redis_unit_path:
+        type: path
+        default: "/lib/systemd/system/{{ cache_redis_service }}.service"
+        description: Redis systemd unit path.
+      cache_redis_tmpfiles_path:
+        type: path
+        default: "/etc/tmpfiles.d/{{ cache_redis_service }}.conf"
+        description: Redis tmpfiles configuration path.
+      cache_redis_breadcrumb_path:
+        type: path
+        default: "{{ cache_redis_config_path }}.breadcrumb"
+        description: Redis configuration management marker path.
+      cache_redis_tcp_backlog:
+        type: int
+        default: 511
+        description: Redis TCP backlog.
+      cache_redis_bind_addresses:
+        type: list
+        elements: str
+        default: []
+        description: Optional Redis bind addresses.
+      cache_redis_protected_mode:
+        type: raw
+        default: null
+        description: Optional Redis protected-mode setting.
+      cache_redis_timeout:
+        type: int
+        default: 0
+        description: Redis idle client timeout.
+      cache_redis_keepalive:
+        type: int
+        default: 0
+        description: Redis TCP keepalive interval.
+      cache_redis_log_level:
+        type: str
+        default: notice
+        description: Redis log level.
+      cache_redis_syslog_enabled:
+        type: str
+        default: "yes"
+        description: Whether Redis logs through syslog.
+      cache_redis_syslog_facility:
+        type: str
+        default: local0
+        description: Redis syslog facility.
+      cache_redis_databases:
+        type: int
+        default: 16
+        description: Number of Redis databases.
+      cache_redis_stop_writes_on_bgsave_error:
+        type: str
+        default: "yes"
+        description: Redis background-save error write policy.
+      cache_redis_rdb_compression:
+        type: str
+        default: "yes"
+        description: Whether Redis RDB compression is enabled.
+      cache_redis_rdb_checksum:
+        type: str
+        default: "yes"
+        description: Whether Redis RDB checksums are enabled.
+      cache_redis_maxclients:
+        type: int
+        default: 10000
+        description: Maximum Redis client connections.
+      cache_redis_limit_nofile:
+        type: int
+        default: 10032
+        description: Redis file descriptor limit.
+      cache_redis_os_service:
+        type: str
+        default: "{{ 'redis-server' if ansible_os_family == 'Debian' else 'redis' }}"
+        description: Operating system Redis service to disable.
+      cache_redis_build_packages:
+        type: dict
+        default:
+          Debian:
+            - build-essential
+            - tar
+          RedHat:
+            - gcc
+            - make
+            - tar
+        description: Platform-specific Redis source build packages.
+      cache_redis_remove_directives:
+        type: list
+        elements: str
+        default:
+          - replica-serve-stale-data
+          - replica-read-only
+          - repl-ping-replica-period
+          - client-output-buffer-limit
+          - replica-priority
+        description: Incompatible directives removed from the Redis configuration.
+      redis_password:
+        type: str
+        required: true
+        description: Redis authentication password injected by an AAP credential type.

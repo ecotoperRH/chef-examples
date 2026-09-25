@@ -1,0 +1,12 @@
+---
+- name: Install Redis prerequisites
+  ansible.builtin.include_tasks: redis_install_prereqs.yml
+
+- name: Install Redis from source
+  ansible.builtin.include_tasks: redis_install.yml
+
+- name: Disable operating system Redis service
+  ansible.builtin.include_tasks: redis_disable_os_default.yml
+
+- name: Configure Redis instance
+  ansible.builtin.include_tasks: redis_configure.yml
