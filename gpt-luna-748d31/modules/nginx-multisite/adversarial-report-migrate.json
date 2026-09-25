@@ -1,0 +1,14 @@
+{
+  "phase": "migrate",
+  "agents_run": 1,
+  "total_findings": 2,
+  "total_critical_findings": 2,
+  "agents": [
+    {
+      "name": "No sshd config",
+      "findings": 2,
+      "critical_findings": 2,
+      "summary": "The adversarial analysis identified two critical policy violations: modification of SSH daemon configuration and creation or management of a system user."
+    }
+  ]
+}
