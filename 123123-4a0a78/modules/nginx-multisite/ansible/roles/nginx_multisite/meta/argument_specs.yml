@@ -1,0 +1,113 @@
+---
+argument_specs:
+  main:
+    short_description: Configure a hardened nginx multi-site web server with SSL
+    description:
+      - Installs and configures nginx to host multiple SSL-enabled virtual hosts.
+      - Generates self-signed TLS certificates for each configured site.
+      - Applies security hardening including UFW firewall rules, fail2ban intrusion prevention, and kernel-level sysctl hardening.
+      - Manages SSH hardening by disabling root login and password authentication.
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+        description: >-
+          Dictionary of virtual host sites to configure. Each key is the server_name
+          (FQDN) and the value is a dict with document_root and ssl_enabled keys.
+      nginx_multisite_ssl_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Directory path where SSL certificates are stored.
+      nginx_multisite_ssl_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Directory path where SSL private keys are stored.
+      nginx_multisite_ssl_cert_subject_country:
+        type: str
+        required: false
+        default: US
+        description: Two-letter country code for the self-signed certificate subject.
+      nginx_multisite_ssl_cert_subject_state:
+        type: str
+        required: false
+        default: Example
+        description: State or province for the self-signed certificate subject.
+      nginx_multisite_ssl_cert_subject_locality:
+        type: str
+        required: false
+        default: Example
+        description: Locality (city) for the self-signed certificate subject.
+      nginx_multisite_ssl_cert_subject_org:
+        type: str
+        required: false
+        default: Example Org
+        description: Organization name for the self-signed certificate subject.
+      nginx_multisite_ssl_cert_subject_ou:
+        type: str
+        required: false
+        default: IT
+        description: Organizational unit for the self-signed certificate subject.
+      nginx_multisite_ssl_cert_subject_email:
+        type: str
+        required: false
+        default: admin@example.com
+        description: Email address for the self-signed certificate subject.
+      nginx_multisite_ssl_cert_days:
+        type: int
+        required: false
+        default: 365
+        description: Number of days the self-signed certificate is valid.
+      nginx_multisite_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to install and configure fail2ban intrusion prevention.
+      nginx_multisite_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to configure UFW firewall rules.
+      nginx_multisite_ssh_disable_root:
+        type: bool
+        required: false
+        default: true
+        description: Whether to disable root login in sshd_config.
+      nginx_multisite_ssh_password_auth:
+        type: bool
+        required: false
+        default: false
+        description: Whether to allow SSH password authentication. Set to false to disable.
+      nginx_multisite_sysctl_params:
+        type: dict
+        required: false
+        default:
+          net.ipv4.conf.default.rp_filter: "1"
+          net.ipv4.conf.all.rp_filter: "1"
+          net.ipv4.conf.all.accept_redirects: "0"
+          net.ipv6.conf.all.accept_redirects: "0"
+          net.ipv4.conf.all.send_redirects: "0"
+          net.ipv4.conf.all.accept_source_route: "0"
+          net.ipv6.conf.all.accept_source_route: "0"
+          net.ipv4.conf.all.log_martians: "1"
+          net.ipv4.icmp_echo_ignore_all: "1"
+          net.ipv4.icmp_echo_ignore_broadcasts: "1"
+          net.ipv6.conf.all.disable_ipv6: "1"
+          net.ipv4.tcp_syncookies: "1"
+          net.ipv4.tcp_max_syn_backlog: "2048"
+          net.ipv4.tcp_synack_retries: "2"
+          net.ipv4.tcp_syn_retries: "5"
+        description: >-
+          Dictionary of kernel sysctl parameters to apply for security hardening.
+          Keys are sysctl parameter names, values are the desired string values.

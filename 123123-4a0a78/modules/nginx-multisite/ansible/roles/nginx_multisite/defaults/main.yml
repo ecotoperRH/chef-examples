@@ -1,0 +1,48 @@
+---
+nginx_multisite_sites:
+  test.cluster.local:
+    document_root: /opt/server/test
+    ssl_enabled: true
+  ci.cluster.local:
+    document_root: /opt/server/ci
+    ssl_enabled: true
+  status.cluster.local:
+    document_root: /opt/server/status
+    ssl_enabled: true
+nginx_multisite_ssl_certificate_path: /etc/ssl/certs
+nginx_multisite_ssl_private_key_path: /etc/ssl/private
+nginx_multisite_ssl_cert_subject_country: US
+nginx_multisite_ssl_cert_subject_state: Example
+nginx_multisite_ssl_cert_subject_locality: Example
+nginx_multisite_ssl_cert_subject_org: Example Org
+nginx_multisite_ssl_cert_subject_ou: IT
+nginx_multisite_ssl_cert_subject_email: admin@example.com
+nginx_multisite_ssl_cert_days: 365
+nginx_multisite_fail2ban_enabled: true
+nginx_multisite_ufw_enabled: true
+nginx_multisite_ssh_disable_root: true
+nginx_multisite_ssh_password_auth: false
+nginx_multisite_sysctl_params:
+  net.ipv4.conf.default.rp_filter: "1"
+  net.ipv4.conf.all.rp_filter: "1"
+  net.ipv4.conf.all.accept_redirects: "0"
+  net.ipv6.conf.all.accept_redirects: "0"
+  net.ipv4.conf.default.accept_redirects: "0"
+  net.ipv6.conf.default.accept_redirects: "0"
+  net.ipv4.conf.all.send_redirects: "0"
+  net.ipv4.conf.default.send_redirects: "0"
+  net.ipv4.conf.all.accept_source_route: "0"
+  net.ipv6.conf.all.accept_source_route: "0"
+  net.ipv4.conf.default.accept_source_route: "0"
+  net.ipv6.conf.default.accept_source_route: "0"
+  net.ipv4.conf.all.log_martians: "1"
+  net.ipv4.conf.default.log_martians: "1"
+  net.ipv4.icmp_echo_ignore_all: "1"
+  net.ipv4.icmp_echo_ignore_broadcasts: "1"
+  net.ipv6.conf.all.disable_ipv6: "1"
+  net.ipv6.conf.default.disable_ipv6: "1"
+  net.ipv6.conf.lo.disable_ipv6: "1"
+  net.ipv4.tcp_syncookies: "1"
+  net.ipv4.tcp_max_syn_backlog: "2048"
+  net.ipv4.tcp_synack_retries: "2"
+  net.ipv4.tcp_syn_retries: "5"
