@@ -1,0 +1,253 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata",
+      "notes": "Created standard meta/main.yml"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Role handlers",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Argument specs for role",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/default.yml",
+      "status": "complete",
+      "description": "Cache default recipe tasks",
+      "notes": "Converted include_recipe and directory resources to import_tasks and file module"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/memcached/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached_default.yml",
+      "status": "complete",
+      "description": "Memcached default recipe tasks",
+      "notes": "Converted memcached_instance custom resource to package and service tasks"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_default.yml",
+      "status": "complete",
+      "description": "Redis default recipe tasks",
+      "notes": "Converted include_recipe logic to import_tasks with conditionals"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/_install_prereqs.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_install_prereqs.yml",
+      "status": "complete",
+      "description": "Redis install prerequisites recipe tasks",
+      "notes": "Converted package loop to single package list"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/install.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_install.yml",
+      "status": "complete",
+      "description": "Redis install recipe tasks",
+      "notes": "Converted package/install logic to tasks"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/memcached/providers/instance.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached_instance.yml",
+      "status": "complete",
+      "description": "Memcached instance provider conversion",
+      "notes": "Converted memcached_instance custom resource to Ansible tasks with systemd unit template and service management"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/ulimit.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_ulimit.yml",
+      "status": "complete",
+      "description": "Redis ulimit recipe tasks",
+      "notes": "Converted ulimit recipe to Ansible tasks with PAM templates and loop over cache_ulimit_users"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/disable_os_default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_disable_os_default.yml",
+      "status": "complete",
+      "description": "Redis disable OS default recipe tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Role defaults variables",
+      "notes": "Includes secure logging toggle and redis variables"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/configure.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_configure.yml",
+      "status": "complete",
+      "description": "Redis configure recipe tasks",
+      "notes": "Converted configure recipe to template task with loop and no_log handling."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/enable.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_enable.yml",
+      "status": "complete",
+      "description": "Redis enable recipe tasks",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/redisio/templates/default/redis.conf.erb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/templates/redis.conf.j2",
+      "status": "complete",
+      "description": "Redis configuration template conversion",
+      "notes": "Added conditional for redis_password secret"
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/providers/install.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_install_provider.yml",
+      "status": "complete",
+      "description": "Redis install provider conversion",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/providers/user_ulimit.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_user_ulimit.yml",
+      "status": "complete",
+      "description": "Redis user ulimit provider conversion",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/main.yml",
+      "status": "pending",
+      "description": "Role main tasks file",
+      "notes": ""
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/run_cache.yml",
+      "status": "complete",
+      "description": "Deployment entry point for the migrated role",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/requirements.yml",
+      "status": "complete",
+      "description": "Test-only Podman collection dependency",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/README.md",
+      "status": "complete",
+      "description": "Developer instructions for running Molecule",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/molecule.yml",
+      "status": "complete",
+      "description": "Ansible-native Molecule scenario configuration",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/inventory/hosts.yml",
+      "status": "complete",
+      "description": "Isolated Podman test target inventory",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/create.yml",
+      "status": "complete",
+      "description": "Create the disposable Podman target",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/prepare.yml",
+      "status": "complete",
+      "description": "Bootstrap Python on the disposable Linux target",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/converge.yml",
+      "status": "complete",
+      "description": "Run the deployment playbook under test",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/verify.yml",
+      "status": "complete",
+      "description": "Verify migrated behavior against the source plan",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/destroy.yml",
+      "status": "complete",
+      "description": "Destroy the disposable Podman target",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    }
+  ]
+}

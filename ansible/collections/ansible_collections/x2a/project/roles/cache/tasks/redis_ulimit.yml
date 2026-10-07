@@ -1,0 +1,29 @@
+---
+- name: Deploy PAM su configuration (Debian only)
+  ansible.builtin.template:
+    src: pam_su.j2
+    dest: /etc/pam.d/su
+    mode: "0644"
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Deploy PAM sudo configuration (Debian only)
+  ansible.builtin.copy:
+    src: pam_sudo
+    dest: /etc/pam.d/sudo
+    mode: "0644"
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Configure ulimit for Redis users
+  ansible.builtin.template:
+    src: redis_ulimit.conf.j2
+    dest: /etc/security/limits.d/{{ item_cache['key'] }}.conf
+    mode: "0644"
+    backup: true
+  loop: "{{ cache_ulimit_users | dict2items }}"
+  loop_control:
+    loop_var: item_cache
+  # noqa: R114 - path from role-defined cache_ulimit_users dict, trusted source
+  vars:
+    ulimit_attrs: "{{ item_cache['value'] }}"

@@ -1,0 +1,16 @@
+---
+- name: Create isolated Molecule containers
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Start scenario containers
+      containers.podman.podman_container:
+        name: "{{ hostvars[test_host]['ansible_podman_host'] }}"
+        image: "{{ hostvars[test_host]['container_image'] }}"
+        command: "{{ hostvars[test_host]['container_command'] }}"
+        privileged: "{{ hostvars[test_host]['container_privileged'] }}"
+        state: started
+        recreate: true
+      loop: "{{ groups['molecule_targets'] }}"
+      loop_control:
+        loop_var: test_host

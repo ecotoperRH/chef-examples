@@ -1,0 +1,40 @@
+---
+- name: Enable and start Redis instances  # noqa: L039 - variable job_control defined in role defaults
+  ansible.builtin.service:
+    name: "{{ item_redis['key'] }}"
+    state: started
+    enabled: true
+  when: job_control == 'systemd'
+  loop: "{{ redis_instances | dict2items }}"
+  loop_control:
+    loop_var: item_redis
+
+- name: Enable and start Redis instances (initd)  # noqa: L039 - variable job_control defined in role defaults
+  ansible.builtin.service:
+    name: redis{{ item_redis['key'] }}
+    state: started
+    enabled: true
+  when: job_control == 'initd'
+  loop: "{{ redis_instances | dict2items }}"
+  loop_control:
+    loop_var: item_redis
+
+- name: Enable and start Redis instances (upstart)  # noqa: L039 - variable job_control defined in role defaults
+  ansible.builtin.service:
+    name: redis{{ item_redis['key'] }}
+    state: started
+    enabled: true
+  when: job_control == 'upstart'
+  loop: "{{ redis_instances | dict2items }}"
+  loop_control:
+    loop_var: item_redis
+
+- name: Enable and start Redis instances (rcinit)  # noqa: L039 - variable job_control defined in role defaults
+  ansible.builtin.service:
+    name: redis{{ item_redis['key'] }}
+    state: started
+    enabled: true
+  when: job_control == 'rcinit'
+  loop: "{{ redis_instances | dict2items }}"
+  loop_control:
+    loop_var: item_redis

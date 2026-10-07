@@ -1,0 +1,376 @@
+# Verify.yml generated from pre-flight checks
+# Unsupported checks (no explicit expected outcome): none
+---
+- name: Verify nginx_multisite scenario
+  hosts: molecule_targets
+  gather_facts: false
+  tasks:
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert required packages are installed
+      ansible.builtin.assert:
+        that:
+          - "'nginx' in ansible_facts.packages"
+          - "'fail2ban' in ansible_facts.packages"
+          - "'ufw' in ansible_facts.packages"
+          - "'openssl' in ansible_facts.packages"
+          - "'ca-certificates' in ansible_facts.packages"
+        fail_msg: "One or more required packages are missing"
+        success_msg: "All required packages are present"
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert fail2ban service is enabled and active
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts.services['fail2ban.service'].enabled"
+          - "ansible_facts.services['fail2ban.service'].state == 'running'"
+        fail_msg: "fail2ban service is not enabled/active"
+        success_msg: "fail2ban service enabled and running"
+
+    - name: Assert nginx service is enabled and active
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts.services['nginx.service'].enabled"
+          - "ansible_facts.services['nginx.service'].state == 'running'"
+        fail_msg: "nginx service is not enabled/active"
+        success_msg: "nginx service enabled and running"
+
+    - name: Verify nginx configuration syntax
+      ansible.builtin.command: nginx -t
+      register: nginx_test
+      changed_when: false
+    - name: Assert nginx -t succeeded
+      ansible.builtin.assert:
+        that:
+          - nginx_test.rc == 0
+        fail_msg: "nginx configuration test failed"
+        success_msg: "nginx configuration test passed"
+
+    - name: Verify nginx.conf includes expected directives
+      ansible.builtin.command: grep -nE 'include|listen|server' /etc/nginx/nginx.conf
+      register: nginx_conf_grep
+      changed_when: false
+    - name: Assert grep on nginx.conf succeeded
+      ansible.builtin.assert:
+        that:
+          - nginx_conf_grep.rc == 0
+        fail_msg: "Expected patterns not found in /etc/nginx/nginx.conf"
+        success_msg: "Patterns found in /etc/nginx/nginx.conf"
+
+    - name: Verify security.conf can be read
+      ansible.builtin.stat:
+        path: /etc/nginx/conf.d/security.conf
+      register: security_conf_stat
+    - name: Assert security.conf exists
+      ansible.builtin.assert:
+        that:
+          - security_conf_stat.stat.exists
+        fail_msg: "/etc/nginx/conf.d/security.conf missing"
+        success_msg: "/etc/nginx/conf.d/security.conf present"
+
+    - name: Verify fail2ban jail.local can be read
+      ansible.builtin.stat:
+        path: /etc/fail2ban/jail.local
+      register: jail_local_stat
+    - name: Assert jail.local exists
+      ansible.builtin.assert:
+        that:
+          - jail_local_stat.stat.exists
+        fail_msg: "/etc/fail2ban/jail.local missing"
+        success_msg: "/etc/fail2ban/jail.local present"
+
+    - name: Verify sysctl security config exists
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-security.conf
+      register: sysctl_conf_stat
+    - name: Assert sysctl config exists
+      ansible.builtin.assert:
+        that:
+          - sysctl_conf_stat.stat.exists
+        fail_msg: "/etc/sysctl.d/99-security.conf missing"
+        success_msg: "/etc/sysctl.d/99-security.conf present"
+
+    - name: Verify sysctl settings applied
+      ansible.builtin.command: sysctl -p /etc/sysctl.d/99-security.conf
+      register: sysctl_apply
+      changed_when: false
+    - name: Assert sysctl apply succeeded
+      ansible.builtin.assert:
+        that:
+          - sysctl_apply.rc == 0
+        fail_msg: "sysctl -p failed"
+        success_msg: "sysctl settings applied"
+
+    - name: Verify SSH hardening settings
+      ansible.builtin.command: grep -nE '^[[:space:]]*PermitRootLogin|^[[:space:]]*PasswordAuthentication' /etc/ssh/sshd_config
+      register: ssh_hardening_grep
+      changed_when: false
+    - name: Assert SSH hardening lines present
+      ansible.builtin.assert:
+        that:
+          - ssh_hardening_grep.rc == 0
+          - "'PermitRootLogin no' in ssh_hardening_grep.stdout"
+          - "'PasswordAuthentication no' in ssh_hardening_grep.stdout"
+        fail_msg: "SSH hardening settings missing or incorrect"
+        success_msg: "SSH hardening settings verified"
+
+    - name: Verify ssl-cert group exists
+      ansible.builtin.command: getent group ssl-cert
+      register: ssl_group
+      changed_when: false
+    - name: Assert ssl-cert group present
+      ansible.builtin.assert:
+        that:
+          - ssl_group.rc == 0
+        fail_msg: "Group ssl-cert does not exist"
+        success_msg: "Group ssl-cert exists"
+
+    - name: Verify default site removed
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: default_site_stat
+    - name: Assert default site absent
+      ansible.builtin.assert:
+        that:
+          - not default_site_stat.stat.exists
+        fail_msg: "Default nginx site still present"
+        success_msg: "Default nginx site correctly absent"
+
+    - name: Verify firewall policy (UFW)
+      ansible.builtin.command: ufw status verbose
+      register: ufw_status
+      changed_when: false
+    - name: Assert UFW default incoming deny and allowed services
+      ansible.builtin.assert:
+        that:
+          - ufw_status.rc == 0
+          - "'Default: deny (incoming)' in ufw_status.stdout"
+          - "'SSH' in ufw_status.stdout"
+          - "'HTTP' in ufw_status.stdout"
+          - "'HTTPS' in ufw_status.stdout"
+        fail_msg: "UFW firewall policy not as expected"
+        success_msg: "UFW firewall policy verified"
+
+    - name: Verify listening ports (ss)
+      ansible.builtin.command: ss -tlnp
+      register: ss_output
+      changed_when: false
+    - name: Assert ports 80 and 443 are listening
+      ansible.builtin.assert:
+        that:
+          - ss_output.rc == 0
+          - "':80' in ss_output.stdout"
+          - "':443' in ss_output.stdout"
+        fail_msg: "Ports 80 and/or 443 not listening"
+        success_msg: "Ports 80 and 443 are listening"
+
+    - name: Verify listening ports (netstat)
+      ansible.builtin.command: netstat -tulpn
+      register: netstat_output
+      changed_when: false
+    - name: Assert ports 80 and 443 are listening via netstat
+      ansible.builtin.assert:
+        that:
+          - netstat_output.rc == 0
+          - "':80' in netstat_output.stdout"
+          - "':443' in netstat_output.stdout"
+        fail_msg: "netstat does not show ports 80 and 443 listening"
+        success_msg: "netstat shows ports 80 and 443 listening"
+
+    - name: Verify service logs for nginx
+      ansible.builtin.command: journalctl -u nginx --no-pager -n 100
+      register: nginx_logs
+      changed_when: false
+    - name: Verify service logs for fail2ban
+      ansible.builtin.command: journalctl -u fail2ban --no-pager -n 100
+      register: fail2ban_logs
+      changed_when: false
+
+    - name: Verify nginx log configuration references
+      ansible.builtin.command: grep -RInE 'error_log|access_log' /etc/nginx/nginx.conf /etc/nginx/conf.d /etc/nginx/sites-available
+      register: nginx_log_refs
+      changed_when: false
+    - name: Assert nginx log configuration grep succeeded
+      ansible.builtin.assert:
+        that:
+          - nginx_log_refs.rc == 0
+        fail_msg: "No error_log or access_log directives found"
+        success_msg: "Log directives verified"
+
+    - name: Site verification loop
+      vars:
+        sites:
+          - name: test.cluster.local
+            doc_root: /opt/server/test
+            site_conf: /etc/nginx/sites-available/test.cluster.local
+            enabled_link: /etc/nginx/sites-enabled/test.cluster.local
+            cert: /etc/ssl/certs/test.cluster.local.crt
+            key: /etc/ssl/private/test.cluster.local.key
+          - name: ci.cluster.local
+            doc_root: /opt/server/ci
+            site_conf: /etc/nginx/sites-available/ci.cluster.local
+            enabled_link: /etc/nginx/sites-enabled/ci.cluster.local
+            cert: /etc/ssl/certs/ci.cluster.local.crt
+            key: /etc/ssl/private/ci.cluster.local.key
+          - name: status.cluster.local
+            doc_root: /opt/server/status
+            site_conf: /etc/nginx/sites-available/status.cluster.local
+            enabled_link: /etc/nginx/sites-enabled/status.cluster.local
+            cert: /etc/ssl/certs/status.cluster.local.crt
+            key: /etc/ssl/private/status.cluster.local.key
+      block:
+        - name: Verify document root directory exists
+          ansible.builtin.stat:
+            path: "{{ item_.doc_root }}"
+          register: doc_root_stat
+        - name: Assert document root is a directory
+          ansible.builtin.assert:
+            that:
+              - doc_root_stat.stat.isdir
+            fail_msg: "Document root {{ item_.doc_root }} missing"
+            success_msg: "Document root {{ item_.doc_root }} present"
+
+        - name: Verify index.html exists
+          ansible.builtin.stat:
+            path: "{{ item_.doc_root }}/index.html"
+          register: index_stat
+        - name: Assert index.html file exists
+          ansible.builtin.assert:
+            that:
+              - index_stat.stat.isfile
+            fail_msg: "index.html missing in {{ item_.doc_root }}"
+            success_msg: "index.html present in {{ item_.doc_root }}"
+
+        - name: Verify site configuration file exists
+          ansible.builtin.stat:
+            path: "{{ item_.site_conf }}"
+          register: site_conf_stat
+        - name: Assert site configuration file exists
+          ansible.builtin.assert:
+            that:
+              - site_conf_stat.stat.isfile
+            fail_msg: "Site config {{ item_.site_conf }} missing"
+            success_msg: "Site config {{ item_.site_conf }} present"
+
+        - name: Verify enabled symlink exists
+          ansible.builtin.stat:
+            path: "{{ item_.enabled_link }}"
+            follow: false
+          register: enabled_link_stat
+        - name: Assert enabled link is a symlink
+          ansible.builtin.assert:
+            that:
+              - enabled_link_stat.stat.islnk
+            fail_msg: "Enabled link {{ item_.enabled_link }} missing or not a symlink"
+            success_msg: "Enabled link {{ item_.enabled_link }} present"
+
+        - name: Verify symlink points to correct target
+          ansible.builtin.command: readlink -f "{{ item_.enabled_link }}"
+          register: readlink_result
+          changed_when: false
+        - name: Assert symlink resolves to site config
+          ansible.builtin.assert:
+            that:
+              - readlink_result.stdout == item_.site_conf
+            fail_msg: "Symlink {{ item_.enabled_link }} does not point to {{ item_.site_conf }}"
+            success_msg: "Symlink correctly points to site config"
+
+        - name: Verify site config contains required directives
+          ansible.builtin.command: grep -nE 'server_name|root|listen|ssl_certificate|ssl_certificate_key' "{{ item_.site_conf }}"
+          register: site_grep
+          changed_when: false
+        - name: Assert site config grep succeeded
+          ansible.builtin.assert:
+            that:
+              - site_grep.rc == 0
+            fail_msg: "Required directives missing in {{ item_.site_conf }}"
+            success_msg: "Required directives present in {{ item_.site_conf }}"
+
+        - name: Verify certificate file exists
+          ansible.builtin.stat:
+            path: "{{ item_.cert }}"
+          register: cert_stat
+        - name: Assert certificate file exists
+          ansible.builtin.assert:
+            that:
+              - cert_stat.stat.isfile
+            fail_msg: "Certificate {{ item_.cert }} missing"
+            success_msg: "Certificate {{ item_.cert }} present"
+
+        - name: Verify private key file exists
+          ansible.builtin.stat:
+            path: "{{ item_.key }}"
+          register: key_stat
+        - name: Assert private key file exists
+          ansible.builtin.assert:
+            that:
+              - key_stat.stat.isfile
+            fail_msg: "Private key {{ item_.key }} missing"
+            success_msg: "Private key {{ item_.key }} present"
+
+        - name: Verify certificate subject and dates
+          ansible.builtin.command: openssl x509 -in "{{ item_.cert }}" -noout -subject -dates
+          register: cert_info
+          changed_when: false
+        - name: Assert openssl command succeeded
+          ansible.builtin.assert:
+            that:
+              - cert_info.rc == 0
+            fail_msg: "Unable to read certificate {{ item_.cert }}"
+            success_msg: "Certificate {{ item_.cert }} readable"
+
+        - name: Verify private key ownership and permissions
+          ansible.builtin.command: stat -c '%U %G %a %n' "{{ item_.key }}"
+          register: key_perm
+          changed_when: false
+        - name: Assert key ownership and mode
+          ansible.builtin.assert:
+            that:
+              - "'root ssl-cert 640' in key_perm.stdout"
+            fail_msg: "Key {{ item_.key }} does not have expected ownership/permissions"
+            success_msg: "Key {{ item_.key }} ownership and permissions correct"
+
+        - name: Verify HTTP response for site
+          ansible.builtin.uri:
+            url: http://127.0.0.1/
+            method: GET
+            headers:
+              Host: "{{ item_.name }}"
+            return_content: false
+            status_code: 200
+          register: http_resp
+        - name: Assert HTTP response succeeded
+          ansible.builtin.assert:
+            that:
+              - http_resp.status == 200
+            fail_msg: "HTTP request to {{ item_.name }} failed"
+            success_msg: "HTTP request to {{ item_.name }} succeeded"
+
+        - name: Verify HTTPS response for site (insecure)
+          ansible.builtin.uri:
+            url: https://{{ item_.name }}/
+            method: GET
+            validate_certs: false
+            status_code: 200
+            return_content: false
+            headers:
+              Host: "{{ item_.name }}"
+            # resolve to localhost via resolve option not available; use curl alternative
+          ignore_errors: true
+        - name: Assert HTTPS response succeeded (fallback to curl)
+          ansible.builtin.command: curl -k -I --resolve {{ item_.name }}:443:127.0.0.1 https://{{ item_.name }}/
+          register: curl_https
+          changed_when: false
+        - name: Assert curl HTTPS succeeded
+          ansible.builtin.assert:
+            that:
+              - curl_https.rc == 0
+            fail_msg: "HTTPS request to {{ item_.name }} failed"
+            success_msg: "HTTPS request to {{ item_.name }} succeeded"
+      loop: "{{ sites }}"
+      loop_control:
+        loop_var: item_

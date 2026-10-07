@@ -1,0 +1,3 @@
+---
+- name: Include Redis installation tasks
+  ansible.builtin.import_tasks: redis_install.yml

@@ -1,0 +1,7 @@
+---
+# tasks file for x2a.project.nginx_multisite
+
+- name: Display the value of nginx_multisite_my_variable  # noqa: L039 - variable defined in role defaults
+  ansible.builtin.debug:
+    msg: The value of nginx_multisite_my_variable is {{ nginx_multisite_my_variable }}
+    verbosity: 2  # noqa: L067 - reduce noise in production

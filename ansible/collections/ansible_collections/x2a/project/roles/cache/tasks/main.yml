@@ -1,0 +1,6 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Include default tasks for cache role
+  ansible.builtin.import_tasks: default.yml

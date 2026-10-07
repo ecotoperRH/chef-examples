@@ -1,0 +1,19 @@
+---
+# Default variables for cache role
+# Secure logging toggle for secret handling
+cache_secure_logging: true
+# Redis package installation flag
+redisio_package_install: false
+# Redis package name (if package_install is true)
+redisio_package_name: redis
+# Redis version and source details
+redisio_version: 6.2.6
+redisio_mirror: http://download.redis.io
+redisio_base_name: redis-
+redisio_artifact_type: tar.gz
+redisio_install_dir: /opt/redis
+redisio_download_dir: /tmp
+# Ulimit configuration for Redis users (dict of user => attributes)
+cache_ulimit_users: {}
+# Redis password (secret)
+redis_password: ""

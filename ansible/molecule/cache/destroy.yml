@@ -1,0 +1,12 @@
+---
+- name: Destroy isolated Molecule containers
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Remove scenario containers
+      containers.podman.podman_container:
+        name: "{{ hostvars[test_host]['ansible_podman_host'] }}"
+        state: absent
+      loop: "{{ groups['molecule_targets'] }}"
+      loop_control:
+        loop_var: test_host

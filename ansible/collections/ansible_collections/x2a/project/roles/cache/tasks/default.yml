@@ -1,0 +1,41 @@
+---
+- name: Ensure redis group exists
+  ansible.builtin.group:
+    name: redis
+    state: present
+
+- name: Ensure redis user exists
+  ansible.builtin.user:
+    name: redis
+    group: redis
+    create_home: false
+    system: true
+    state: present
+
+- name: Ensure memcached group exists
+  ansible.builtin.group:
+    name: memcached
+    state: present
+
+- name: Ensure memcached user exists
+  ansible.builtin.user:
+    name: memcached
+    group: memcached
+    create_home: false
+    system: true
+    state: present
+
+- name: Ensure Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+    recurse: true
+
+- name: Include memcached default tasks
+  ansible.builtin.import_tasks: memcached_default.yml
+
+- name: Include Redis default tasks
+  ansible.builtin.import_tasks: redis_default.yml

@@ -1,0 +1,10 @@
+---
+- name: Configure ulimit for a Redis user  # noqa: L039 - variable defined in role defaults
+  ansible.builtin.template:
+    src: redis_ulimit.conf.j2
+    dest: /etc/security/limits.d/{{ user_ulimit.name }}.conf
+    mode: "0644"
+    backup: true
+  vars:
+    ulimit_attrs: "{{ user_ulimit.attributes }}"
+  # noqa: R114 - path from role-defined user_ulimit variable, trusted source

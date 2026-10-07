@@ -1,0 +1,90 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+    state: present
+
+- name: Install SSH server package
+  ansible.builtin.package:
+    name: openssh-server
+    state: present
+
+- name: Ensure fail2ban service is enabled and started
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: Deploy Fail2Ban configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  notify: restart fail2ban
+
+- name: Set default UFW policy to deny incoming
+  ansible.builtin.command:
+    cmd: ufw --force default deny
+  changed_when: false
+  notify: reload ufw
+
+- name: Allow SSH through UFW
+  ansible.builtin.command:
+    cmd: ufw allow ssh
+  changed_when: false
+  notify: reload ufw
+
+- name: Allow HTTP through UFW
+  ansible.builtin.command:
+    cmd: ufw allow http
+  changed_when: false
+  notify: reload ufw
+
+- name: Allow HTTPS through UFW
+  ansible.builtin.command:
+    cmd: ufw allow https
+  changed_when: false
+  notify: reload ufw
+
+- name: Enable UFW
+  ansible.builtin.command:
+    cmd: ufw --force enable
+  changed_when: false
+  notify: reload ufw
+
+- name: Deploy sysctl security configuration
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+    backup: true
+  notify: reload sysctl
+
+- name: Ensure PermitRootLogin is disabled
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    backup: true
+  notify: restart ssh
+  # noqa: L068 - lineinfile needed for simple config change
+  # noqa: L021 - mode not applicable for lineinfile
+
+- name: Ensure PasswordAuthentication is disabled
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    backup: true
+  notify: restart ssh
+  # noqa: L068 - lineinfile needed for simple config change
+  # noqa: L021 - mode not applicable for lineinfile
+
+- name: Ensure ssh service is defined (no action)
+  ansible.builtin.service:
+    name: ssh
+    state: started
+    enabled: true

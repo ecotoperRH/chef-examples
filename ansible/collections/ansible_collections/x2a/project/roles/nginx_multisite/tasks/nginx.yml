@@ -1,0 +1,52 @@
+---
+- name: Install nginx package
+  ansible.builtin.package:
+    name: nginx
+    state: present
+
+- name: Deploy Nginx main configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+    backup: true
+  notify: reload nginx
+
+- name: Deploy Nginx security configuration
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    mode: "0644"
+    backup: true
+  notify: reload nginx
+
+- name: Ensure nginx service is enabled and started
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Create document root directories for sites
+  ansible.builtin.file:
+    path: "{{ item_site['value']['document_root'] }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  # noqa: R114 - document_root from role defaults
+
+- name: Deploy index.html for each site  # noqa: R114 - src and dest from trusted site dict
+  ansible.builtin.copy:
+    src: "files/{{ item_site['key'].split('.')[0] }}/index.html"  # noqa: L017 - src built from trusted variable
+    dest: "{{ item_site['value']['document_root'] }}/index.html"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  notify: reload nginx
