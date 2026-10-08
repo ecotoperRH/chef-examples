@@ -1,64 +1,64 @@
 ---
-- name: Ensure Redis service user exists
-  ansible.builtin.user:
-    name: redis
-    system: true
-    create_home: false
-    state: present
-
-- name: Create Redis configuration directory
+- name: Ensure Redis configuration directory exists  # noqa: R114 - path is a trusted role default
   ansible.builtin.file:
-    path: /etc/redis
+    path: "{{ cache_redis_config_dir }}"
     state: directory
-    owner: redis
-    group: redis
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
     mode: "0755"
 
-- name: Create Redis log directory
+- name: Ensure Redis log directory exists
   ansible.builtin.file:
-    path: /var/log/redis
+    path: "{{ cache_redis_log_dir }}" # noqa: R114 - path is a trusted role default
     state: directory
-    owner: redis
-    group: redis
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
     mode: "0755"
+
+- name: Install Redis instance service units
+  ansible.builtin.copy:  # noqa: L071 - inline content is dynamically generated per Redis instance and has no template source
+    dest: "/etc/systemd/system/{{ item_cache_redis['name'] }}.service" # noqa: R114 - paths come from role-defined server list
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+    content: |
+      [Unit]
+      Description=Redis instance {{ item_cache_redis['name'] }}
+      After=network.target
+
+      [Service]
+      Type=notify
+      User={{ cache_redis_user }}
+      Group={{ cache_redis_group }}
+      ExecStart=/usr/bin/redis-server {{ item_cache_redis['config_file'] }} --supervised systemd
+      ExecStop=/usr/bin/redis-cli -p {{ item_cache_redis['port'] }} shutdown
+      Restart=always
+      LimitNOFILE={{ cache_redis_ulimit_nofile }}
+
+      [Install]
+      WantedBy=multi-user.target
+  loop: "{{ cache_redis_servers }}"
+  loop_control:
+    loop_var: item_cache_redis
+
+- name: Reload systemd after installing Redis instance units
+  ansible.builtin.systemd:
+    daemon_reload: true
 
 - name: Render Redis configurations
   ansible.builtin.template:
     src: redis.conf.j2
-    dest: /etc/redis/{{ item_cache.port }}.conf # noqa: R114 - port comes from role-defined redis_servers
-    owner: redis
-    group: redis
-    mode: "0644"
+    dest: "{{ item_cache_redis['config_file'] }}" # noqa: R114 - paths come from role-defined server list
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0640"
     backup: true
-  loop: "{{ redis_servers }}"
+  loop: "{{ cache_redis_servers }}"
   loop_control:
-    loop_var: item_cache
+    loop_var: item_cache_redis
+  notify: Restart Redis
   no_log: "{{ cache_secure_logging }}"
   vars:
-    redis_port: "{{ item_cache.port }}"
-
-- name: Remove obsolete Redis replica settings
-  ansible.builtin.lineinfile: # noqa: L068 - removes individually matched obsolete directives while preserving the rest of each config
-    path: /etc/redis/{{ item_redis_config.value.port }}.conf # noqa: R114,R115 - port comes from a role-defined literal configuration loop
-    regexp: ^{{ item_redis_config.key }}
-    state: absent
-    create: false
-    mode: "0644"
-  loop:
-    - key: replica-serve-stale-data
-      value:
-        port: 6379
-    - key: replica-read-only
-      value:
-        port: 6379
-    - key: repl-ping-replica-period
-      value:
-        port: 6379
-    - key: client-output-buffer-limit
-      value:
-        port: 6379
-    - key: replica-priority
-      value:
-        port: 6379
-  loop_control:
-    loop_var: item_redis_config
+    redis_port: "{{ item_cache_redis['port'] }}"
+    redis_service_name: "{{ item_cache_redis['name'] }}"

@@ -1,20 +1,21 @@
+# Unsupported pre-flight checks: configuration/log content dumps and greps without stated
+# expected output, certificate subject/date inspection, curl response checks, sysctl
+# output, listening-port diagnostics, and journal/log review have no explicit expected
+# outcome suitable for a verification assertion.
 ---
-# Unsupported pre-flight diagnostics without a stated expected outcome: rendered
-# configuration content, certificate subject/dates, HTTP response headers, service
-# logs, effective listen addresses, sysctl output, and nginx log locations.
-- name: Verify nginx multisite deployment
+- name: Verify nginx_multisite
   hosts: all
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: Gather installed package facts
+    - name: Gather installed package facts for the required packages
       ansible.builtin.package_facts:
         manager: auto
 
-    - name: Verify required packages are installed
+    - name: Assert required packages are installed
       ansible.builtin.assert:
         that:
-          - "item_package in ansible_facts.packages"
-        fail_msg: "Required package is not installed"
+          - item_package in ansible_facts.packages
+        fail_msg: "Required package is not installed: {{ item_package }}"
       loop:
         - nginx
         - fail2ban
@@ -27,30 +28,39 @@
     - name: Gather service facts
       ansible.builtin.service_facts:
 
-    - name: Verify fail2ban is enabled and active
+    - name: Assert required services are enabled and active
       ansible.builtin.assert:
         that:
-          - "ansible_facts.services['fail2ban.service'].state == 'running'"
-          - "ansible_facts.services['fail2ban.service'].status == 'enabled'"
-        fail_msg: "fail2ban is not enabled and active"
+          - item_service + '.service' in ansible_facts.services
+          - ansible_facts.services[item_service + '.service'].status == 'enabled'
+          - ansible_facts.services[item_service + '.service'].state == 'running'
+        fail_msg: "Service is not enabled and active: {{ item_service }}"
+      loop:
+        - fail2ban
+        - nginx
+      loop_control:
+        loop_var: item_service
 
-    - name: Verify nginx is enabled and active
-      ansible.builtin.assert:
-        that:
-          - "ansible_facts.services['nginx.service'].state == 'running'"
-          - "ansible_facts.services['nginx.service'].status == 'enabled'"
-        fail_msg: "nginx is not enabled and active"
-
-    - name: Validate nginx configuration
+    - name: Validate the nginx configuration
       ansible.builtin.command:
         argv:
           - nginx
           - -t
-        changed_when: false
+        chdir: /
+      register: nginx_test
+      changed_when: false
+      failed_when: false
 
-    - name: Check required files and directories
+    - name: Assert nginx configuration validation succeeds
+      ansible.builtin.assert:
+        that:
+          - nginx_test.rc == 0
+        fail_msg: "nginx -t did not succeed"
+
+    - name: Check required configuration files
       ansible.builtin.stat:
-        path: "{{ item_path }}"
+        path: "{{ item_file }}"
+      register: configuration_files
       loop:
         - /etc/fail2ban/jail.local
         - /etc/sysctl.d/99-security.conf
@@ -60,12 +70,48 @@
         - /etc/nginx/sites-available/test.cluster.local
         - /etc/nginx/sites-available/ci.cluster.local
         - /etc/nginx/sites-available/status.cluster.local
+      loop_control:
+        loop_var: item_file
+
+    - name: Assert required configuration files exist
+      ansible.builtin.assert:
+        that:
+          - item_result.stat.exists
+          - item_result.stat.isreg
+        fail_msg: "Required configuration file is missing: {{ item_result.item }}"
+      loop: "{{ configuration_files.results }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Check document roots and index files
+      ansible.builtin.stat:
+        path: "{{ item_path }}"
+      register: document_files
+      loop:
         - /opt/server/test
         - /opt/server/test/index.html
         - /opt/server/ci
         - /opt/server/ci/index.html
         - /opt/server/status
         - /opt/server/status/index.html
+      loop_control:
+        loop_var: item_path
+
+    - name: Assert document roots and index files exist
+      ansible.builtin.assert:
+        that:
+          - item_result.stat.exists
+          - (item_result.stat.isdir if item_result.item in ['/opt/server/test', '/opt/server/ci', '/opt/server/status'] else item_result.stat.isreg)
+        fail_msg: "Required document path is missing or has the wrong type: {{ item_result.item }}"
+      loop: "{{ document_files.results }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Check TLS certificates and private keys exist
+      ansible.builtin.stat:
+        path: "{{ item_path }}"
+      register: tls_files
+      loop:
         - /etc/ssl/certs/test.cluster.local.crt
         - /etc/ssl/private/test.cluster.local.key
         - /etc/ssl/certs/ci.cluster.local.crt
@@ -74,98 +120,111 @@
         - /etc/ssl/private/status.cluster.local.key
       loop_control:
         loop_var: item_path
-      register: required_paths
 
-    - name: Assert required files and directories exist
+    - name: Assert TLS certificates and private keys exist
       ansible.builtin.assert:
         that:
-          - item_path.stat.exists
-          - (item_path.stat.isdir if item_path.item in ['/opt/server/test', '/opt/server/ci', '/opt/server/status'] else item_path.stat.isreg)
-        fail_msg: "Required path is missing or has the wrong type"
-      loop: "{{ required_paths.results }}"
+          - item_result.stat.exists
+          - item_result.stat.isreg
+        fail_msg: "Required TLS file is missing: {{ item_result.item }}"
+      loop: "{{ tls_files.results }}"
       loop_control:
-        loop_var: item_path
+        loop_var: item_result
 
     - name: Check enabled site links
       ansible.builtin.stat:
-        path: "{{ item_site }}"
+        path: "{{ item_link }}"
         follow: false
+      register: site_links
       loop:
         - /etc/nginx/sites-enabled/test.cluster.local
         - /etc/nginx/sites-enabled/ci.cluster.local
         - /etc/nginx/sites-enabled/status.cluster.local
       loop_control:
-        loop_var: item_site
-      register: enabled_site_links
-
-    - name: Verify enabled site links are symbolic links
-      ansible.builtin.assert:
-        that:
-          - item_link.stat.islnk
-        fail_msg: "Enabled site is not a symbolic link"
-      loop: "{{ enabled_site_links.results }}"
-      loop_control:
         loop_var: item_link
 
-    - name: Verify the default site is absent
+    - name: Assert enabled site links exist as symbolic links
+      ansible.builtin.assert:
+        that:
+          - item_result.stat.exists
+          - item_result.stat.islnk
+        fail_msg: "Enabled site link is missing or is not a symlink: {{ item_result.item }}"
+      loop: "{{ site_links.results }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Check that the default site is absent
       ansible.builtin.stat:
         path: /etc/nginx/sites-enabled/default
       register: default_site
 
-    - name: Assert the default site is absent
+    - name: Assert that the default site is absent
       ansible.builtin.assert:
         that:
           - not default_site.stat.exists
-        fail_msg: "The default nginx site is present"
+        fail_msg: "The default nginx site is still present"
 
-    - name: Check TLS private key metadata
+    - name: Check TLS private-key ownership and permissions
       ansible.builtin.stat:
         path: "{{ item_key }}"
+      register: private_key_stats
       loop:
         - /etc/ssl/private/test.cluster.local.key
         - /etc/ssl/private/ci.cluster.local.key
         - /etc/ssl/private/status.cluster.local.key
       loop_control:
         loop_var: item_key
-      register: tls_key_stats
 
-    - name: Verify TLS key ownership and permissions
+    - name: Assert TLS private-key ownership and permissions
       ansible.builtin.assert:
         that:
-          - item_key.stat.pw_name == 'root'
-          - item_key.stat.gr_name == 'ssl-cert'
-          - item_key.stat.mode == '0640'
-        fail_msg: "TLS private key metadata is incorrect"
-      loop: "{{ tls_key_stats.results }}"
+          - item_result.stat.pw_name == 'root'
+          - item_result.stat.gr_name == 'ssl-cert'
+          - item_result.stat.mode == '0640'
+        fail_msg: "TLS private-key ownership or permissions are incorrect: {{ item_result.item }}"
+      loop: "{{ private_key_stats.results }}"
       loop_control:
-        loop_var: item_key
+        loop_var: item_result
 
-    - name: Check SSH hardening settings
+    - name: Check that the ssl-cert group exists
+      ansible.builtin.getent:
+        database: group
+        key: ssl-cert
+
+    - name: Assert that the ssl-cert group exists
+      ansible.builtin.assert:
+        that:
+          - "'ssl-cert' in ansible_facts.getent_group"
+        fail_msg: "The ssl-cert group does not exist"
+
+    - name: Read SSH hardening configuration
       ansible.builtin.slurp:
         src: /etc/ssh/sshd_config
       register: sshd_config
 
-    - name: Verify SSH hardening settings
+    - name: Assert SSH hardening settings
       ansible.builtin.assert:
         that:
           - (sshd_config.content | b64decode) is search('(?m)^\\s*PermitRootLogin\\s+no\\s*$')
           - (sshd_config.content | b64decode) is search('(?m)^\\s*PasswordAuthentication\\s+no\\s*$')
         fail_msg: "SSH hardening settings are not present"
 
-    - name: Check firewall policy
+    - name: Check firewall policy and allowed services
       ansible.builtin.command:
         argv:
           - ufw
           - status
           - verbose
-        changed_when: false
-      register: firewall_status
+      register: ufw_status
+      changed_when: false
+      failed_when: false
 
-    - name: Verify firewall policy and allowed services
+    - name: Assert firewall policy and allowed services
       ansible.builtin.assert:
         that:
-          - firewall_status.stdout is search('(?i)Default: deny \(incoming\)')
-          - firewall_status.stdout is search('(?im)^80/tcp') or firewall_status.stdout is search('(?im)ALLOW.*80')
-          - firewall_status.stdout is search('(?im)^443/tcp') or firewall_status.stdout is search('(?im)ALLOW.*443')
-          - firewall_status.stdout is search('(?im)22/tcp') or firewall_status.stdout is search('(?im)ALLOW.*22')
-        fail_msg: "Firewall policy does not deny incoming traffic or allow SSH, HTTP, and HTTPS"
+          - ufw_status.rc == 0
+          - ufw_status.stdout is search('(?im)Default:\s+deny\s+\(incoming\)')
+          - ufw_status.stdout is search('(?im)(22/tcp|ssh|openssh).*ALLOW')
+          - ufw_status.stdout is search('(?im)(80/tcp|http).*ALLOW')
+          - ufw_status.stdout is search('(?im)(443/tcp|https).*ALLOW')
+        fail_msg: "UFW does not have the expected default policy and allowed services"

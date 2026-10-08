@@ -1,18 +1,13 @@
 ---
-- name: Install Memcached
+- name: Install Memcached package
   ansible.builtin.package:
-    name: memcached
+    name: "{{ cache_memcached_package }}"
     state: present
 
-- name: Render Memcached configuration
+- name: Render Memcached instance configuration
   ansible.builtin.template:
     src: memcached.conf.j2
-    dest: /etc/memcached.conf
+    dest: "{{ cache_memcached_config }}" # noqa: R114 - path is a trusted role default
     mode: "0644"
     backup: true
-
-- name: Enable and start Memcached
-  ansible.builtin.service:
-    name: "{{ memcached_service_name }}"
-    state: started
-    enabled: true
+  notify: Restart memcached

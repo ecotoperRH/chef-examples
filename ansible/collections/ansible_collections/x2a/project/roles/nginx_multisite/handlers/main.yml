@@ -1,19 +1,10 @@
 ---
-- name: Validate and reload nginx
-  ansible.builtin.shell:
-    cmd: |
-      nginx -t && systemctl reload nginx
-  changed_when: true
-  listen: Validate and reload nginx
-  args:
-    executable: /bin/sh
-
 - name: Restart fail2ban
   ansible.builtin.service:
     name: fail2ban
     state: restarted
 
-- name: Reload nginx multisite sysctl # noqa: L039 - item_sysctl is provided by this handler's loop
+- name: Reload nginx multisite sysctl  # noqa: L039 - item_sysctl is defined by loop_control below
   ansible.posix.sysctl:
     name: "{{ item_sysctl['key'] }}"
     value: "{{ item_sysctl['value'] }}"
@@ -33,13 +24,55 @@
       value: "0"
     - key: net.ipv6.conf.default.accept_redirects
       value: "0"
+    - key: net.ipv4.conf.all.send_redirects
+      value: "0"
+    - key: net.ipv4.conf.default.send_redirects
+      value: "0"
+    - key: net.ipv4.conf.all.accept_source_route
+      value: "0"
+    - key: net.ipv6.conf.all.accept_source_route
+      value: "0"
+    - key: net.ipv4.conf.default.accept_source_route
+      value: "0"
+    - key: net.ipv6.conf.default.accept_source_route
+      value: "0"
+    - key: net.ipv4.conf.all.log_martians
+      value: "1"
+    - key: net.ipv4.conf.default.log_martians
+      value: "1"
+    - key: net.ipv4.icmp_echo_ignore_all
+      value: "1"
+    - key: net.ipv4.icmp_echo_ignore_broadcasts
+      value: "1"
+    - key: net.ipv6.conf.all.disable_ipv6
+      value: "1"
+    - key: net.ipv6.conf.default.disable_ipv6
+      value: "1"
+    - key: net.ipv6.conf.lo.disable_ipv6
+      value: "1"
+    - key: net.ipv4.tcp_syncookies
+      value: "1"
+    - key: net.ipv4.tcp_max_syn_backlog
+      value: "2048"
+    - key: net.ipv4.tcp_synack_retries
+      value: "2"
+    - key: net.ipv4.tcp_syn_retries
+      value: "5"
   loop_control:
     loop_var: item_sysctl
-  vars:
-    item_sysctl_key: "{{ item_sysctl['key'] }}"
-    item_sysctl_value: "{{ item_sysctl['value'] }}"
 
 - name: Restart SSH
   ansible.builtin.service:
     name: ssh
     state: restarted
+
+- name: Validate and reload nginx
+  ansible.builtin.command:
+    cmd: nginx -t
+  changed_when: false
+  notify: Reload nginx
+
+- name: Reload nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded

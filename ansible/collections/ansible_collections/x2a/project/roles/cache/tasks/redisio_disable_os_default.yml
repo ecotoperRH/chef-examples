@@ -1,7 +1,15 @@
 ---
-- name: Stop and disable operating system Redis service
+- name: Gather service facts for the OS Redis service
+  ansible.builtin.service_facts:
+
+- name: Stop and disable OS Redis service
   ansible.builtin.service:
-    name: "{{ redis_os_service_name }}"
-    state: stopped
+    name: "{{ item_redis_service }}"
     enabled: false
-  failed_when: false
+    state: stopped
+  loop:
+    - redis
+    - redis-server
+  loop_control:
+    loop_var: item_redis_service
+  when: item_redis_service in ansible_facts.services

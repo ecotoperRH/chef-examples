@@ -1,106 +1,113 @@
 ---
 argument_specs:
   main:
-    short_description: Configure Memcached and Redis caching services
+    short_description: Configure Memcached and Redis cache services
     description:
-      - Installs and configures Memcached and Redis services with configurable instances.
+      - Installs and configures Memcached and Redis services with authentication and resource limits.
     options:
-      memcached_memory_limit:
-        type: int
+      cache_secure_logging:
+        type: bool
         required: false
-        default: 64
-        description: Memcached memory limit in megabytes.
-      memcached_max_connections:
-        type: int
-        required: false
-        default: 1024
-        description: Maximum Memcached connections.
-      memcached_user:
+        default: true
+        description: Hide task output for operations involving the Redis password.
+      cache_memcached_package:
         type: str
         required: false
-        default: memcache
-        description: User running Memcached.
-      memcached_port:
-        type: int
-        required: false
-        default: 11211
-        description: Memcached listening port.
-      memcached_bind_address:
-        type: str
-        required: false
-        default: 127.0.0.1
-        description: Memcached bind address.
-      memcached_service_name:
+        default: memcached
+        description: Memcached package name.
+      cache_memcached_service:
         type: str
         required: false
         default: memcached
         description: Memcached service name.
-      redis_package_name:
+      cache_memcached_config:
+        type: str
+        required: false
+        default: /etc/memcached.conf
+        description: Memcached configuration path.
+      cache_memcached_port:
+        type: int
+        required: false
+        default: 11211
+        description: Memcached listening port.
+      cache_memcached_memory_mb:
+        type: int
+        required: false
+        default: 64
+        description: Memcached memory limit in megabytes.
+      cache_memcached_max_connections:
+        type: int
+        required: false
+        default: 1024
+        description: Memcached maximum connections.
+      cache_memcached_user:
+        type: str
+        required: false
+        default: memcache
+        description: Memcached service user.
+      cache_redis_packages:
+        type: list
+        elements: str
+        required: false
+        default:
+          - gcc
+          - make
+          - libjemalloc-dev
+        description: Redis build prerequisite packages.
+      cache_redis_package:
         type: str
         required: false
         default: redis
         description: Redis package name.
-      redis_service_name:
+      cache_redis_user:
         type: str
         required: false
         default: redis
-        description: Redis service name.
-      redis_bind:
+        description: Redis service user.
+      cache_redis_group:
         type: str
         required: false
-        default: 127.0.0.1
-        description: Redis bind address.
-      redis_maxmemory:
+        default: redis
+        description: Redis service group.
+      cache_redis_config_dir:
         type: str
         required: false
-        default: 256mb
-        description: Redis maximum memory setting.
-      redis_appendonly:
-        type: bool
+        default: /etc/redis
+        description: Redis configuration directory.
+      cache_redis_log_dir:
+        type: str
         required: false
-        default: true
-        description: Enable Redis append-only persistence.
-      redis_servers:
+        default: /var/log/redis
+        description: Redis log directory.
+      cache_redis_password:
+        type: str
+        required: false
+        default: "{{ redis_password }}"
+        description: Redis password supplied by the AAP credential.
+      cache_redis_servers:
         type: list
         elements: dict
         required: false
         default:
           - name: redis_server_1
             port: 6379
+            config_file: /etc/redis/redis.conf
           - name: redis_server_2
             port: 6380
-        description: Redis service instances to configure.
-      redis_ulimit_user:
+            config_file: /etc/redis/redis-6380.conf
+        description: Redis instances to configure.
+      cache_redis_maxmemory:
         type: str
         required: false
-        default: redis
-        description: User receiving Redis file descriptor limits.
-      redis_ulimit_nofile:
+        default: 256mb
+        description: Redis maximum memory setting.
+      cache_redis_bind:
+        type: str
+        required: false
+        default: 127.0.0.1
+        description: Redis bind address.
+      cache_redis_ulimit_nofile:
         type: int
         required: false
         default: 65536
-        description: Redis nofile limit.
-      redis_install_from_source:
-        type: bool
-        required: false
-        default: false
-        description: Build Redis from source instead of installing a package.
-      redis_source_url:
-        type: str
-        required: false
-        default: https://download.redis.io/releases/redis-7.2.4.tar.gz
-        description: Redis source archive URL.
-      redis_source_version:
-        type: str
-        required: false
-        default: 7.2.4
-        description: Redis source version.
-      redis_password:
-        type: str
-        required: true
-        description: Redis password injected by AAP credential types.
-      cache_secure_logging:
-        type: bool
-        required: false
-        default: true
-        description: Hide tasks that render Redis credentials from logs.
+        description: Redis open-file limit.

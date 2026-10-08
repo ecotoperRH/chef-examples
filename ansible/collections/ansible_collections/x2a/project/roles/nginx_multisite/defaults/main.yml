@@ -9,9 +9,12 @@ nginx_multisite_sites:
   status.cluster.local:
     document_root: /opt/server/status
     ssl_enabled: true
-nginx_multisite_ssl_certificate_path: /etc/ssl/certs
-nginx_multisite_ssl_private_key_path: /etc/ssl/private
+nginx_multisite_certificate_path: /etc/ssl/certs
+nginx_multisite_private_key_path: /etc/ssl/private
 nginx_multisite_fail2ban_enabled: true
 nginx_multisite_ufw_enabled: true
-nginx_multisite_ssh_disable_root: true
-nginx_multisite_ssh_password_auth: false
+nginx_multisite_disable_root_login: true
+nginx_multisite_password_authentication: false
+nginx_multisite_secure_logging: true
+nginx_multisite_ssl_certificate_days: 365
+nginx_multisite_ssl_renew: false

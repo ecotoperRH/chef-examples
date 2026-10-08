@@ -1,10 +1,16 @@
 ---
-- name: Configure Redis ulimit
+- name: Ensure Redis limits directory exists
+  ansible.builtin.file:
+    path: /etc/security/limits.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Render Redis user limits
   ansible.builtin.template:
     src: redis_ulimit.conf.j2
     dest: /etc/security/limits.d/redis.conf
-    owner: root
-    group: root
     mode: "0644"
     backup: true
   vars:

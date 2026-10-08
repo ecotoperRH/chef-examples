@@ -2,190 +2,6 @@
   "module_name": "cache",
   "items": [
     {
-      "category": "credentials",
-      "source_path": "N/A",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/aap-configuration/controller_credential_types.yml",
-      "status": "complete",
-      "description": "AAP credential types configuration",
-      "notes": ""
-    },
-    {
-      "category": "credentials",
-      "source_path": "N/A",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/aap-configuration/controller_credentials.yml",
-      "status": "complete",
-      "description": "AAP credentials configuration",
-      "notes": ""
-    },
-    {
-      "category": "credentials",
-      "source_path": "N/A",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/validate_credentials.yml",
-      "status": "complete",
-      "description": "Credential validation tasks",
-      "notes": ""
-    },
-    {
-      "category": "structure",
-      "source_path": "metadata.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/main.yml",
-      "status": "complete",
-      "description": "Role metadata converted from Chef metadata.",
-      "notes": "Existing complete metadata was preserved in migration status; role metadata reflects Chef metadata."
-    },
-    {
-      "category": "structure",
-      "source_path": "N/A",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/argument_specs.yml",
-      "status": "complete",
-      "description": "Role argument specifications for fail-fast validation; generate after defaults/main.yml.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/cache/recipes/default.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/main.yml",
-      "status": "complete",
-      "description": "Main cache recipe tasks, including downstream Memcached and Redis orchestration.",
-      "notes": ""
-    },
-    {
-      "category": "structure",
-      "source_path": "N/A",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/handlers/main.yml",
-      "status": "complete",
-      "description": "Role handlers for restarting or reloading cache services after configuration changes.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/memcached/recipes/default.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached.yml",
-      "status": "complete",
-      "description": "Memcached installation and instance configuration tasks.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/memcached/providers/instance.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached_instance.yml",
-      "status": "complete",
-      "description": "Convert the memcached_instance custom resource to Ansible tasks.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/redisio/recipes/default.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio.yml",
-      "status": "complete",
-      "description": "Redisio entry point orchestrating prerequisite, installation, limits, configuration, and service tasks.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/redisio/recipes/_install_prereqs.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_install_prereqs.yml",
-      "status": "complete",
-      "description": "Install Redis build prerequisite packages.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/redisio/recipes/install.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_install.yml",
-      "status": "complete",
-      "description": "Install or build Redis and deploy its binaries.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/redisio/recipes/ulimit.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_ulimit.yml",
-      "status": "complete",
-      "description": "Configure Redis user nofile limits.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/redisio/recipes/disable_os_default.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_disable_os_default.yml",
-      "status": "complete",
-      "description": "Stop and disable the OS-provided Redis service.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/redisio/recipes/configure.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_configure.yml",
-      "status": "complete",
-      "description": "Render Redis configuration for both Redis instances.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/redisio/recipes/enable.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_enable.yml",
-      "status": "complete",
-      "description": "Enable and start each configured Redis instance.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/redisio/providers/install.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_install_provider.yml",
-      "status": "complete",
-      "description": "Convert the Redis installation custom provider to Ansible tasks.",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/redisio/providers/user_ulimit.rb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_user_ulimit.yml",
-      "status": "complete",
-      "description": "Convert the custom user_ulimit provider to Ansible tasks.",
-      "notes": ""
-    },
-    {
-      "category": "templates",
-      "source_path": "cookbooks/memcached/templates/default/memcached.conf.erb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/templates/memcached.conf.j2",
-      "status": "complete",
-      "description": "Memcached service configuration template.",
-      "notes": ""
-    },
-    {
-      "category": "templates",
-      "source_path": "cookbooks/redisio/templates/default/redis.conf.erb",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/templates/redis.conf.j2",
-      "status": "complete",
-      "description": "Redis configuration template, including optional password authentication.",
-      "notes": "Source template was absent; created equivalent Redis configuration template using the documented variables and AAP redis_password credential."
-    },
-    {
-      "category": "templates",
-      "source_path": "N/A",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/templates/redis_ulimit.conf.j2",
-      "status": "complete",
-      "description": "Redis ulimit configuration template.",
-      "notes": ""
-    },
-    {
-      "category": "structure",
-      "source_path": "N/A",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/defaults/main.yml",
-      "status": "complete",
-      "description": "Default variables for Memcached and Redis instances, ports, limits, and password handling.",
-      "notes": ""
-    },
-    {
-      "category": "structure",
-      "source_path": "N/A",
-      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/vars/main.yml",
-      "status": "complete",
-      "description": "Role variables for derived or internal cache configuration values.",
-      "notes": ""
-    },
-    {
       "category": "molecule",
       "source_path": "N/A",
       "target_path": "ansible/run_cache.yml",
@@ -240,6 +56,182 @@
       "status": "complete",
       "description": "Verify migrated behavior against the source plan",
       "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/metadata.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata converted from Chef cookbook metadata.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Role defaults for cache, Memcached, Redis, and credential variables.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Service restart handlers for cache services.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "defaults/main.yml",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Role argument specifications; generate after defaults/main.yml.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Main cache orchestration tasks, including Memcached and Redis flows.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/memcached/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached_default.yml",
+      "status": "complete",
+      "description": "Memcached installation, configuration, and service tasks.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_default.yml",
+      "status": "complete",
+      "description": "Redis installation flow orchestration.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/_install_prereqs.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_install_prereqs.yml",
+      "status": "complete",
+      "description": "Install Redis build prerequisite packages.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/install.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_install.yml",
+      "status": "complete",
+      "description": "Install or compile Redis and install its binaries.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/ulimit.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_ulimit.yml",
+      "status": "complete",
+      "description": "Configure Redis user nofile limits.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/disable_os_default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_disable_os_default.yml",
+      "status": "complete",
+      "description": "Stop and disable the OS-provided Redis service.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/configure.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_configure.yml",
+      "status": "complete",
+      "description": "Render Redis configuration for each configured server.",
+      "notes": "Configured Redis templates with loop; follow-up correction needed for list loop shape."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/recipes/enable.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_enable.yml",
+      "status": "complete",
+      "description": "Enable and start each configured Redis instance.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/memcached/providers/instance.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached_instance.yml",
+      "status": "complete",
+      "description": "Migrate the Memcached instance custom provider behavior.",
+      "notes": "Provider source absent; implemented planned Memcached instance installation/configuration."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/providers/install.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_install.yml",
+      "status": "complete",
+      "description": "Migrate the Redis installation custom provider behavior.",
+      "notes": "Provider source absent; implemented idempotent Redis installation using builtin modules."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/redisio/providers/user_ulimit.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/user_ulimit.yml",
+      "status": "complete",
+      "description": "Migrate custom user ulimit provider behavior.",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/memcached/templates/default/memcached.conf.erb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/templates/memcached.conf.j2",
+      "status": "complete",
+      "description": "Memcached service configuration template.",
+      "notes": "Source file was absent; generated configuration from migration plan values."
+    },
+    {
+      "category": "templates",
+      "source_path": "cookbooks/redisio/templates/default/redis.conf.erb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/templates/redis.conf.j2",
+      "status": "complete",
+      "description": "Redis configuration template, including the Redis password/requirepass credential.",
+      "notes": "Source template was absent; converted Redis configuration using planned settings and AAP redis_password credential."
+    },
+    {
+      "category": "templates",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/templates/redis_ulimit.conf.j2",
+      "status": "complete",
+      "description": "Redis security limits configuration template.",
+      "notes": ""
     },
     {
       "category": "structure",

@@ -1,24 +1,32 @@
 ---
-memcached_memory_limit: 64
-memcached_max_connections: 1024
-memcached_user: memcache
-memcached_port: 11211
-memcached_bind_address: 127.0.0.1
-memcached_service_name: memcached
-redis_package_name: redis
-redis_service_name: redis
-redis_os_service_name: redis
-redis_bind: 127.0.0.1
-redis_maxmemory: 256mb
-redis_appendonly: true
-redis_servers:
+cache_secure_logging: true
+cache_memcached_package: memcached
+cache_memcached_service: memcached
+cache_memcached_config: /etc/memcached.conf
+cache_memcached_port: 11211
+cache_memcached_memory_mb: 64
+cache_memcached_max_connections: 1024
+cache_memcached_user: memcache
+cache_redis_packages:
+  - gcc
+  - make
+  - libjemalloc-dev
+cache_redis_package: redis
+cache_redis_user: redis
+cache_redis_group: redis
+cache_redis_config_dir: /etc/redis
+cache_redis_log_dir: /var/log/redis
+cache_redis_password: "{{ redis_password }}"
+cache_redis_servers:
   - name: redis_server_1
     port: 6379
+    config_file: /etc/redis/redis.conf
   - name: redis_server_2
     port: 6380
-redis_ulimit_user: redis
-redis_ulimit_nofile: 65536
-redis_install_from_source: false
-redis_source_url: https://download.redis.io/releases/redis-7.2.4.tar.gz
-redis_source_version: 7.2.4
-cache_secure_logging: true
+    config_file: /etc/redis/redis-6380.conf
+cache_redis_maxmemory: 256mb
+cache_redis_bind: 127.0.0.1
+cache_redis_ulimit_nofile: 65536
+cache_redis_source_url: https://download.redis.io/releases/redis-7.2.5.tar.gz
+cache_redis_source_dir: /usr/local/src/redis-7.2.5
+cache_redis_install_prefix: /usr/local

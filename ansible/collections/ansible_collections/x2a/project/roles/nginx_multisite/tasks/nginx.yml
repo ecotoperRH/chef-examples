@@ -4,7 +4,7 @@
     name: nginx
     state: present
 
-- name: Deploy Nginx main configuration
+- name: Render Nginx main configuration
   ansible.builtin.template:
     src: nginx.conf.j2
     dest: /etc/nginx/nginx.conf
@@ -12,7 +12,7 @@
     backup: true
   notify: Validate and reload nginx
 
-- name: Deploy Nginx security configuration
+- name: Render Nginx security configuration
   ansible.builtin.template:
     src: security.conf.j2
     dest: /etc/nginx/conf.d/security.conf
@@ -20,7 +20,7 @@
     backup: true
   notify: Validate and reload nginx
 
-- name: Ensure Nginx is enabled and started
+- name: Enable and start Nginx
   ansible.builtin.service:
     name: nginx
     enabled: true
@@ -40,12 +40,12 @@
 
 - name: Deploy site placeholder pages
   ansible.builtin.template:
-    src: site-placeholder.html.j2
-    dest: "{{ item_nginx_site['value']['document_root'] }}/index.html" # noqa: R114 - path from role-defined sites dictionary
+    src: index.html.j2
+    dest: "{{ item_nginx_page['value']['document_root'] }}/index.html" # noqa: R114 - path from role-defined sites dictionary
     owner: www-data
     group: www-data
     mode: "0644"
     backup: true
   loop: "{{ nginx_multisite_sites | dict2items }}"
   loop_control:
-    loop_var: item_nginx_site
+    loop_var: item_nginx_page

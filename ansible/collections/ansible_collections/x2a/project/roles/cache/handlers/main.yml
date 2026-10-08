@@ -1,4 +1,17 @@
 ---
+- name: Restart memcached
+  ansible.builtin.service:
+    name: "{{ cache_memcached_service }}"
+    state: restarted
+
+- name: Restart Redis  # noqa: L039 - loop variable comes from the trusted role-defined Redis server list
+  ansible.builtin.service:
+    name: "{{ item_cache_handler['name'] }}"
+    state: restarted
+  loop: "{{ cache_redis_servers }}"
+  loop_control:
+    loop_var: item_cache_handler
+
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true

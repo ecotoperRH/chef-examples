@@ -1,0 +1,11 @@
+---
+- name: Create Redis installation prefix
+  ansible.builtin.file:
+    path: "{{ cache_redis_install_prefix }}" # noqa: R114 - path is a trusted role default
+    state: directory
+    mode: "0755"
+
+- name: Install Redis binaries from distribution package
+  ansible.builtin.package:
+    name: "{{ cache_redis_package }}"
+    state: present

@@ -1,18 +1,18 @@
 ---
-- name: Include Redis prerequisite tasks
+- name: Run Redis installation flow
   ansible.builtin.include_tasks: redisio_install_prereqs.yml
 
-- name: Include Redis installation tasks
+- name: Run Redis package installation
   ansible.builtin.include_tasks: redisio_install.yml
 
-- name: Include Redis ulimit tasks
+- name: Apply Redis resource limits
   ansible.builtin.include_tasks: redisio_ulimit.yml
 
-- name: Include OS default Redis disable tasks
+- name: Disable OS Redis service
   ansible.builtin.include_tasks: redisio_disable_os_default.yml
 
-- name: Include Redis configuration tasks
+- name: Configure Redis
   ansible.builtin.include_tasks: redisio_configure.yml
 
-- name: Include Redis service enable tasks
+- name: Enable Redis
   ansible.builtin.include_tasks: redisio_enable.yml

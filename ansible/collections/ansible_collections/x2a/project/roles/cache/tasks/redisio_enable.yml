@@ -1,20 +1,9 @@
 ---
-- name: Ensure Redis service units exist
-  ansible.builtin.template:
-    src: redis-instance.service.j2
-    dest: /etc/systemd/system/{{ item_redis_service.name }}.service # noqa: R114 - service name comes from role-defined redis_servers
-    mode: "0644"
-    backup: true
-  loop: "{{ redis_servers }}"
-  loop_control:
-    loop_var: item_redis_service
-  notify: Reload systemd
-
 - name: Enable and start Redis instances
   ansible.builtin.service:
-    name: "{{ item_redis_service.name }}"
-    state: started
+    name: "{{ item_cache_service['name'] }}"
     enabled: true
-  loop: "{{ redis_servers }}"
+    state: started
+  loop: "{{ cache_redis_servers }}"
   loop_control:
-    loop_var: item_redis_service
+    loop_var: item_cache_service

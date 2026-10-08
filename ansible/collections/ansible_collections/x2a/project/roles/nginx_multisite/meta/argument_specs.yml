@@ -4,7 +4,7 @@ argument_specs:
     short_description: Install and configure a secure Nginx multisite deployment
     description:
       - Installs Nginx, Fail2ban, UFW, OpenSSL, and CA certificates.
-      - Configures security hardening, self-signed TLS certificates, and HTTPS Nginx sites.
+      - Configures three HTTPS virtual hosts with local self-signed certificates and security hardening.
     options:
       nginx_multisite_sites:
         type: dict
@@ -19,13 +19,13 @@ argument_specs:
           status.cluster.local:
             document_root: /opt/server/status
             ssl_enabled: true
-        description: Sites to configure, including document roots and TLS enablement.
-      nginx_multisite_ssl_certificate_path:
+        description: Mapping of site names to document roots and TLS settings.
+      nginx_multisite_certificate_path:
         type: str
         required: false
         default: /etc/ssl/certs
         description: Directory where site certificates are stored.
-      nginx_multisite_ssl_private_key_path:
+      nginx_multisite_private_key_path:
         type: str
         required: false
         default: /etc/ssl/private
@@ -34,19 +34,34 @@ argument_specs:
         type: bool
         required: false
         default: true
-        description: Whether Fail2ban configuration is deployed.
+        description: Whether to configure Fail2ban.
       nginx_multisite_ufw_enabled:
         type: bool
         required: false
         default: true
-        description: Whether UFW firewall rules are configured and enabled.
-      nginx_multisite_ssh_disable_root:
+        description: Whether to configure and enable UFW.
+      nginx_multisite_disable_root_login:
         type: bool
         required: false
         default: true
-        description: Whether SSH root login is disabled.
-      nginx_multisite_ssh_password_auth:
+        description: Whether to disable SSH root login.
+      nginx_multisite_password_authentication:
         type: bool
         required: false
         default: false
-        description: Whether SSH password authentication is allowed.
+        description: Whether SSH password authentication is permitted.
+      nginx_multisite_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Hide generated TLS private-key command output by default.
+      nginx_multisite_ssl_certificate_days:
+        type: int
+        required: false
+        default: 365
+        description: Validity period for generated self-signed certificates.
+      nginx_multisite_ssl_renew:
+        type: bool
+        required: false
+        default: false
+        description: Explicitly allow certificate regeneration for renewal.

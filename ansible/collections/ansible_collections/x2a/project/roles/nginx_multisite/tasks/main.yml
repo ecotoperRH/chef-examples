@@ -1,12 +1,12 @@
 ---
 - name: Apply security configuration
-  ansible.builtin.import_tasks: security.yml
+  ansible.builtin.include_tasks: security.yml
 
 - name: Install and configure Nginx
-  ansible.builtin.import_tasks: nginx.yml
+  ansible.builtin.include_tasks: nginx.yml
 
-- name: Install and configure TLS
-  ansible.builtin.import_tasks: ssl.yml
+- name: Configure TLS certificates
+  ansible.builtin.include_tasks: ssl.yml
 
 - name: Configure Nginx sites
-  ansible.builtin.import_tasks: sites.yml
+  ansible.builtin.include_tasks: sites.yml

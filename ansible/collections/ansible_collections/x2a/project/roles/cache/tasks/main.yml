@@ -2,8 +2,23 @@
 - name: Validate credential variables
   ansible.builtin.include_tasks: validate_credentials.yml
 
-- name: Include Memcached tasks
-  ansible.builtin.include_tasks: memcached.yml
+- name: Configure Memcached
+  ansible.builtin.include_tasks: memcached_default.yml
 
-- name: Include Redis tasks
-  ansible.builtin.include_tasks: redisio.yml
+- name: Configure Redis prerequisites
+  ansible.builtin.include_tasks: redisio_install_prereqs.yml
+
+- name: Install Redis
+  ansible.builtin.include_tasks: redisio_install.yml
+
+- name: Configure Redis resource limits
+  ansible.builtin.include_tasks: redisio_ulimit.yml
+
+- name: Disable operating system Redis service
+  ansible.builtin.include_tasks: redisio_disable_os_default.yml
+
+- name: Configure Redis instances
+  ansible.builtin.include_tasks: redisio_configure.yml
+
+- name: Enable Redis instances
+  ansible.builtin.include_tasks: redisio_enable.yml

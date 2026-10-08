@@ -1,7 +1,7 @@
 # Migration Summary for cache
 
-- **Total items:** 31
-- **Completed:** 31
+- **Total items:** 30
+- **Completed:** 30
 - **Pending:** 0
 - **Missing:** 0
 - **Errors:** 0
@@ -19,33 +19,33 @@ All migration tasks have been completed successfully
 ## Review Summary
 
 ### Findings
-- **[Missing Prerequisites]** **High**: `tasks/redisio_configure.yml` created Redis configuration and log paths using the `redis` user/group, but did not ensure the user or directories existed. **Fixed** by creating the Redis user, `/etc/redis`, and `/var/log/redis` before rendering configuration.
-- **[Missing Package/Application Dependency]** **High**: Redis configuration and service tasks assumed a Redis service user, configuration directory, and service units existed, especially when installing Redis from source. **Fixed** by creating the Redis user and generating systemd instance unit files.
-- **[Idempotency]** **Medium**: Source-build `make` and `make install` commands were always executed and reported changes on every run. **Fixed** with `creates:` guards for the built and installed Redis binaries.
-- **[Ordering]** **High**: Redis services were enabled using `redis_servers` entries, but no corresponding service units were created. **Fixed** by templating and installing one systemd unit per configured Redis instance before starting services.
-- **[Runtime Data Structure Error]** **High**: `redis_servers` is a list, but `redisio_configure.yml` used `dict2items`, which would fail at runtime. **Fixed** by iterating directly over the list.
-- **[Invalid/Incorrect Service Handling]** **High**: The role attempted to manage services using the configured instance dictionaries as service names, while the default service names are `redis_server_1` and `redis_server_2`; those units did not exist. **Fixed** by creating matching instance service units.
-- **[Missing Argument Specs]** **Medium**: `meta/argument_specs.yml` did not cover all variables defined in `defaults/main.yml`. **Fixed** by adding specifications for all role variables, including package, service, source-build, Redis, and ulimit settings.
-- **[Missing Variable]** **Medium**: `redisio_disable_os_default.yml` referenced an undefined `redis_os_service_name`. **Fixed** by adding the variable to defaults and using it in the task.
-- **[Category 2: Owning Application Check]** **High**: Redis files and services could be changed without a complete Redis installation path, particularly for source installs. **Fixed** by ensuring package installation or source installation occurs before configuration and by creating the required Redis service user and systemd units.
-- **[Category 2: Owning Application Check]** **No issue**: Memcached configuration is preceded by installation of the `memcached` package.
+- **[Missing prerequisites] Severity: High: `tasks/redisio_configure.yml` - Redis configuration files were written into `/etc/redis`, but the role did not ensure that the configuration directory existed.** - Fixed by creating the directory with the Redis user/group before rendering configurations.
+- **[Missing prerequisites] Severity: High: `tasks/redisio_configure.yml` - Redis services were managed, but no service units were created for the configured instance names.** - Fixed by creating systemd service units for every configured Redis instance.
+- **[Ordering] Severity: High: `tasks/redisio_configure.yml` - Redis instance services could be started before corresponding service units were installed and systemd was reloaded.** - Fixed by installing service units and reloading systemd before service enable/start tasks run.
+- **[Ordering] Severity: Medium: `tasks/redisio_configure.yml` - The Redis configuration loop used `dict2items` against `cache_redis_servers`, which is a list.** - Fixed by iterating directly over the list and correcting the variable references.
+- **[Missing package/application guard] Severity: Medium: `tasks/redisio_disable_os_default.yml` - The role attempted to stop the OS Redis service unconditionally, which fails when no such service exists.** - Fixed by gathering service facts and stopping/disabling only services that exist.
+- **[Missing prerequisites] Severity: Medium: `tasks/redisio_configure.yml` - Redis log directory was created, but the Redis configuration directory was not.** - Fixed as part of the Redis directory prerequisite changes.
 
 ### Changes Made
-- `tasks/redisio_configure.yml`: Added Redis user and directory prerequisites; corrected iteration over `redis_servers`; ensured configuration ownership and `create: false` for cleanup.
-- `tasks/redisio_install.yml`: Added creation of the Redis service user after package or source installation.
-- `tasks/redisio_install_provider.yml`: Added `/usr/local/src` creation and idempotency guards for build and installation commands.
-- `tasks/redisio_enable.yml`: Added systemd unit deployment for each Redis instance and corrected service startup handling.
-- `tasks/redisio_disable_os_default.yml`: Replaced the undefined service variable with `redis_os_service_name`.
-- `defaults/main.yml`: Added the `redis_os_service_name` default.
-- `templates/redis-instance.service.j2`: Added a systemd unit template for configured Redis instances.
-- `handlers/main.yml`: Added a systemd daemon-reload handler.
-- `meta/argument_specs.yml`: Expanded argument specifications to cover all defaults and role variables.
+- `tasks/redisio_configure.yml`
+  - Added creation of the Redis configuration directory.
+  - Preserved Redis log directory creation.
+  - Corrected the Redis server loop to iterate over the configured list directly.
+  - Corrected `redis_port`, `redis_service_name`, and configuration file references.
+  - Added systemd service unit creation for each Redis instance.
+  - Added systemd daemon reload before service management.
+- `tasks/redisio_disable_os_default.yml`
+  - Added service fact gathering.
+  - Guarded OS Redis service shutdown for both `redis` and `redis-server`.
+- `handlers/main.yml`
+  - Added a systemd reload handler for completeness; the configuration task performs the reload explicitly to guarantee ordering.
 
 ### No Issues Found
-- **Invalid module parameters**: No remaining unsupported module parameters were found.
-- **Memcached ordering**: Package installation, configuration, and service startup occur in the correct order.
-- **Credential validation ordering**: Credential validation occurs before Redis configuration tasks.
-- **Checklist status**: 24 complete, 7 pending, 0 missing, 0 error.
+- **Idempotency:** Package, file, template, and service tasks use idempotent Ansible modules.
+- **Invalid module parameters:** No unsupported module parameters found.
+- **Memcached prerequisites and ordering:** Memcached is installed before its configuration is rendered and its service is started.
+- **Redis package ordering:** Redis prerequisites and package installation occur before Redis configuration and service management.
+- **Argument specifications:** `meta/argument_specs.yml` exists and covers the variables defined in `defaults/main.yml`.
 
 ### Molecule Test Generation
 
@@ -58,30 +58,29 @@ Scenario files passed static validation. Molecule was not run by the converter; 
 ## Checklist: cache
 
 ### Templates
-- [x] cookbooks/memcached/templates/default/memcached.conf.erb → ansible/collections/ansible_collections/x2a/project/roles/cache/templates/memcached.conf.j2 (complete)
-- [x] cookbooks/redisio/templates/default/redis.conf.erb → ansible/collections/ansible_collections/x2a/project/roles/cache/templates/redis.conf.j2 (complete) - Source template was absent; created equivalent Redis configuration template using the documented variables and AAP redis_password credential.
+- [x] cookbooks/memcached/templates/default/memcached.conf.erb → ansible/collections/ansible_collections/x2a/project/roles/cache/templates/memcached.conf.j2 (complete) - Source file was absent; generated configuration from migration plan values.
+- [x] cookbooks/redisio/templates/default/redis.conf.erb → ansible/collections/ansible_collections/x2a/project/roles/cache/templates/redis.conf.j2 (complete) - Source template was absent; converted Redis configuration using planned settings and AAP redis_password credential.
 - [x] N/A → ansible/collections/ansible_collections/x2a/project/roles/cache/templates/redis_ulimit.conf.j2 (complete)
 
 ### Recipes → Tasks
 - [x] cookbooks/cache/recipes/default.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/main.yml (complete)
-- [x] cookbooks/memcached/recipes/default.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached.yml (complete)
-- [x] cookbooks/memcached/providers/instance.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached_instance.yml (complete)
-- [x] cookbooks/redisio/recipes/default.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio.yml (complete)
+- [x] cookbooks/memcached/recipes/default.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached_default.yml (complete)
+- [x] cookbooks/redisio/recipes/default.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_default.yml (complete)
 - [x] cookbooks/redisio/recipes/_install_prereqs.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_install_prereqs.yml (complete)
 - [x] cookbooks/redisio/recipes/install.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_install.yml (complete)
 - [x] cookbooks/redisio/recipes/ulimit.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_ulimit.yml (complete)
 - [x] cookbooks/redisio/recipes/disable_os_default.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_disable_os_default.yml (complete)
-- [x] cookbooks/redisio/recipes/configure.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_configure.yml (complete)
+- [x] cookbooks/redisio/recipes/configure.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_configure.yml (complete) - Configured Redis templates with loop; follow-up correction needed for list loop shape.
 - [x] cookbooks/redisio/recipes/enable.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_enable.yml (complete)
-- [x] cookbooks/redisio/providers/install.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_install_provider.yml (complete)
-- [x] cookbooks/redisio/providers/user_ulimit.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redisio_user_ulimit.yml (complete)
+- [x] cookbooks/memcached/providers/instance.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached_instance.yml (complete) - Provider source absent; implemented planned Memcached instance installation/configuration.
+- [x] cookbooks/redisio/providers/install.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/redis_install.yml (complete) - Provider source absent; implemented idempotent Redis installation using builtin modules.
+- [x] cookbooks/redisio/providers/user_ulimit.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/user_ulimit.yml (complete)
 
 ### Structure Files
-- [x] metadata.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/meta/main.yml (complete) - Existing complete metadata was preserved in migration status; role metadata reflects Chef metadata.
-- [x] N/A → ansible/collections/ansible_collections/x2a/project/roles/cache/meta/argument_specs.yml (complete)
-- [x] N/A → ansible/collections/ansible_collections/x2a/project/roles/cache/handlers/main.yml (complete)
+- [x] cookbooks/cache/metadata.rb → ansible/collections/ansible_collections/x2a/project/roles/cache/meta/main.yml (complete)
 - [x] N/A → ansible/collections/ansible_collections/x2a/project/roles/cache/defaults/main.yml (complete)
-- [x] N/A → ansible/collections/ansible_collections/x2a/project/roles/cache/vars/main.yml (complete)
+- [x] N/A → ansible/collections/ansible_collections/x2a/project/roles/cache/handlers/main.yml (complete)
+- [x] defaults/main.yml → ansible/collections/ansible_collections/x2a/project/roles/cache/meta/argument_specs.yml (complete)
 - [x] N/A → ansible/collections/ansible_collections/x2a/project/roles/cache/meta/main.yml (complete)
 
 ### Molecule Testing
@@ -106,34 +105,36 @@ Phase: migrate
 Duration: 0.00s
 
 Agent Metrics:
-  AAP Collection Discovery: 5.67s
-    Tokens: 14556 in, 103 out
-    Tools: aap_search_collections: 1
+  AAP Collection Discovery: 5.42s
+    Tokens: 22582 in, 192 out
+    Tools: aap_list_collections: 1, aap_search_collections: 3
     collections_found: 0
-  Credential Extractor: 2.93s
-    Tokens: 6986 in, 236 out
+  Credential Extractor: 3.40s
+    Tokens: 6986 in, 344 out
     credentials_found: 1
-  Export Planner: 33.99s
-    Tokens: 73664 in, 3210 out
-    Tools: add_checklist_task: 20, file_search: 1, get_checklist_summary: 1, list_checklist_tasks: 1, list_directory: 5
-  Ansible Role Writer: 102.58s
-    Tokens: 911237 in, 5742 out
-    Tools: ansible_write: 17, file_search: 3, list_checklist_tasks: 2, list_directory: 4, read_file: 3, update_checklist_task: 20, write_file: 3
+  Export Planner: 25.48s
+    Tokens: 54186 in, 2632 out
+    Tools: add_checklist_task: 19, file_search: 1, get_checklist_summary: 1, list_checklist_tasks: 1, list_directory: 7
+  Ansible Role Writer: 98.86s
+    Tokens: 913500 in, 6688 out
+    Tools: ansible_write: 16, file_search: 1, get_checklist_summary: 1, list_checklist_tasks: 2, list_directory: 5, read_file: 4, update_checklist_task: 19, write_file: 3
     attempts: 1
     complete: True
-    files_created: 24
-    files_total: 31
-  ReviewAgent: 84.14s
-    Tokens: 168388 in, 10275 out
-    Tools: ansible_write: 10, file_search: 2, get_checklist_summary: 1, list_directory: 2, read_file: 22, write_file: 1
-  Molecule Test Generator: 10.27s
-    Tokens: 12869 in, 1482 out
-    Tools: update_checklist_task: 1, write_file: 1
+    files_created: 23
+    files_total: 30
+  ReviewAgent: 55.50s
+    Tokens: 110189 in, 6860 out
+    Tools: ansible_write: 5, file_search: 1, list_directory: 3, read_file: 23
+  Molecule Test Generator: 12.08s
+    Tokens: 8168 in, 1849 out
+    Tools: write_file: 1
     molecule_generation_attempts: 1
     molecule_static_validation: True
-  Ansible Validator: 44.27s
-    Tokens: 69813 in, 4889 out
-    Tools: ansible_lint: 2, ansible_role_check: 2, read_file: 7, write_file: 6
+  Ansible Validator: 102.93s
+    Tokens: 47593 in, 3682 out
+    Tools: ansible_lint: 2, ansible_role_check: 2, ansible_write: 5, read_file: 4, write_file: 1
+    collections_installed: 4
+    collections_failed: 1
     violations: 0
     errors: 0
     warnings: 0

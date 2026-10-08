@@ -7,13 +7,7 @@
       - openssh-server
     state: present
 
-- name: Ensure fail2ban is enabled and started
-  ansible.builtin.service:
-    name: fail2ban
-    enabled: true
-    state: started
-
-- name: Deploy fail2ban configuration
+- name: Configure fail2ban
   ansible.builtin.template:
     src: fail2ban.jail.local.j2
     dest: /etc/fail2ban/jail.local
@@ -22,67 +16,49 @@
   when: nginx_multisite_fail2ban_enabled | bool
   notify: Restart fail2ban
 
+- name: Enable and start fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+  when: nginx_multisite_fail2ban_enabled | bool
+
 - name: Set UFW default incoming policy
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      if ! ufw status verbose | grep -q 'Default: deny (incoming)'; then
-        ufw --force default deny
-      fi
+  ansible.builtin.command:
+    cmd: ufw --force default deny
   when: nginx_multisite_ufw_enabled | bool
-  changed_when: false
-  args:
-    executable: /bin/sh
+  changed_when: "'Default incoming policy changed to' in nginx_multisite_ufw_default.stdout"
+  register: nginx_multisite_ufw_default
 
 - name: Allow SSH through UFW
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      if ! ufw status | grep -qE '(^|[[:space:]])22(/tcp)?[[:space:]].*ALLOW'; then
-        ufw allow ssh
-      fi
+  ansible.builtin.command:
+    cmd: ufw allow ssh
   when: nginx_multisite_ufw_enabled | bool
-  changed_when: false
-  args:
-    executable: /bin/sh
+  changed_when: "'Skipping adding existing rule' not in nginx_multisite_ufw_ssh.stdout"
+  register: nginx_multisite_ufw_ssh
 
 - name: Allow HTTP through UFW
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      if ! ufw status | grep -qE '(^|[[:space:]])80(/tcp)?[[:space:]].*ALLOW'; then
-        ufw allow http
-      fi
+  ansible.builtin.command:
+    cmd: ufw allow http
   when: nginx_multisite_ufw_enabled | bool
-  changed_when: false
-  args:
-    executable: /bin/sh
+  changed_when: "'Skipping adding existing rule' not in nginx_multisite_ufw_http.stdout"
+  register: nginx_multisite_ufw_http
 
 - name: Allow HTTPS through UFW
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      if ! ufw status | grep -qE '(^|[[:space:]])443(/tcp)?[[:space:]].*ALLOW'; then
-        ufw allow https
-      fi
+  ansible.builtin.command:
+    cmd: ufw allow https
   when: nginx_multisite_ufw_enabled | bool
-  changed_when: false
-  args:
-    executable: /bin/sh
+  changed_when: "'Skipping adding existing rule' not in nginx_multisite_ufw_https.stdout"
+  register: nginx_multisite_ufw_https
 
 - name: Enable UFW
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      if ! ufw status | grep -q '^Status: active'; then
-        ufw --force enable
-      fi
+  ansible.builtin.command:
+    cmd: ufw --force enable
   when: nginx_multisite_ufw_enabled | bool
-  changed_when: false
-  args:
-    executable: /bin/sh
+  changed_when: "'Firewall is active and enabled on system startup' in nginx_multisite_ufw_enable.stdout"
+  register: nginx_multisite_ufw_enable
 
-- name: Deploy kernel security configuration
+- name: Configure kernel security settings
   ansible.builtin.template:
     src: sysctl-security.conf.j2
     dest: /etc/sysctl.d/99-security.conf
@@ -90,26 +66,22 @@
     backup: true
   notify: Reload nginx multisite sysctl
 
-- name: Disable SSH root login # noqa: L068 - lineinfile performs an exact targeted replacement without rewriting unrelated sshd configuration
+- name: Disable root SSH login  # noqa: L068 - lineinfile is required to preserve unrelated sshd_config settings
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: ^#?PermitRootLogin.*
     line: PermitRootLogin no
-    state: present
-    create: false
-    backup: true
     mode: "0644"
-  when: nginx_multisite_ssh_disable_root | bool
+    backup: true
+  when: nginx_multisite_disable_root_login | bool
   notify: Restart SSH
 
-- name: Disable SSH password authentication # noqa: L068 - lineinfile performs an exact targeted replacement without rewriting unrelated sshd configuration
+- name: Disable SSH password authentication  # noqa: L068 - lineinfile is required to preserve unrelated sshd_config settings
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: ^#?PasswordAuthentication.*
     line: PasswordAuthentication no
-    state: present
-    create: false
-    backup: true
     mode: "0644"
-  when: not nginx_multisite_ssh_password_auth | bool
+    backup: true
+  when: not nginx_multisite_password_authentication | bool
   notify: Restart SSH

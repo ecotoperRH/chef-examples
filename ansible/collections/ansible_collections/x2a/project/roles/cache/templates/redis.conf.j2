@@ -1,7 +1,13 @@
-bind {{ redis_bind }}
+bind {{ cache_redis_bind }}
 port {{ redis_port }}
-maxmemory {{ redis_maxmemory }}
+daemonize no
+supervised systemd
+pidfile /run/{{ redis_service_name }}.pid
+logfile "{{ cache_redis_log_dir }}/{{ redis_service_name }}.log"
+dbfilename dump.rdb
+dir {{ cache_redis_config_dir }}
+maxmemory {{ cache_redis_maxmemory }}
 appendonly yes
-{% if redis_password | length > 0 %}
-requirepass {{ redis_password }}
+{% if cache_redis_password | length > 0 %}
+requirepass {{ cache_redis_password }}
 {% endif %}

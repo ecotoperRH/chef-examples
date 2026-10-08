@@ -1,3 +1,0 @@
----
-- name: Include Memcached instance tasks
-  ansible.builtin.include_tasks: memcached_instance.yml
