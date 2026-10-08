@@ -1,0 +1,204 @@
+---
+- name: Verify packages and services
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert required packages are installed
+      ansible.builtin.assert:
+        that:
+          - item_package in ansible_facts['packages']
+        fail_msg: "Required package is not installed"
+      loop:
+        - nginx
+        - fail2ban
+        - ufw
+        - openssl
+        - ca-certificates
+      loop_control:
+        loop_var: item_package
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert nginx and fail2ban are active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'nginx.service' in ansible_facts['services']"
+          - ansible_facts['services']['nginx.service']['state'] == 'running'
+          - ansible_facts['services']['nginx.service']['status'] == 'enabled'
+          - "'fail2ban.service' in ansible_facts['services']"
+          - ansible_facts['services']['fail2ban.service']['state'] == 'running'
+          - ansible_facts['services']['fail2ban.service']['status'] == 'enabled'
+        fail_msg: "Expected nginx and fail2ban services are not active and enabled"
+
+    - name: Validate nginx configuration
+      ansible.builtin.command:
+        argv:
+          - nginx
+          - -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Assert nginx configuration is valid
+      ansible.builtin.assert:
+        that:
+          - nginx_test['rc'] == 0
+        fail_msg: "Nginx configuration validation failed"
+
+- name: Verify rendered configuration and SSH hardening
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check required configuration files
+      ansible.builtin.stat:
+        path: "{{ item_config }}"
+      loop:
+        - /etc/nginx/nginx.conf
+        - /etc/nginx/conf.d/security.conf
+        - /etc/fail2ban/jail.local
+        - /etc/sysctl.d/99-security.conf
+        - /etc/ssh/sshd_config
+        - /etc/nginx/sites-available/test.cluster.local
+        - /etc/nginx/sites-available/ci.cluster.local
+        - /etc/nginx/sites-available/status.cluster.local
+      loop_control:
+        loop_var: item_config
+      register: config_stat_results
+
+    - name: Assert required configuration files exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isreg']
+          - item_result['stat']['size'] > 0
+        fail_msg: "Expected rendered configuration file is missing or empty"
+      loop: "{{ config_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Read virtual-host configurations
+      ansible.builtin.slurp:
+        src: "{{ item_site_config }}"
+      loop:
+        - /etc/nginx/sites-available/test.cluster.local
+        - /etc/nginx/sites-available/ci.cluster.local
+        - /etc/nginx/sites-available/status.cluster.local
+      loop_control:
+        loop_var: item_site_config
+      register: site_config_contents
+
+    - name: Assert virtual-host configurations contain production settings
+      ansible.builtin.assert:
+        that:
+          - item_site_content['content'] | b64decode is search('server_name')
+          - item_site_content['content'] | b64decode is search('listen 80')
+          - item_site_content['content'] | b64decode is search('listen 443')
+          - item_site_content['content'] | b64decode is search('ssl_certificate')
+          - item_site_content['content'] | b64decode is search('ssl_certificate_key')
+        fail_msg: "Virtual-host configuration is missing expected Nginx settings"
+      loop: "{{ site_config_contents['results'] }}"
+      loop_control:
+        loop_var: item_site_content
+
+    - name: Validate SSH daemon configuration
+      ansible.builtin.command:
+        argv:
+          - sshd
+          - -t
+      register: sshd_test
+      changed_when: false
+
+    - name: Assert SSH hardening configuration is valid
+      ansible.builtin.assert:
+        that:
+          - sshd_test['rc'] == 0
+        fail_msg: "SSH daemon configuration validation failed"
+
+- name: Verify sites, links, firewall, and network
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check site directories and content files
+      ansible.builtin.stat:
+        path: "{{ item_site_path }}"
+      loop:
+        - /opt/server/test
+        - /opt/server/test/index.html
+        - /opt/server/ci
+        - /opt/server/ci/index.html
+        - /opt/server/status
+        - /opt/server/status/index.html
+        - /etc/ssl/certs
+        - /etc/ssl/private
+      loop_control:
+        loop_var: item_site_path
+      register: site_path_results
+
+    - name: Assert site directories and content files exist
+      ansible.builtin.assert:
+        that:
+          - item_site_result['stat']['exists']
+        fail_msg: "Expected production site path is missing"
+      loop: "{{ site_path_results['results'] }}"
+      loop_control:
+        loop_var: item_site_result
+
+    - name: Check enabled virtual-host links
+      ansible.builtin.stat:
+        path: "{{ item_link }}"
+        follow: false
+      loop:
+        - /etc/nginx/sites-enabled/test.cluster.local
+        - /etc/nginx/sites-enabled/ci.cluster.local
+        - /etc/nginx/sites-enabled/status.cluster.local
+      loop_control:
+        loop_var: item_link
+      register: enabled_link_results
+
+    - name: Assert enabled virtual-host links exist
+      ansible.builtin.assert:
+        that:
+          - item_link_result['stat']['islnk']
+        fail_msg: "Expected enabled Nginx virtual-host link is missing"
+      loop: "{{ enabled_link_results['results'] }}"
+      loop_control:
+        loop_var: item_link_result
+
+    - name: Check the default virtual host is absent
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: default_site
+
+    - name: Assert the default virtual host is absent
+      ansible.builtin.assert:
+        that:
+          - not default_site['stat']['exists']
+        fail_msg: "The default Nginx virtual host must be absent"
+
+    - name: Check UFW rules
+      ansible.builtin.command:
+        argv:
+          - ufw
+          - status
+      register: ufw_status
+      changed_when: false
+
+    - name: Assert UFW allows SSH, HTTP, and HTTPS
+      ansible.builtin.assert:
+        that:
+          - ufw_status['rc'] == 0
+          - ufw_status['stdout'] is search('22|ssh')
+          - ufw_status['stdout'] is search('80|http')
+          - ufw_status['stdout'] is search('443|https')
+        fail_msg: "Expected UFW application rules are missing"
+
+    - name: Wait for HTTP listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 80
+        state: started
+        timeout: 30
