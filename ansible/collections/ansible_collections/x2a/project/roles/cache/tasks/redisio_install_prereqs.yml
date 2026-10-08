@@ -1,0 +1,8 @@
+---
+- name: Install Redis build prerequisites
+  ansible.builtin.package:
+    name:
+      - gcc
+      - make
+      - libjemalloc-dev
+    state: present

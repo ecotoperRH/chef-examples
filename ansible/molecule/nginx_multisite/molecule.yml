@@ -6,20 +6,28 @@ dependency:
   env:
     ANSIBLE_COLLECTIONS_PATH: ${MOLECULE_PROJECT_DIRECTORY}/collections
 
+driver:
+  name: podman
+
+platforms:
+  - name: x2a_nginx_multisite
+    image: ${X2A_MOLECULE_IMAGE:-registry.access.redhat.com/ubi9/ubi-init:latest}
+    command: /sbin/init
+    systemd: always
+    privileged: true
+
+provisioner:
+  name: ansible
+
 ansible:
   executor:
     backend: ansible-playbook
-    args:
-      ansible_playbook:
-        - --inventory=${MOLECULE_SCENARIO_DIRECTORY}/inventory/hosts.yml
   env:
     ANSIBLE_COLLECTIONS_PATH: ${MOLECULE_PROJECT_DIRECTORY}/collections
   playbooks:
-    create: create.yml
     prepare: prepare.yml
     converge: converge.yml
     verify: verify.yml
-    destroy: destroy.yml
 
 scenario:
   test_sequence:

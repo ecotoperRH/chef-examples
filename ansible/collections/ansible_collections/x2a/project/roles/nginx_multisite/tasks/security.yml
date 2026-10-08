@@ -4,87 +4,112 @@
     name:
       - fail2ban
       - ufw
+      - openssh-server
     state: present
 
-- name: Install SSH server package
-  ansible.builtin.package:
-    name: openssh-server
-    state: present
-
-- name: Ensure fail2ban service is enabled and started
+- name: Ensure fail2ban is enabled and started
   ansible.builtin.service:
     name: fail2ban
     enabled: true
     state: started
 
-- name: Deploy Fail2Ban configuration
+- name: Deploy fail2ban configuration
   ansible.builtin.template:
     src: fail2ban.jail.local.j2
     dest: /etc/fail2ban/jail.local
     mode: "0644"
     backup: true
-  notify: restart fail2ban
+  when: nginx_multisite_fail2ban_enabled | bool
+  notify: Restart fail2ban
 
-- name: Set default UFW policy to deny incoming
-  ansible.builtin.command:
-    cmd: ufw --force default deny
+- name: Set UFW default incoming policy
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      if ! ufw status verbose | grep -q 'Default: deny (incoming)'; then
+        ufw --force default deny
+      fi
+  when: nginx_multisite_ufw_enabled | bool
   changed_when: false
-  notify: reload ufw
+  args:
+    executable: /bin/sh
 
 - name: Allow SSH through UFW
-  ansible.builtin.command:
-    cmd: ufw allow ssh
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      if ! ufw status | grep -qE '(^|[[:space:]])22(/tcp)?[[:space:]].*ALLOW'; then
+        ufw allow ssh
+      fi
+  when: nginx_multisite_ufw_enabled | bool
   changed_when: false
-  notify: reload ufw
+  args:
+    executable: /bin/sh
 
 - name: Allow HTTP through UFW
-  ansible.builtin.command:
-    cmd: ufw allow http
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      if ! ufw status | grep -qE '(^|[[:space:]])80(/tcp)?[[:space:]].*ALLOW'; then
+        ufw allow http
+      fi
+  when: nginx_multisite_ufw_enabled | bool
   changed_when: false
-  notify: reload ufw
+  args:
+    executable: /bin/sh
 
 - name: Allow HTTPS through UFW
-  ansible.builtin.command:
-    cmd: ufw allow https
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      if ! ufw status | grep -qE '(^|[[:space:]])443(/tcp)?[[:space:]].*ALLOW'; then
+        ufw allow https
+      fi
+  when: nginx_multisite_ufw_enabled | bool
   changed_when: false
-  notify: reload ufw
+  args:
+    executable: /bin/sh
 
 - name: Enable UFW
-  ansible.builtin.command:
-    cmd: ufw --force enable
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      if ! ufw status | grep -q '^Status: active'; then
+        ufw --force enable
+      fi
+  when: nginx_multisite_ufw_enabled | bool
   changed_when: false
-  notify: reload ufw
+  args:
+    executable: /bin/sh
 
-- name: Deploy sysctl security configuration
+- name: Deploy kernel security configuration
   ansible.builtin.template:
     src: sysctl-security.conf.j2
     dest: /etc/sysctl.d/99-security.conf
     mode: "0644"
     backup: true
-  notify: reload sysctl
+  notify: Reload nginx multisite sysctl
 
-- name: Ensure PermitRootLogin is disabled
+- name: Disable SSH root login # noqa: L068 - lineinfile performs an exact targeted replacement without rewriting unrelated sshd configuration
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
-    regexp: ^#?PermitRootLogin
+    regexp: ^#?PermitRootLogin.*
     line: PermitRootLogin no
+    state: present
+    create: false
     backup: true
-  notify: restart ssh
-  # noqa: L068 - lineinfile needed for simple config change
-  # noqa: L021 - mode not applicable for lineinfile
+    mode: "0644"
+  when: nginx_multisite_ssh_disable_root | bool
+  notify: Restart SSH
 
-- name: Ensure PasswordAuthentication is disabled
+- name: Disable SSH password authentication # noqa: L068 - lineinfile performs an exact targeted replacement without rewriting unrelated sshd configuration
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
-    regexp: ^#?PasswordAuthentication
+    regexp: ^#?PasswordAuthentication.*
     line: PasswordAuthentication no
+    state: present
+    create: false
     backup: true
-  notify: restart ssh
-  # noqa: L068 - lineinfile needed for simple config change
-  # noqa: L021 - mode not applicable for lineinfile
-
-- name: Ensure ssh service is defined (no action)
-  ansible.builtin.service:
-    name: ssh
-    state: started
-    enabled: true
+    mode: "0644"
+  when: not nginx_multisite_ssh_password_auth | bool
+  notify: Restart SSH

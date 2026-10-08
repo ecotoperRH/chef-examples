@@ -1,19 +1,24 @@
 ---
-# Default variables for cache role
-# Secure logging toggle for secret handling
+memcached_memory_limit: 64
+memcached_max_connections: 1024
+memcached_user: memcache
+memcached_port: 11211
+memcached_bind_address: 127.0.0.1
+memcached_service_name: memcached
+redis_package_name: redis
+redis_service_name: redis
+redis_os_service_name: redis
+redis_bind: 127.0.0.1
+redis_maxmemory: 256mb
+redis_appendonly: true
+redis_servers:
+  - name: redis_server_1
+    port: 6379
+  - name: redis_server_2
+    port: 6380
+redis_ulimit_user: redis
+redis_ulimit_nofile: 65536
+redis_install_from_source: false
+redis_source_url: https://download.redis.io/releases/redis-7.2.4.tar.gz
+redis_source_version: 7.2.4
 cache_secure_logging: true
-# Redis package installation flag
-redisio_package_install: false
-# Redis package name (if package_install is true)
-redisio_package_name: redis
-# Redis version and source details
-redisio_version: 6.2.6
-redisio_mirror: http://download.redis.io
-redisio_base_name: redis-
-redisio_artifact_type: tar.gz
-redisio_install_dir: /opt/redis
-redisio_download_dir: /tmp
-# Ulimit configuration for Redis users (dict of user => attributes)
-cache_ulimit_users: {}
-# Redis password (secret)
-redis_password: ""

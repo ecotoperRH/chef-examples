@@ -1,49 +1,18 @@
 ---
-- name: Ensure memcached group exists
-  ansible.builtin.group:
-    name: memcached
-    state: present
-
-- name: Ensure memcached user exists
-  ansible.builtin.user:
-    name: memcached
-    group: memcached
-    create_home: false
-    system: true
-    state: present
-
-- name: Install memcached package
+- name: Install Memcached
   ansible.builtin.package:
     name: memcached
     state: present
 
-- name: Deploy memcached systemd unit
+- name: Render Memcached configuration
   ansible.builtin.template:
-    src: memcached_instance.service.j2
-    dest: /etc/systemd/system/{{ item_memcached['key'] }}.service
+    src: memcached.conf.j2
+    dest: /etc/memcached.conf
     mode: "0644"
     backup: true
-  loop: "{{ memcached_instances | dict2items }}"
-  loop_control:
-    loop_var: item_memcached
-  # noqa: R114 - path from role-defined memcached_instances dict, trusted source
-  vars:
-    memcached_user: "{{ item_memcached['value'].get('user', 'memcache') }}"
-    memcached_memory: "{{ item_memcached['value'].get('memory', 64) }}"
-    memcached_port: "{{ item_memcached['value'].get('port', 11211) }}"
-    memcached_ulimit: "{{ item_memcached['value'].get('ulimit', 1024) }}"
-    memcached_extra_cli_options: "{{ item_memcached['value'].get('extra_cli_options', []) }}"
-    memcached_binary_path: "{{ item_memcached['value'].get('binary_path', '') }}"
 
-- name: Reload systemd daemon
-  ansible.builtin.systemd:
-    daemon_reload: true
-
-- name: Ensure memcached instance service enabled and started
+- name: Enable and start Memcached
   ansible.builtin.service:
-    name: "{{ item_memcached['key'] }}"
+    name: "{{ memcached_service_name }}"
     state: started
     enabled: true
-  loop: "{{ memcached_instances | dict2items }}"
-  loop_control:
-    loop_var: item_memcached

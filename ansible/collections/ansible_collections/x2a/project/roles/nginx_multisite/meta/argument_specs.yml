@@ -1,10 +1,10 @@
 ---
 argument_specs:
   main:
-    short_description: Migrated to modern Ansible
+    short_description: Install and configure a secure Nginx multisite deployment
     description:
-      - This role installs and configures Nginx with multiple HTTPS sites, sets up security packages, firewall, SSH hardening, and generates self-signed 
-        certificates.
+      - Installs Nginx, Fail2ban, UFW, OpenSSL, and CA certificates.
+      - Configures security hardening, self-signed TLS certificates, and HTTPS Nginx sites.
     options:
       nginx_multisite_sites:
         type: dict
@@ -19,39 +19,34 @@ argument_specs:
           status.cluster.local:
             document_root: /opt/server/status
             ssl_enabled: true
-        description: Mapping of site names to their configuration.
+        description: Sites to configure, including document roots and TLS enablement.
       nginx_multisite_ssl_certificate_path:
         type: str
         required: false
         default: /etc/ssl/certs
-        description: Directory where SSL certificates are stored.
+        description: Directory where site certificates are stored.
       nginx_multisite_ssl_private_key_path:
         type: str
         required: false
         default: /etc/ssl/private
-        description: Directory where SSL private keys are stored.
+        description: Directory where site private keys are stored.
       nginx_multisite_fail2ban_enabled:
         type: bool
         required: false
         default: true
-        description: Enable Fail2Ban configuration.
+        description: Whether Fail2ban configuration is deployed.
       nginx_multisite_ufw_enabled:
         type: bool
         required: false
         default: true
-        description: Enable UFW firewall configuration.
+        description: Whether UFW firewall rules are configured and enabled.
       nginx_multisite_ssh_disable_root:
         type: bool
         required: false
         default: true
-        description: Disable SSH root login.
+        description: Whether SSH root login is disabled.
       nginx_multisite_ssh_password_auth:
         type: bool
         required: false
         default: false
-        description: Disable SSH password authentication.
-      nginx_multisite_secure_logging:
-        type: bool
-        required: false
-        default: true
-        description: Toggle secure logging for tasks handling secrets.
+        description: Whether SSH password authentication is allowed.

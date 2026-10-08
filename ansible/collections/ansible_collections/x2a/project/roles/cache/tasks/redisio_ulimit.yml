@@ -1,0 +1,7 @@
+---
+- name: Render Redis ulimit configuration
+  ansible.builtin.template:
+    src: redis_ulimit.conf.j2
+    dest: /etc/security/limits.d/redis.conf
+    mode: "0644"
+    backup: true

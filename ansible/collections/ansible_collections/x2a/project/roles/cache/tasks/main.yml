@@ -2,5 +2,8 @@
 - name: Validate credential variables
   ansible.builtin.include_tasks: validate_credentials.yml
 
-- name: Include default tasks for cache role
-  ansible.builtin.import_tasks: default.yml
+- name: Include Memcached tasks
+  ansible.builtin.include_tasks: memcached.yml
+
+- name: Include Redis tasks
+  ansible.builtin.include_tasks: redisio.yml

@@ -1,63 +1,106 @@
 ---
 argument_specs:
   main:
-    short_description: Migrated cache role handling Memcached and Redis services
+    short_description: Configure Memcached and Redis caching services
     description:
-      - This role installs and configures Memcached and Redis cache services, supporting package or source installation for Redis, ulimit configuration, and 
-        secure handling of Redis passwords.
+      - Installs and configures Memcached and Redis services with configurable instances.
     options:
+      memcached_memory_limit:
+        type: int
+        required: false
+        default: 64
+        description: Memcached memory limit in megabytes.
+      memcached_max_connections:
+        type: int
+        required: false
+        default: 1024
+        description: Maximum Memcached connections.
+      memcached_user:
+        type: str
+        required: false
+        default: memcache
+        description: User running Memcached.
+      memcached_port:
+        type: int
+        required: false
+        default: 11211
+        description: Memcached listening port.
+      memcached_bind_address:
+        type: str
+        required: false
+        default: 127.0.0.1
+        description: Memcached bind address.
+      memcached_service_name:
+        type: str
+        required: false
+        default: memcached
+        description: Memcached service name.
+      redis_package_name:
+        type: str
+        required: false
+        default: redis
+        description: Redis package name.
+      redis_service_name:
+        type: str
+        required: false
+        default: redis
+        description: Redis service name.
+      redis_bind:
+        type: str
+        required: false
+        default: 127.0.0.1
+        description: Redis bind address.
+      redis_maxmemory:
+        type: str
+        required: false
+        default: 256mb
+        description: Redis maximum memory setting.
+      redis_appendonly:
+        type: bool
+        required: false
+        default: true
+        description: Enable Redis append-only persistence.
+      redis_servers:
+        type: list
+        elements: dict
+        required: false
+        default:
+          - name: redis_server_1
+            port: 6379
+          - name: redis_server_2
+            port: 6380
+        description: Redis service instances to configure.
+      redis_ulimit_user:
+        type: str
+        required: false
+        default: redis
+        description: User receiving Redis file descriptor limits.
+      redis_ulimit_nofile:
+        type: int
+        required: false
+        default: 65536
+        description: Redis nofile limit.
+      redis_install_from_source:
+        type: bool
+        required: false
+        default: false
+        description: Build Redis from source instead of installing a package.
+      redis_source_url:
+        type: str
+        required: false
+        default: https://download.redis.io/releases/redis-7.2.4.tar.gz
+        description: Redis source archive URL.
+      redis_source_version:
+        type: str
+        required: false
+        default: 7.2.4
+        description: Redis source version.
+      redis_password:
+        type: str
+        required: true
+        description: Redis password injected by AAP credential types.
       cache_secure_logging:
         type: bool
         required: false
         default: true
-        description: Toggle to enable no_log on tasks handling secrets.
-      redisio_package_install:
-        type: bool
-        required: false
-        default: false
-        description: Whether to install Redis via package manager instead of building from source.
-      redisio_package_name:
-        type: str
-        required: false
-        default: redis
-        description: Name of the Redis package when using package installation.
-      redisio_version:
-        type: str
-        required: false
-        default: 6.2.6
-        description: Redis version to download and build from source.
-      redisio_mirror:
-        type: str
-        required: false
-        default: http://download.redis.io
-        description: Base URL for downloading Redis source archives.
-      redisio_base_name:
-        type: str
-        required: false
-        default: redis-
-        description: Prefix for Redis source archive filenames.
-      redisio_artifact_type:
-        type: str
-        required: false
-        default: tar.gz
-        description: File extension for Redis source archive.
-      redisio_install_dir:
-        type: str
-        required: false
-        default: /opt/redis
-        description: Directory where Redis will be installed when building from source.
-      redisio_download_dir:
-        type: str
-        required: false
-        default: /tmp
-        description: Temporary directory for downloading Redis source archives.
-      cache_ulimit_users:
-        type: dict
-        required: false
-        default: {}
-        description: Mapping of Redis users to ulimit attributes.
-      redis_password:
-        type: str
-        required: false
-        default: ""
-        description: Redis password (secret) injected via AAP credential.
+        description: Hide tasks that render Redis credentials from logs.

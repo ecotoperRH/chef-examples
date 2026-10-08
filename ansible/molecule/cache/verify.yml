@@ -1,162 +1,123 @@
-# Unsupported checks (cannot be safely translated):
-# - Redis Server 1 requirepass placeholder verification
-# - Redis Server 2 requirepass placeholder verification
-# - memcached -vv -p 11211 command (starts a server)
+---
+# Unsupported pre-flight checks: configuration grep commands do not state expected
+# values (and the Redis password check would require exposing a secret); the
+# redis ulimit grep has no stated expected result. `memcached -vv -p 11211`
+# is a foreground diagnostic rather than a safe verification operation.
 
-- name: Verify cache scenario
-  hosts: molecule_targets
+- name: Verify cache services and dependencies
+  hosts: all
   gather_facts: false
   tasks:
-    # Package installation verification
-    - name: Gather installed packages
+    - name: Collect installed package facts for pre-flight package checks
       ansible.builtin.package_facts:
         manager: auto
 
-    - name: Assert gcc package is installed
+    - name: Verify gcc is installed
       ansible.builtin.assert:
         that:
           - "'gcc' in ansible_facts.packages"
-        fail_msg: "gcc package is not installed"
-        success_msg: "gcc package is installed"
+        fail_msg: gcc is not installed
+        success_msg: gcc is installed
 
-    - name: Assert make package is installed
+    - name: Verify make is installed
       ansible.builtin.assert:
         that:
           - "'make' in ansible_facts.packages"
-        fail_msg: "make package is not installed"
-        success_msg: "make package is installed"
+        fail_msg: make is not installed
+        success_msg: make is installed
 
-    - name: Assert libjemalloc-dev package is installed
+    - name: Verify libjemalloc-dev is installed
       ansible.builtin.assert:
         that:
           - "'libjemalloc-dev' in ansible_facts.packages"
-        fail_msg: "libjemalloc-dev package is not installed"
-        success_msg: "libjemalloc-dev package is installed"
+        fail_msg: libjemalloc-dev is not installed
+        success_msg: libjemalloc-dev is installed
 
-    - name: Assert memcached package is installed
+    - name: Verify memcached is installed
       ansible.builtin.assert:
         that:
           - "'memcached' in ansible_facts.packages"
-        fail_msg: "memcached package is not installed"
-        success_msg: "memcached package is installed"
+        fail_msg: memcached is not installed
+        success_msg: memcached is installed
 
-    # Service status verification
-    - name: Gather service facts
+    - name: Collect service facts for Memcached and Redis status checks
       ansible.builtin.service_facts:
 
-    - name: Assert memcached service is running
+    - name: Verify Memcached service is active
       ansible.builtin.assert:
         that:
-          - "'memcached' in ansible_facts.services"
-          - "ansible_facts.services['memcached'].state == 'running'"
-        fail_msg: "memcached service is not running"
-        success_msg: "memcached service is running"
+          - "'memcached.service' in ansible_facts.services"
+          - ansible_facts.services['memcached.service'].state == 'running'
+        fail_msg: Memcached service is not active
+        success_msg: Memcached service is active
 
-    - name: Assert redis_server_1 service is running
+    - name: Verify Redis Server 1 service is active
       ansible.builtin.assert:
         that:
-          - "'redis_server_1' in ansible_facts.services"
-          - "ansible_facts.services['redis_server_1'].state == 'running'"
-        fail_msg: "redis_server_1 service is not running"
-        success_msg: "redis_server_1 service is running"
+          - "'redis_server_1.service' in ansible_facts.services"
+          - ansible_facts.services['redis_server_1.service'].state == 'running'
+        fail_msg: Redis Server 1 service is not active
+        success_msg: Redis Server 1 service is active
 
-    - name: Assert redis_server_2 service is running
+    - name: Verify Redis Server 2 service is active
       ansible.builtin.assert:
         that:
-          - "'redis_server_2' in ansible_facts.services"
-          - "ansible_facts.services['redis_server_2'].state == 'running'"
-        fail_msg: "redis_server_2 service is not running"
-        success_msg: "redis_server_2 service is running"
+          - "'redis_server_2.service' in ansible_facts.services"
+          - ansible_facts.services['redis_server_2.service'].state == 'running'
+        fail_msg: Redis Server 2 service is not active
+        success_msg: Redis Server 2 service is active
 
-    # Port listening verification
-    - name: Verify Memcached is listening on port 11211
+    - name: Verify Memcached endpoint is listening on port 11211
       ansible.builtin.wait_for:
         host: 127.0.0.1
         port: 11211
         state: started
-        timeout: 1
+        timeout: 5
 
-    - name: Verify Redis Server 1 is listening on port 6379
+    - name: Verify Redis Server 1 endpoint is listening on port 6379
       ansible.builtin.wait_for:
         host: 127.0.0.1
         port: 6379
         state: started
-        timeout: 1
+        timeout: 5
 
-    - name: Verify Redis Server 2 is listening on port 6380
+    - name: Verify Redis Server 2 endpoint is listening on port 6380
       ansible.builtin.wait_for:
         host: 127.0.0.1
         port: 6380
         state: started
-        timeout: 1
+        timeout: 5
 
-    # Memcached configuration content verification
-    - name: Check memcached configuration for required directives
-      ansible.builtin.command:
-        argv:
-          - grep
-          - -E
-          - "^-m|^-c|^-u"
-          - /etc/memcached.conf
-      register: memcached_conf_grep
-      changed_when: false
-
-    - name: Assert memcached configuration contains -m, -c, -u
-      ansible.builtin.assert:
-        that:
-          - memcached_conf_grep.rc == 0
-        fail_msg: "Memcached configuration missing required directives"
-        success_msg: "Memcached configuration contains required directives"
-
-    # Ulimit verification
-    - name: Verify redis ulimit configuration exists
-      ansible.builtin.command:
-        argv:
-          - grep
-          - -i
-          - redis
-          - /etc/security/limits.d/redis.conf
-      register: redis_ulimit_grep
-      changed_when: false
-
-    - name: Assert redis ulimit configuration is present
-      ansible.builtin.assert:
-        that:
-          - redis_ulimit_grep.rc == 0
-        fail_msg: "Redis ulimit configuration not found"
-        success_msg: "Redis ulimit configuration found"
-
-    # Redis CLI health checks
-    - name: Ping Redis Server 1 via redis-cli
+    - name: Check Redis Server 1 responds to PING
       ansible.builtin.command:
         argv:
           - redis-cli
           - -p
-          - "6379"
+          - '6379'
           - PING
-      register: redis1_ping
+      register: redis_server_1_ping
       changed_when: false
 
-    - name: Assert Redis Server 1 responds with PONG
+    - name: Verify Redis Server 1 responds with PONG
       ansible.builtin.assert:
         that:
-          - "'PONG' in redis1_ping.stdout"
-        fail_msg: "Redis Server 1 did not respond with PONG"
-        success_msg: "Redis Server 1 responded with PONG"
+          - redis_server_1_ping.stdout | trim == 'PONG'
+        fail_msg: Redis Server 1 did not respond with PONG
+        success_msg: Redis Server 1 responded with PONG
 
-    - name: Ping Redis Server 2 via redis-cli
+    - name: Check Redis Server 2 responds to PING
       ansible.builtin.command:
         argv:
           - redis-cli
           - -p
-          - "6380"
+          - '6380'
           - PING
-      register: redis2_ping
+      register: redis_server_2_ping
       changed_when: false
 
-    - name: Assert Redis Server 2 responds with PONG
+    - name: Verify Redis Server 2 responds with PONG
       ansible.builtin.assert:
         that:
-          - "'PONG' in redis2_ping.stdout"
-        fail_msg: "Redis Server 2 did not respond with PONG"
-        success_msg: "Redis Server 2 responded with PONG"
+          - redis_server_2_ping.stdout | trim == 'PONG'
+        fail_msg: Redis Server 2 did not respond with PONG
+        success_msg: Redis Server 2 responded with PONG

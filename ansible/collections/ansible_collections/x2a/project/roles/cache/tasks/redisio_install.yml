@@ -1,0 +1,17 @@
+---
+- name: Install Redis package
+  ansible.builtin.package:
+    name: "{{ redis_package_name }}"
+    state: present
+  when: not redis_install_from_source | bool
+
+- name: Include Redis source installation tasks
+  ansible.builtin.include_tasks: redisio_install_provider.yml
+  when: redis_install_from_source | bool
+
+- name: Ensure Redis service user exists
+  ansible.builtin.user:
+    name: "{{ redis_ulimit_user }}"
+    system: true
+    create_home: false
+    state: present

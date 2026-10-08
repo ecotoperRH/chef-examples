@@ -1,11 +1,11 @@
 ---
 - name: Prepare Linux test targets
-  hosts: molecule_targets
+  hosts: all
   gather_facts: false
   tasks:
     - name: Ensure Python is available for Ansible modules
-      ansible.builtin.raw: |
-        if command -v python3 >/dev/null 2>&1; then exit 0; fi
-        if command -v dnf >/dev/null 2>&1; then dnf install -y python3;
+      ansible.builtin.raw: >-
+        /bin/sh -c 'if command -v python3 >/dev/null 2>&1; then exit 0;
+        elif command -v dnf >/dev/null 2>&1; then dnf install -y python3;
         elif command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y python3;
-        else echo 'No supported package manager found to install Python 3' >&2; exit 1; fi
+        else echo "No supported package manager found to install Python 3" >&2; exit 1; fi'

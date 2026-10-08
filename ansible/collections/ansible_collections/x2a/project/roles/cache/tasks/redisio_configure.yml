@@ -1,0 +1,64 @@
+---
+- name: Ensure Redis service user exists
+  ansible.builtin.user:
+    name: redis
+    system: true
+    create_home: false
+    state: present
+
+- name: Create Redis configuration directory
+  ansible.builtin.file:
+    path: /etc/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+
+- name: Render Redis configurations
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: /etc/redis/{{ item_cache.port }}.conf # noqa: R114 - port comes from role-defined redis_servers
+    owner: redis
+    group: redis
+    mode: "0644"
+    backup: true
+  loop: "{{ redis_servers }}"
+  loop_control:
+    loop_var: item_cache
+  no_log: "{{ cache_secure_logging }}"
+  vars:
+    redis_port: "{{ item_cache.port }}"
+
+- name: Remove obsolete Redis replica settings
+  ansible.builtin.lineinfile: # noqa: L068 - removes individually matched obsolete directives while preserving the rest of each config
+    path: /etc/redis/{{ item_redis_config.value.port }}.conf # noqa: R114,R115 - port comes from a role-defined literal configuration loop
+    regexp: ^{{ item_redis_config.key }}
+    state: absent
+    create: false
+    mode: "0644"
+  loop:
+    - key: replica-serve-stale-data
+      value:
+        port: 6379
+    - key: replica-read-only
+      value:
+        port: 6379
+    - key: repl-ping-replica-period
+      value:
+        port: 6379
+    - key: client-output-buffer-limit
+      value:
+        port: 6379
+    - key: replica-priority
+      value:
+        port: 6379
+  loop_control:
+    loop_var: item_redis_config

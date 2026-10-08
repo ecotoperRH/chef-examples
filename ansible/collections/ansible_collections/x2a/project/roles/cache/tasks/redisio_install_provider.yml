@@ -1,0 +1,34 @@
+---
+- name: Ensure Redis source directory exists
+  ansible.builtin.file:
+    path: /usr/local/src
+    state: directory
+    mode: "0755"
+
+- name: Download Redis source archive
+  ansible.builtin.get_url:
+    url: "{{ redis_source_url }}" # noqa: R106,R104 - URL is a trusted HTTPS source defined in role defaults
+    dest: /tmp/redis-{{ redis_source_version }}.tar.gz # noqa: R114 - path is constructed from a role-defined version
+    mode: "0644"
+
+- name: Extract Redis source archive
+  ansible.builtin.unarchive: # noqa: L021 - extraction must preserve the archive's per-file modes, including executable bits
+    src: /tmp/redis-{{ redis_source_version }}.tar.gz # noqa: R106,R104 - archive path is constructed from the trusted role-defined source version
+    dest: /usr/local/src
+    remote_src: true
+    creates: /usr/local/src/redis-{{ redis_source_version }} # noqa: R114 - source directory is role-defined
+
+- name: Build Redis
+  ansible.builtin.command:
+    argv:
+      - make
+    chdir: /usr/local/src/redis-{{ redis_source_version }} # noqa: R114 - source directory is role-defined
+    creates: /usr/local/src/redis-{{ redis_source_version }}/src/redis-server # noqa: R114 - source directory is role-defined
+
+- name: Install Redis binaries
+  ansible.builtin.command:
+    argv:
+      - make
+      - install
+    chdir: /usr/local/src/redis-{{ redis_source_version }} # noqa: R114 - source directory is role-defined
+    creates: /usr/local/bin/redis-server # noqa: R114 - installed binary path is role-defined

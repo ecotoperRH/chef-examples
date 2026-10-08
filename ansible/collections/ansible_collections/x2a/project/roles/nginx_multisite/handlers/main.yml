@@ -1,25 +1,45 @@
 ---
+- name: Validate and reload nginx
+  ansible.builtin.shell:
+    cmd: |
+      nginx -t && systemctl reload nginx
+  changed_when: true
+  listen: Validate and reload nginx
+  args:
+    executable: /bin/sh
+
 - name: Restart fail2ban
   ansible.builtin.service:
     name: fail2ban
     state: restarted
 
-- name: Reload ufw
-  ansible.builtin.command:
-    cmd: ufw reload
-  changed_when: false
+- name: Reload nginx multisite sysctl # noqa: L039 - item_sysctl is provided by this handler's loop
+  ansible.posix.sysctl:
+    name: "{{ item_sysctl['key'] }}"
+    value: "{{ item_sysctl['value'] }}"
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    state: present
+    reload: true
+  loop:
+    - key: net.ipv4.conf.default.rp_filter
+      value: "1"
+    - key: net.ipv4.conf.all.rp_filter
+      value: "1"
+    - key: net.ipv4.conf.all.accept_redirects
+      value: "0"
+    - key: net.ipv6.conf.all.accept_redirects
+      value: "0"
+    - key: net.ipv4.conf.default.accept_redirects
+      value: "0"
+    - key: net.ipv6.conf.default.accept_redirects
+      value: "0"
+  loop_control:
+    loop_var: item_sysctl
+  vars:
+    item_sysctl_key: "{{ item_sysctl['key'] }}"
+    item_sysctl_value: "{{ item_sysctl['value'] }}"
 
-- name: Reload sysctl
-  ansible.builtin.command:
-    cmd: sysctl -p /etc/sysctl.d/99-security.conf
-  changed_when: false
-
-- name: Restart ssh
+- name: Restart SSH
   ansible.builtin.service:
     name: ssh
     state: restarted
-
-- name: Reload nginx
-  ansible.builtin.service:
-    name: nginx
-    state: reloaded
