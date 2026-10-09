@@ -15,4 +15,3 @@ nginx_multisite_fail2ban_enabled: true
 nginx_multisite_ufw_enabled: true
 nginx_multisite_disable_root_login: true
 nginx_multisite_password_authentication: false
-nginx_multisite_secure_logging: true

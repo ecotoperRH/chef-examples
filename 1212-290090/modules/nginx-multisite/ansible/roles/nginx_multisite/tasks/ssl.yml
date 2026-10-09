@@ -27,7 +27,7 @@
     group: ssl-cert
     mode: "0710"
 
-- name: Generate self-signed certificates  # noqa: R101 - command uses role-defined certificate paths and site keys
+- name: Generate self-signed site certificates # noqa: R101 - command uses role-defined paths and site data, not untrusted user input
   ansible.builtin.command:
     argv:
       - openssl
@@ -39,27 +39,26 @@
       - -newkey
       - rsa:2048
       - -keyout
-      - "{{ nginx_multisite_private_key_path }}/{{ item_nginx_ssl['key'] }}.key"
+      - "{{ nginx_multisite_private_key_path }}/{{ item_ssl_site['key'] }}.key"
       - -out
-      - "{{ nginx_multisite_certificate_path }}/{{ item_nginx_ssl['key'] }}.crt"
+      - "{{ nginx_multisite_certificate_path }}/{{ item_ssl_site['key'] }}.crt"
       - -subj
-      - /C=US/ST=Example/L=Example/O=Example Org/OU=IT/CN={{ item_nginx_ssl['key'] }}/emailAddress=admin@example.com
-  when: item_nginx_ssl['value']['ssl_enabled']
+      - /C=US/ST=Example/L=Example/O=Example Org/OU=IT/CN={{ item_ssl_site['key'] }}/emailAddress=admin@example.com
+    creates: "{{ nginx_multisite_certificate_path }}/{{ item_ssl_site['key'] }}.crt" # noqa: R114 - role-defined certificate path
+  when: item_ssl_site['value']['ssl_enabled']
   loop: "{{ nginx_multisite_sites | dict2items }}"
   loop_control:
-    loop_var: item_nginx_ssl
+    loop_var: item_ssl_site
   notify: Reload nginx
-  args:
-    creates: "{{ nginx_multisite_certificate_path }}/{{ item_nginx_ssl['key'] }}.crt"
 
-- name: Set private key permissions
+- name: Set private key ownership and permissions
   ansible.builtin.file:
-    path: "{{ nginx_multisite_private_key_path }}/{{ item_nginx_key['key'] }}.key" # noqa: R114 - path from role-defined sites dictionary
+    path: "{{ nginx_multisite_private_key_path }}/{{ item_ssl_key['key'] }}.key" # noqa: R114 - role-defined key path
     state: file
     owner: root
     group: ssl-cert
     mode: "0640"
-  when: item_nginx_key['value']['ssl_enabled']
+  when: item_ssl_key['value']['ssl_enabled']
   loop: "{{ nginx_multisite_sites | dict2items }}"
   loop_control:
-    loop_var: item_nginx_key
+    loop_var: item_ssl_key

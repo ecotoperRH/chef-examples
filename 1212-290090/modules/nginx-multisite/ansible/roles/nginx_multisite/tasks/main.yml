@@ -1,12 +1,3 @@
 ---
-- name: Include security tasks
-  ansible.builtin.include_tasks: security.yml
-
-- name: Include nginx tasks
-  ansible.builtin.include_tasks: nginx.yml
-
-- name: Include SSL tasks
-  ansible.builtin.include_tasks: ssl.yml
-
-- name: Include site tasks
-  ansible.builtin.include_tasks: sites.yml
+- name: Load default nginx multisite tasks
+  ansible.builtin.include_tasks: default.yml

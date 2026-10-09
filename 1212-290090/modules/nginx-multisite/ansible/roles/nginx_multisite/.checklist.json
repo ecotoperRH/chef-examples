@@ -2,44 +2,12 @@
   "module_name": "nginx_multisite",
   "items": [
     {
-      "category": "recipes",
-      "source_path": "cookbooks/nginx-multisite/recipes/default.rb",
-      "target_path": "ansible/roles/nginx_multisite/tasks/main.yml",
+      "category": "attributes",
+      "source_path": "cookbooks/nginx-multisite/attributes/default.rb",
+      "target_path": "ansible/roles/nginx_multisite/defaults/main.yml",
       "status": "complete",
-      "description": "Main task entry point including security, nginx, SSL, and sites task files.",
-      "notes": "Target already exists; skipped overwrite."
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/nginx-multisite/recipes/security.rb",
-      "target_path": "ansible/roles/nginx_multisite/tasks/security.yml",
-      "status": "complete",
-      "description": "Install and configure Fail2ban, UFW, sysctl security, and SSH hardening.",
-      "notes": "Target already exists; skipped overwrite."
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/nginx-multisite/recipes/nginx.rb",
-      "target_path": "ansible/roles/nginx_multisite/tasks/nginx.yml",
-      "status": "complete",
-      "description": "Install and configure Nginx and deploy the three site document roots and index files.",
-      "notes": "Target already exists; skipped overwrite."
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/nginx-multisite/recipes/ssl.rb",
-      "target_path": "ansible/roles/nginx_multisite/tasks/ssl.yml",
-      "status": "complete",
-      "description": "Install SSL dependencies, create certificate directories/group, and generate guarded self-signed certificates and keys.",
-      "notes": "Target already exists; skipped overwrite."
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/nginx-multisite/recipes/sites.rb",
-      "target_path": "ansible/roles/nginx_multisite/tasks/sites.yml",
-      "status": "complete",
-      "description": "Render and enable the three HTTPS virtual hosts and remove the default site.",
-      "notes": "Target already exists; skipped overwrite."
+      "description": "Convert cookbook attributes into Ansible role defaults, including site, security, and certificate settings.",
+      "notes": ""
     },
     {
       "category": "templates",
@@ -47,7 +15,7 @@
       "target_path": "ansible/roles/nginx_multisite/templates/fail2ban.jail.local.j2",
       "status": "complete",
       "description": "Fail2ban jail configuration template.",
-      "notes": "Target already exists; skipped overwrite."
+      "notes": ""
     },
     {
       "category": "templates",
@@ -55,7 +23,7 @@
       "target_path": "ansible/roles/nginx_multisite/templates/nginx.conf.j2",
       "status": "complete",
       "description": "Main Nginx configuration template.",
-      "notes": "Target already exists; skipped overwrite."
+      "notes": ""
     },
     {
       "category": "templates",
@@ -63,62 +31,102 @@
       "target_path": "ansible/roles/nginx_multisite/templates/security.conf.j2",
       "status": "complete",
       "description": "Nginx security configuration template.",
-      "notes": "Target already exists; skipped overwrite."
+      "notes": ""
     },
     {
       "category": "templates",
       "source_path": "cookbooks/nginx-multisite/templates/default/site.conf.erb",
       "target_path": "ansible/roles/nginx_multisite/templates/site.conf.j2",
       "status": "complete",
-      "description": "Parameterized virtual host template for test, CI, and status sites.",
-      "notes": "Target already exists; skipped overwrite."
+      "description": "Parameterized HTTPS virtual-host template for the three sites.",
+      "notes": ""
     },
     {
       "category": "templates",
       "source_path": "cookbooks/nginx-multisite/templates/default/sysctl-security.conf.erb",
       "target_path": "ansible/roles/nginx_multisite/templates/sysctl-security.conf.j2",
       "status": "complete",
-      "description": "Kernel sysctl security settings template.",
-      "notes": "Target already exists; skipped overwrite."
+      "description": "Kernel security sysctl configuration template.",
+      "notes": ""
     },
     {
-      "category": "attributes",
-      "source_path": "cookbooks/nginx-multisite/attributes/default.rb",
-      "target_path": "ansible/roles/nginx_multisite/defaults/main.yml",
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/default.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/default.yml",
       "status": "complete",
-      "description": "Convert cookbook attributes and site/security defaults to role variables.",
-      "notes": "Target already exists; skipped overwrite."
+      "description": "Default recipe orchestration for security, Nginx, SSL, and sites.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/security.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/security.yml",
+      "status": "complete",
+      "description": "Install and configure Fail2ban and UFW, apply sysctl hardening, and harden SSH.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/nginx.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/nginx.yml",
+      "status": "complete",
+      "description": "Install and configure Nginx and create the three site document roots and index files.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/ssl.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/ssl.yml",
+      "status": "complete",
+      "description": "Install TLS prerequisites, create certificate directories/group, and generate guarded self-signed certificates and keys.",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/nginx-multisite/recipes/sites.rb",
+      "target_path": "ansible/roles/nginx_multisite/tasks/sites.yml",
+      "status": "complete",
+      "description": "Render and enable the three Nginx virtual hosts and remove the default site.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "metadata.rb",
+      "target_path": "ansible/roles/nginx_multisite/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata derived from cookbook metadata.",
+      "notes": ""
     },
     {
       "category": "structure",
       "source_path": "N/A",
-      "target_path": "ansible/roles/nginx_multisite/meta/main.yml",
+      "target_path": "ansible/roles/nginx_multisite/meta/argument_specs.yml",
       "status": "complete",
-      "description": "Role metadata.",
-      "notes": "Created standard meta/main.yml"
+      "description": "Role argument specifications for fail-fast variable validation; generate after defaults/main.yml.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/tasks/main.yml",
+      "status": "complete",
+      "description": "Role entry point importing the default, security, Nginx, SSL, and sites task files.",
+      "notes": ""
     },
     {
       "category": "structure",
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/handlers/main.yml",
       "status": "complete",
-      "description": "Handlers for controlled Nginx, Fail2ban, sysctl, or SSH reloads where needed.",
-      "notes": "Target already exists; skipped overwrite."
-    },
-    {
-      "category": "structure",
-      "source_path": "cookbooks/nginx-multisite/attributes/default.rb",
-      "target_path": "ansible/roles/nginx_multisite/meta/argument_specs.yml",
-      "status": "complete",
-      "description": "Role argument specs for fail-fast parameter validation; generate after defaults/main.yml.",
-      "notes": "Target already exists; skipped overwrite."
+      "description": "Handlers for controlled Nginx, Fail2ban, SSH, and sysctl reloads where required.",
+      "notes": ""
     },
     {
       "category": "molecule",
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/molecule/default/molecule.yml",
       "status": "complete",
-      "description": "Molecule scenario configuration using delegated driver and local connection.",
+      "description": "Molecule scenario configuration using delegated driver and local connection for AAP.",
       "notes": "Created by MoleculeAgent (deterministic scaffold)"
     },
     {
@@ -126,23 +134,23 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/molecule/default/converge.yml",
       "status": "complete",
-      "description": "Molecule converge play that runs the role for real via include_role.",
-      "notes": "Generated minimal converge playbook including nginx_multisite via ansible.builtin.include_role."
+      "description": "Molecule converge playbook that runs the role for real via include_role.",
+      "notes": "Generated minimal converge play that includes the role for real."
     },
     {
       "category": "molecule",
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/molecule/default/verify.yml",
       "status": "complete",
-      "description": "Verification tasks for Nginx, virtual hosts, certificates, security services, firewall, and site content.",
-      "notes": "Generated production-path verification playbooks for files, links, services, endpoints, TLS configuration, fail2ban, and SSH hardening."
+      "description": "Molecule verification tasks for packages, services, firewall, Nginx sites, certificates, SSH, and endpoints.",
+      "notes": "Generated production-path verification for files, links, packages, services, firewall, TLS endpoints, and syntax."
     },
     {
       "category": "molecule",
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/molecule/default/create.yml",
       "status": "complete",
-      "description": "No-op Molecule instance creation for delegated testing.",
+      "description": "No-op Molecule instance creation for delegated execution.",
       "notes": "Created by MoleculeAgent (deterministic scaffold)"
     },
     {
@@ -150,8 +158,40 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/molecule/default/destroy.yml",
       "status": "complete",
-      "description": "No-op Molecule instance destruction for delegated testing.",
+      "description": "No-op Molecule instance destruction for delegated execution.",
       "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "files",
+      "source_path": "cookbooks/nginx-multisite/files/default/test/index.html",
+      "target_path": "ansible/roles/nginx_multisite/files/test/index.html",
+      "status": "complete",
+      "description": "Static placeholder index page for the test virtual host document root.",
+      "notes": ""
+    },
+    {
+      "category": "files",
+      "source_path": "cookbooks/nginx-multisite/files/default/ci/index.html",
+      "target_path": "ansible/roles/nginx_multisite/files/ci/index.html",
+      "status": "complete",
+      "description": "Static placeholder index page for the CI virtual host document root.",
+      "notes": ""
+    },
+    {
+      "category": "files",
+      "source_path": "cookbooks/nginx-multisite/files/default/status/index.html",
+      "target_path": "ansible/roles/nginx_multisite/files/status/index.html",
+      "status": "complete",
+      "description": "Static placeholder index page for the status virtual host document root.",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
     }
   ]
 }

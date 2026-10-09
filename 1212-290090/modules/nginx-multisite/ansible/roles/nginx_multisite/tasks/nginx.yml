@@ -1,24 +1,10 @@
 ---
-- name: Install nginx
+- name: Install Nginx
   ansible.builtin.package:
     name: nginx
     state: present
 
-- name: Create nginx configuration directories
-  ansible.builtin.file:
-    path: "{{ item_nginx_config_dir }}" # noqa: R114 - loop over role-defined fixed nginx configuration directories
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-  loop:
-    - /etc/nginx/conf.d
-    - /etc/nginx/sites-available
-    - /etc/nginx/sites-enabled
-  loop_control:
-    loop_var: item_nginx_config_dir
-
-- name: Deploy nginx configuration
+- name: Deploy Nginx main configuration
   ansible.builtin.template:
     src: nginx.conf.j2
     dest: /etc/nginx/nginx.conf
@@ -26,7 +12,7 @@
     backup: true
   notify: Reload nginx
 
-- name: Deploy nginx security configuration
+- name: Deploy Nginx security configuration
   ansible.builtin.template:
     src: security.conf.j2
     dest: /etc/nginx/conf.d/security.conf
@@ -34,15 +20,9 @@
     backup: true
   notify: Reload nginx
 
-- name: Enable and start nginx
-  ansible.builtin.service:
-    name: nginx
-    enabled: true
-    state: started
-
 - name: Create site document roots
   ansible.builtin.file:
-    path: "{{ item_nginx_site['value']['document_root'] }}" # noqa: R114 - path from role-defined sites dictionary
+    path: "{{ item_nginx_site['value']['document_root'] }}" # noqa: R114 - role-defined site path
     state: directory
     owner: www-data
     group: www-data
@@ -52,14 +32,14 @@
   loop_control:
     loop_var: item_nginx_site
 
-- name: Deploy site index files
+- name: Deploy site index pages
   ansible.builtin.copy:
-    content: "{{ item_nginx_site['key'] }} "
-    dest: "{{ item_nginx_site['value']['document_root'] }}/index.html" # noqa: R114 - path from role-defined sites dictionary
+    src: "{{ item_nginx_index['key'].split('.')[0] }}/index.html"
+    dest: "{{ item_nginx_index['value']['document_root'] }}/index.html" # noqa: R114 - role-defined site path
     owner: www-data
     group: www-data
     mode: "0644"
     backup: true
   loop: "{{ nginx_multisite_sites | dict2items }}"
   loop_control:
-    loop_var: item_nginx_site
+    loop_var: item_nginx_index

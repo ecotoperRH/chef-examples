@@ -1,10 +1,9 @@
 ---
 argument_specs:
   main:
-    short_description: Install and configure a secure Nginx multisite server
+    short_description: Configure Nginx as a secure multisite web server.
     description:
-      - Installs Nginx, Fail2ban, UFW, and TLS dependencies.
-      - Configures HTTPS virtual hosts, self-signed certificates, firewall rules, and host hardening.
+      - Installs Nginx and security services, configures virtual hosts, and generates self-signed TLS certificates.
     options:
       nginx_multisite_sites:
         type: dict
@@ -19,7 +18,7 @@ argument_specs:
           status.cluster.local:
             document_root: /opt/server/status
             ssl_enabled: true
-        description: Mapping of virtual host names to document-root and TLS settings.
+        description: Mapping of site names to document root and SSL settings.
       nginx_multisite_certificate_path:
         type: str
         required: false
@@ -34,7 +33,7 @@ argument_specs:
         type: bool
         required: false
         default: true
-        description: Whether to configure and enable Fail2ban.
+        description: Whether to install and enable Fail2ban.
       nginx_multisite_ufw_enabled:
         type: bool
         required: false
@@ -50,8 +49,3 @@ argument_specs:
         required: false
         default: false
         description: Whether SSH password authentication is allowed.
-      nginx_multisite_secure_logging:
-        type: bool
-        required: false
-        default: true
-        description: Reserved toggle for suppressing sensitive task output.
