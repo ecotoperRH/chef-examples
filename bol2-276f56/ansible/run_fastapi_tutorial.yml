@@ -1,0 +1,8 @@
+---
+- name: Run migrated role fastapi_tutorial
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Apply fastapi_tutorial role
+      ansible.builtin.include_role:
+        name: x2a.project.fastapi_tutorial
