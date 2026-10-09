@@ -1,0 +1,83 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+      - openssh-server
+      - procps
+    state: present
+
+- name: Enable and start fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: nginx_multisite_fail2ban_enabled | bool
+
+- name: Configure fail2ban
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  when: nginx_multisite_fail2ban_enabled | bool
+  notify: Restart fail2ban
+
+- name: Set UFW default policy to deny
+  ansible.builtin.command:
+    cmd: ufw --force default deny
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Allow SSH through UFW
+  ansible.builtin.command:
+    cmd: ufw allow ssh
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Allow HTTP through UFW
+  ansible.builtin.command:
+    cmd: ufw allow http
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Allow HTTPS through UFW
+  ansible.builtin.command:
+    cmd: ufw allow https
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Enable UFW
+  ansible.builtin.command:
+    cmd: ufw --force enable
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Configure kernel security settings
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload nginx multisite sysctl
+
+- name: Disable root SSH login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    create: false
+    backup: true
+  when: nginx_multisite_ssh_disable_root | bool
+  notify: Restart SSH
+
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    create: false
+    backup: true
+  when: not (nginx_multisite_ssh_password_auth | bool)
+  notify: Restart SSH

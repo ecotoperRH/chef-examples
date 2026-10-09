@@ -1,0 +1,8 @@
+---
+- name: Run migrated role nginx_multisite
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Apply nginx_multisite role
+      ansible.builtin.include_role:
+        name: x2a.project.nginx_multisite
