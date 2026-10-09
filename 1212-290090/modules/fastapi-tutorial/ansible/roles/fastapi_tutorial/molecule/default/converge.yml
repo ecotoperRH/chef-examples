@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Include fastapi_tutorial # noqa: R401 - the role's inbound sources are required fixtures and cannot be removed from this test convergence.
+      ansible.builtin.include_role: # noqa: L038 - role-under-test resolves at runtime; unresolved only when scanned in isolation
+        name: fastapi_tutorial
