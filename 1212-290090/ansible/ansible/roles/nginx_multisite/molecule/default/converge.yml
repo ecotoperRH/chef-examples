@@ -1,8 +1,9 @@
 ---
 - name: Converge
   hosts: all
+  become: true  # noqa: R108 - role installs packages and manages system configuration requiring root
   gather_facts: true
   tasks:
-    - name: Placeholder — MoleculeAgent generates include_role converge
-      ansible.builtin.debug:
-        msg: "Role nginx_multisite converge placeholder — will include_role: nginx_multisite"
+    - name: Include nginx_multisite role
+      ansible.builtin.include_role:
+        name: nginx_multisite

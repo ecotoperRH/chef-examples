@@ -6,7 +6,7 @@
       "source_path": "cookbooks/nginx-multisite/recipes/default.rb",
       "target_path": "ansible/roles/nginx_multisite/tasks/main.yml",
       "status": "complete",
-      "description": "Main role task entrypoint including security, nginx, SSL, and site configuration tasks.",
+      "description": "Main task entry point including security, nginx, SSL, and site configuration tasks.",
       "notes": ""
     },
     {
@@ -22,7 +22,7 @@
       "source_path": "cookbooks/nginx-multisite/recipes/nginx.rb",
       "target_path": "ansible/roles/nginx_multisite/tasks/nginx.yml",
       "status": "complete",
-      "description": "Install and configure Nginx, security configuration, document roots, and site index files.",
+      "description": "Install and configure Nginx and deploy the three site document roots.",
       "notes": ""
     },
     {
@@ -30,7 +30,7 @@
       "source_path": "cookbooks/nginx-multisite/recipes/ssl.rb",
       "target_path": "ansible/roles/nginx_multisite/tasks/ssl.yml",
       "status": "complete",
-      "description": "Install SSL packages, create certificate directories and group, and generate guarded self-signed certificates.",
+      "description": "Install SSL prerequisites, create certificate directories/group, and generate guarded self-signed certificates.",
       "notes": ""
     },
     {
@@ -38,7 +38,7 @@
       "source_path": "cookbooks/nginx-multisite/recipes/sites.rb",
       "target_path": "ansible/roles/nginx_multisite/tasks/sites.yml",
       "status": "complete",
-      "description": "Render and enable the three Nginx virtual hosts and remove the default site.",
+      "description": "Render and enable the three HTTPS virtual hosts and remove the default site.",
       "notes": ""
     },
     {
@@ -70,7 +70,7 @@
       "source_path": "cookbooks/nginx-multisite/templates/default/site.conf.erb",
       "target_path": "ansible/roles/nginx_multisite/templates/site.conf.j2",
       "status": "complete",
-      "description": "Parameterized virtual host configuration template for all three sites.",
+      "description": "Parameterized virtual host template rendered for all three sites.",
       "notes": ""
     },
     {
@@ -78,7 +78,7 @@
       "source_path": "cookbooks/nginx-multisite/templates/default/sysctl-security.conf.erb",
       "target_path": "ansible/roles/nginx_multisite/templates/sysctl-security.conf.j2",
       "status": "complete",
-      "description": "Kernel sysctl security configuration template.",
+      "description": "Kernel security sysctl configuration template.",
       "notes": ""
     },
     {
@@ -86,23 +86,23 @@
       "source_path": "cookbooks/nginx-multisite/attributes/default.rb",
       "target_path": "ansible/roles/nginx_multisite/defaults/main.yml",
       "status": "complete",
-      "description": "Convert cookbook attributes and site/security defaults to Ansible variables.",
+      "description": "Convert cookbook defaults and site/security settings to role variables.",
       "notes": ""
     },
     {
       "category": "structure",
-      "source_path": "N/A",
+      "source_path": "cookbooks/nginx-multisite/metadata.rb",
       "target_path": "ansible/roles/nginx_multisite/meta/main.yml",
       "status": "complete",
-      "description": "Role metadata.",
-      "notes": "Created standard meta/main.yml"
+      "description": "Role metadata converted from cookbook metadata.",
+      "notes": "Target already existed and was preserved per instructions."
     },
     {
       "category": "structure",
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/meta/argument_specs.yml",
       "status": "complete",
-      "description": "Role argument specs for fail-fast parameter validation; generate after defaults/main.yml.",
+      "description": "Role argument specifications for validating defaults and inputs; generate after defaults/main.yml.",
       "notes": ""
     },
     {
@@ -110,7 +110,7 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/handlers/main.yml",
       "status": "complete",
-      "description": "Handlers for controlled Nginx, Fail2ban, sysctl, or SSH reloads where needed.",
+      "description": "Handlers for controlled Nginx, Fail2ban, sysctl, or SSH reloads when configuration changes.",
       "notes": ""
     },
     {
@@ -118,7 +118,7 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/molecule/default/molecule.yml",
       "status": "complete",
-      "description": "Molecule scenario configuration using delegated driver and local connection.",
+      "description": "AAP-compatible delegated-driver Molecule scenario configuration using local connection.",
       "notes": "Created by MoleculeAgent (deterministic scaffold)"
     },
     {
@@ -126,7 +126,7 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/molecule/default/converge.yml",
       "status": "complete",
-      "description": "Molecule converge playbook running the role via include_role.",
+      "description": "Molecule converge playbook that runs the role via ansible.builtin.include_role.",
       "notes": "Generated minimal converge playbook including nginx_multisite via ansible.builtin.include_role."
     },
     {
@@ -134,8 +134,8 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/nginx_multisite/molecule/default/verify.yml",
       "status": "complete",
-      "description": "Molecule verification tasks for packages, services, sites, certificates, firewall, and endpoints.",
-      "notes": "Generated verification playbook covering packages, services, configuration, links, TLS, firewall, SSH hardening, and HTTP/HTTPS endpoints."
+      "description": "Molecule verification tasks for production paths, services, virtual hosts, certificates, firewall, and SSH hardening.",
+      "notes": "Generated production-path verification for packages, services, nginx sites, TLS, SSH hardening, and HTTP(S) endpoints."
     },
     {
       "category": "molecule",
@@ -152,6 +152,14 @@
       "status": "complete",
       "description": "No-op Molecule instance destruction for delegated testing.",
       "notes": "Created by MoleculeAgent (deterministic scaffold)"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/roles/nginx_multisite/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
     }
   ]
 }
