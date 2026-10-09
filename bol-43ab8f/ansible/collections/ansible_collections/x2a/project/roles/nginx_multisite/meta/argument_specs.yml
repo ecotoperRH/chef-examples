@@ -1,0 +1,54 @@
+---
+argument_specs:
+  main:
+    short_description: Configure a secure multi-site Nginx server
+    description:
+      - Installs and configures Nginx, Fail2ban, UFW, TLS certificates, and security hardening.
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+            index_content: Welcome to test.cluster.local
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+            index_content: Welcome to ci.cluster.local
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+            index_content: Welcome to status.cluster.local
+        description: Site definitions, document roots, TLS settings, and index content.
+      nginx_multisite_ssl_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Directory for generated TLS certificates.
+      nginx_multisite_ssl_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Directory for generated TLS private keys.
+      nginx_multisite_security_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether Fail2ban security is enabled.
+      nginx_multisite_security_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether UFW firewall configuration is enabled.
+      nginx_multisite_security_ssh_disable_root:
+        type: bool
+        required: false
+        default: true
+        description: Whether root SSH login is disabled.
+      nginx_multisite_security_ssh_password_auth:
+        type: bool
+        required: false
+        default: false
+        description: Whether SSH password authentication is permitted.

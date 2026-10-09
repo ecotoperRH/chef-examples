@@ -1,0 +1,34 @@
+---
+- name: Render Nginx site configurations
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item_nginx_site['key'] }} # noqa: R114 - site names come from role-defined sites dictionary
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_site
+  notify: Reload Nginx
+  vars:
+    server_name: "{{ item_nginx_site['key'] }}"
+    document_root: "{{ item_nginx_site['value']['document_root'] }}"
+    ssl_enabled: "{{ item_nginx_site['value']['ssl_enabled'] }}"
+    cert_file: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_nginx_site['key'] }}.crt"
+    key_file: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_nginx_site['key'] }}.key"
+
+- name: Enable Nginx sites
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item_nginx_site['key'] }} # noqa: R114 - site names come from role-defined sites dictionary
+    dest: /etc/nginx/sites-enabled/{{ item_nginx_site['key'] }} # noqa: R114 - site names come from role-defined sites dictionary
+    state: link
+    force: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_site
+  notify: Reload Nginx
+
+- name: Remove default Nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload Nginx
