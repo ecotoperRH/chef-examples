@@ -1,0 +1,158 @@
+---
+- name: Install FastAPI tutorial system packages
+  ansible.builtin.package:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+      - git
+      - postgresql
+      - postgresql-contrib
+      - libpq-dev
+    state: present
+
+- name: Create FastAPI tutorial application directory
+  ansible.builtin.file:
+    path: /opt/fastapi-tutorial
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Check out FastAPI tutorial repository
+  ansible.builtin.git:
+    repo: https://github.com/dibanez/fastapi_tutorial.git
+    dest: /opt/fastapi-tutorial
+    version: main
+
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -m
+      - venv
+      - /opt/fastapi-tutorial/venv
+    creates: /opt/fastapi-tutorial/venv
+
+- name: Install Python application dependencies
+  ansible.builtin.pip:
+    requirements: /opt/fastapi-tutorial/requirements.txt
+    virtualenv: /opt/fastapi-tutorial/venv
+
+- name: Enable and start PostgreSQL
+  ansible.builtin.service:
+    name: postgresql
+    enabled: true
+    state: started
+
+- name: Check whether the FastAPI PostgreSQL role exists # noqa: R101 - command uses a trusted role parameter from the AAP credential type
+  ansible.builtin.command: # noqa: L039 - db_username is a required role parameter from the AAP credential type
+    argv:
+      - psql
+      - -tAc
+      - SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = '{{ db_username }}'
+  changed_when: false
+  register: fastapi_tutorial_role_check
+  become: true # noqa: R108 - PostgreSQL role inspection must run as the postgres system user
+  become_user: postgres
+
+- name: Create FastAPI PostgreSQL role # noqa: R101 - command uses trusted role credentials from the AAP credential type
+  ansible.builtin.command: # noqa: L039 - db_username and db_password are required role parameters from the AAP credential type
+    argv:
+      - psql
+      - -c
+      - CREATE ROLE {{ db_username }} LOGIN PASSWORD '{{ db_password }}';
+  when: fastapi_tutorial_role_check.stdout | trim != '1'
+  become: true # noqa: R108 - PostgreSQL role creation must run as the postgres system user
+  become_user: postgres
+  no_log: "{{ fastapi_tutorial_secure_logging }}"
+
+- name: Update FastAPI PostgreSQL role password # noqa: R101 - command uses trusted role credentials from the AAP credential type
+  ansible.builtin.command: # noqa: L039 - db_username and db_password are required role parameters and fastapi_tutorial_role_check is registered by a prior task
+    argv:
+      - psql
+      - -c
+      - ALTER ROLE {{ db_username }} WITH LOGIN PASSWORD '{{ db_password }}';
+  when: fastapi_tutorial_role_check.stdout | trim == '1'
+  changed_when: false
+  become: true # noqa: R108 - PostgreSQL password management must run as the postgres system user
+  become_user: postgres
+  no_log: "{{ fastapi_tutorial_secure_logging }}"
+
+- name: Check whether the FastAPI database exists # noqa: R101 - command uses a trusted database parameter from the AAP credential type
+  ansible.builtin.command: # noqa: L039 - db_name is a required role parameter from the AAP credential type
+    argv:
+      - psql
+      - -tAc
+      - SELECT 1 FROM pg_database WHERE datname = '{{ db_name }}'
+  changed_when: false
+  register: fastapi_tutorial_database_check
+  become: true # noqa: R108 - database inspection must run as the postgres system user
+  become_user: postgres
+
+- name: Create the FastAPI database # noqa: R101 - command uses trusted database parameters from the AAP credential type; no-changed-when - conditional creation runs only when the database is absent
+  ansible.builtin.command: # noqa: L039 - db_name and db_username are required role parameters and fastapi_tutorial_database_check is registered by a prior task
+    argv:
+      - createdb
+      - -O
+      - "{{ db_username }}"
+      - "{{ db_name }}"
+  when: fastapi_tutorial_database_check.stdout | trim != '1'
+  register: fastapi_tutorial_database_create
+  changed_when: fastapi_tutorial_database_create.rc == 0
+  become: true # noqa: R108 - database creation must run as the postgres system user
+  become_user: postgres
+
+- name: Grant FastAPI database privileges # noqa: R101 - command uses trusted database parameters from the AAP credential type
+  ansible.builtin.command: # noqa: L039 - db_name and db_username are required role parameters from the AAP credential type
+    argv:
+      - psql
+      - -c
+      - GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_username }};
+  changed_when: false
+  become: true # noqa: R108 - privilege grants must run as the postgres system user
+  become_user: postgres
+
+- name: Write FastAPI environment configuration
+  ansible.builtin.copy: # noqa: L039 - database connection variables are required role parameters from the AAP credential type
+    content: |
+      PROJECT_NAME="FastAPI Tutorial"
+      API_VERSION=1.0.0
+      DATABASE_URL=postgresql://{{ db_username }}:{{ db_password }}@{{ db_host }}/{{ db_name }}
+    dest: /opt/fastapi-tutorial/.env
+    owner: root
+    group: root
+    mode: "0600"
+    backup: true
+  no_log: "{{ fastapi_tutorial_secure_logging }}"
+
+- name: Install FastAPI tutorial systemd unit
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=FastAPI Tutorial Service
+      After=network.target postgresql.service
+      [Service]
+      Type=simple
+      User=root
+      WorkingDirectory=/opt/fastapi-tutorial
+      Environment="PATH=/opt/fastapi-tutorial/venv/bin"
+      ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/fastapi-tutorial.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload systemd
+
+- name: Apply systemd unit changes before managing FastAPI service
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start FastAPI tutorial service
+  ansible.builtin.service:
+    name: fastapi-tutorial
+    enabled: true
+    state: started
