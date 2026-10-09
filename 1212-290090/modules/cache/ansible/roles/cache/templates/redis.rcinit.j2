@@ -1,0 +1,15 @@
+#!/bin/sh
+# PROVIDE: redis{{ cache_redis_name }}
+# REQUIRE: LOGIN
+. /etc/rc.subr
+name="redis{{ cache_redis_name }}"
+rcvar="${name}_enable"
+command="{{ cache_redis_bin_path }}/redis-server"
+pidfile="{{ cache_redis_pid_dir }}/redis_{{ cache_redis_name }}.pid"
+load_rc_config "$name"
+: ${redis{{ cache_redis_name }}_enable="NO"}
+: ${redis_user="{{ cache_redis_user }}"}
+: ${redis_config="{{ cache_redis_config_dir }}/{{ cache_redis_name }}.conf"}
+command_args="${redis_config}"
+required_files="${redis_config}"
+run_rc_command "$1"

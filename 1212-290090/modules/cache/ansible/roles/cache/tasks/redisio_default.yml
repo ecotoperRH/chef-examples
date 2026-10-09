@@ -1,0 +1,9 @@
+---
+- name: Install Redis source or package
+  ansible.builtin.include_tasks: redisio_install.yml
+
+- name: Disable operating system Redis service
+  ansible.builtin.include_tasks: redisio_disable_os_default.yml
+
+- name: Configure Redis ulimits
+  ansible.builtin.include_tasks: redisio_ulimit.yml

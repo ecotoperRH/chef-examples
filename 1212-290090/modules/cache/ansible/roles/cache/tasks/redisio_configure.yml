@@ -1,0 +1,3 @@
+---
+- name: Configure Redis directories and service
+  ansible.builtin.include_tasks: redisio_configure_provider.yml

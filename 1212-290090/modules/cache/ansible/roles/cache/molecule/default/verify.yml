@@ -1,0 +1,108 @@
+---
+- name: Verify cache services
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert cache services are present and active
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts.services"
+          - "ansible_facts.services['memcached.service']['state'] == 'running'"
+          - "'redis@6379.service' in ansible_facts.services"
+          - "ansible_facts.services['redis@6379.service']['state'] == 'running'"
+        fail_msg: Expected Memcached and Redis services to be active
+
+    - name: Check Memcached TCP endpoint
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        state: started
+        timeout: 10
+
+    - name: Check Redis TCP endpoint
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        state: started
+        timeout: 10
+
+    - name: Check Redis paths
+      ansible.builtin.stat:
+        path: "{{ item_cache_path }}" # noqa: R114 - paths are fixed production paths defined by this verification
+      loop:
+        - /etc/redis
+        - /etc/redis/6379.conf
+        - /var/lib/redis
+        - /var/run/redis/6379
+        - /var/log/redis
+        - /usr/local/bin/redis-server
+        - /usr/local/bin/redis-cli
+      loop_control:
+        loop_var: item_cache_path
+      register: cache_path_stats
+
+    - name: Assert Redis paths exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['isdir'] if item_result['stat']['path'] in ['/etc/redis', '/var/lib/redis', '/var/run/redis/6379', '/var/log/redis'] else item_result['stat']['isreg']
+        fail_msg: Expected Redis path was not created
+      loop: "{{ cache_path_stats['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Check Redis configuration content
+      ansible.builtin.slurp:
+        src: /etc/redis/6379.conf
+      register: redis_config_content
+      no_log: "{{ cache_secure_logging }}"
+
+    - name: Assert Redis configuration values
+      ansible.builtin.assert:
+        that:
+          - "(redis_config_content['content'] | b64decode) is search('(?m)^port\\s+6379$')"
+          - "(redis_config_content['content'] | b64decode) is search('(?m)^requirepass\\s+\\S+$')"
+          - "(redis_config_content['content'] | b64decode) is search('(?m)^databases\\s+16$')"
+          - "(redis_config_content['content'] | b64decode) is search('(?m)^maxclients\\s+10000$')"
+          - "(redis_config_content['content'] | b64decode) is search('(?m)^loglevel\\s+notice$')"
+          - "(redis_config_content['content'] | b64decode) is search('(?m)^syslog-enabled\\s+yes$')"
+          - "(redis_config_content['content'] | b64decode) is not search('(?m)^(replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority)')"
+        fail_msg: Redis configuration does not contain the expected production settings
+
+    - name: Check Redis configuration ownership and mode
+      ansible.builtin.stat:
+        path: /etc/redis/6379.conf
+      register: redis_config_stat
+
+    - name: Assert Redis configuration ownership and mode
+      ansible.builtin.assert:
+        that:
+          - redis_config_stat['stat']['pw_name'] == 'redis'
+          - redis_config_stat['stat']['gr_name'] == 'redis'
+          - redis_config_stat['stat']['mode'] == '0644'
+        fail_msg: Redis configuration has unexpected ownership or permissions
+
+    - name: Check Redis directory ownership and modes
+      ansible.builtin.stat:
+        path: "{{ item_cache_dir }}" # noqa: R114 - paths are fixed production paths defined by this verification
+      loop:
+        - /var/lib/redis
+        - /var/run/redis/6379
+        - /var/log/redis
+      loop_control:
+        loop_var: item_cache_dir
+      register: redis_directory_stats
+
+    - name: Assert Redis directory ownership and modes
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['pw_name'] == 'redis'
+          - item_result['stat']['gr_name'] == 'redis'
+          - item_result['stat']['mode'] in ['0775', '0755']
+        fail_msg: Redis directory has unexpected ownership or permissions
+      loop: "{{ redis_directory_stats['results'] }}"
+      loop_control:
+        loop_var: item_result

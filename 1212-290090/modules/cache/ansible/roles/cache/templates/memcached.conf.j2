@@ -1,0 +1,8 @@
+-m {{ cache_memcached_memory }}
+-p {{ cache_memcached_port }}
+-U {{ cache_memcached_udp_port }}
+-l {{ cache_memcached_listen }}
+-c {{ cache_memcached_maxconn }}
+-u memcached
+-t {{ cache_memcached_threads }}
+-I {{ cache_memcached_max_object_size }}

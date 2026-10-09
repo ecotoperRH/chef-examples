@@ -1,0 +1,14 @@
+---
+- name: Install Redis source prerequisites
+  ansible.builtin.package:
+    name:
+      - tar
+      - build-essential
+    state: present
+
+- name: Download Redis source archive
+  ansible.builtin.get_url: # noqa: R104 - source mirror is role-controlled and may be an internal HTTP mirror; R106 - source URL is assembled from role defaults
+    url: "{{ cache_redis_mirror | replace('http://', 'https://') }}{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }}" # noqa: R106 - source URL is assembled from role defaults
+    dest: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}.{{ cache_redis_artifact_type }}" # noqa: R114 - role-controlled download directory
+    mode: "0644"
+  when: not cache_redis_package_install | bool

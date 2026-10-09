@@ -1,0 +1,65 @@
+{% if cache_redis_job_control in ['initd', 'rcinit'] %}
+daemonize yes
+{% endif %}
+pidfile {{ cache_redis_pid_dir }}/redis_{{ cache_redis_name }}.pid
+port {{ cache_redis_port }}
+tcp-backlog {{ cache_redis_tcp_backlog }}
+{% if cache_redis_address is not none %}bind {{ cache_redis_address | join(' ') if cache_redis_address is iterable and cache_redis_address is not string else cache_redis_address }}
+{% endif %}{% if cache_redis_protected_mode is not none %}protected-mode {{ cache_redis_protected_mode }}
+{% endif %}{% if cache_redis_unixsocket is not none %}unixsocket {{ cache_redis_unixsocket }}
+unixsocketperm {{ cache_redis_unixsocketperm }}
+{% endif %}timeout {{ cache_redis_timeout }}
+tcp-keepalive {{ cache_redis_keepalive }}
+loglevel {{ cache_redis_loglevel }}
+syslog-enabled {{ cache_redis_syslogenabled }}
+syslog-ident redis-{{ cache_redis_name }}
+syslog-facility {{ cache_redis_syslogfacility }}
+databases {{ cache_redis_databases }}
+{% if cache_redis_tlsport is not none %}tls-port {{ cache_redis_tlsport }}
+{% endif %}{% if cache_redis_backuptype in ['rdb', 'both'] %}{% for save_option in cache_redis_save %}save {{ save_option }}
+{% endfor %}stop-writes-on-bgsave-error {{ cache_redis_stopwritesonbgsaveerror }}
+rdbcompression {{ cache_redis_rdbcompression }}
+rdbchecksum {{ cache_redis_rdbchecksum }}
+dbfilename {{ cache_redis_dbfilename }}
+{% endif %}dir {{ cache_redis_datadir }}
+{% if cache_redis_replicaof is not none %}replicaof {{ cache_redis_replicaof['address'] }} {{ cache_redis_replicaof['port'] }}
+{% endif %}{% if cache_redis_masterauth is not none %}masterauth {{ cache_redis_masterauth }}
+{% endif %}{% if cache_redis_replicaservestaledata is not none %}replica-serve-stale-data {{ cache_redis_replicaservestaledata }}
+{% endif %}{% if cache_redis_replicareadonly is not none %}replica-read-only {{ cache_redis_replicareadonly }}
+{% endif %}{% if cache_redis_repldisklesssync is not none %}repl-diskless-sync {{ cache_redis_repldisklesssync }}
+{% endif %}repl-diskless-sync-delay {{ cache_redis_repldisklesssyncdelay }}
+repl-ping-replica-period {{ cache_redis_replpingreplicaperiod }}
+repl-timeout {{ cache_redis_repltimeout }}
+repl-disable-tcp-nodelay {{ cache_redis_repldisabletcpnodelay }}
+repl-backlog-size {{ cache_redis_replbacklogsize }}
+repl-backlog-ttl {{ cache_redis_replbacklogttl }}
+replica-priority {{ cache_redis_replicapriority }}
+{% if cache_redis_requirepass is not none %}requirepass {{ cache_redis_requirepass }}
+{% endif %}maxclients {{ cache_redis_maxclients }}
+{% if cache_redis_maxmemory %}maxmemory {{ cache_redis_maxmemory }}
+{% endif %}{% if cache_redis_maxmemorypolicy is not none %}maxmemory-policy {{ cache_redis_maxmemorypolicy }}
+{% endif %}{% if cache_redis_maxmemorysamples is not none %}maxmemory-samples {{ cache_redis_maxmemorysamples }}
+{% endif %}{% if cache_redis_backuptype in ['aof', 'both'] %}appendonly yes
+{% else %}appendonly no
+{% endif %}appendfilename {{ cache_redis_appendfilename }}
+appendfsync {{ cache_redis_appendfsync }}
+no-appendfsync-on-rewrite {{ cache_redis_noappendfsynconrewrite }}
+auto-aof-rewrite-percentage {{ cache_redis_aofrewritepercentage }}
+auto-aof-rewrite-min-size {{ cache_redis_aofrewriteminsize }}
+aof-load-truncated {{ cache_redis_aofloadtruncated }}
+lua-time-limit {{ cache_redis_luatimelimit }}
+slowlog-log-slower-than {{ cache_redis_slowloglogslowerthan }}
+slowlog-max-len {{ cache_redis_slowlogmaxlen }}
+notify-keyspace-events "{{ cache_redis_notifykeyspaceevents }}"
+hash-max-ziplist-entries {{ cache_redis_hashmaxziplistentries }}
+hash-max-ziplist-value {{ cache_redis_hashmaxziplistvalue }}
+set-max-intset-entries {{ cache_redis_setmaxintsetentries }}
+zset-max-ziplist-entries {{ cache_redis_zsetmaxziplistentries }}
+zset-max-ziplist-value {{ cache_redis_zsetmaxziplistvalue }}
+hll-sparse-max-bytes {{ cache_redis_hllsparsemaxbytes }}
+activerehashing {{ cache_redis_activerehasing }}
+{% for c in cache_redis_clientoutputbufferlimit %}client-output-buffer-limit {{ c | join(' ') }}
+{% endfor %}hz {{ cache_redis_hz }}
+aof-rewrite-incremental-fsync {{ cache_redis_aofrewriteincrementalfsync }}
+{% if cache_redis_includes is not none %}{% for include_option in cache_redis_includes %}include {{ include_option }}
+{% endfor %}{% endif %}
