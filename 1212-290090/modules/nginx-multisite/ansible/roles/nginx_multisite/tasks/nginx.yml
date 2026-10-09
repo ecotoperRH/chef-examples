@@ -1,10 +1,24 @@
 ---
-- name: Install Nginx
+- name: Install nginx
   ansible.builtin.package:
     name: nginx
     state: present
 
-- name: Render Nginx main configuration
+- name: Create nginx configuration directories
+  ansible.builtin.file:
+    path: "{{ item_nginx_config_dir }}" # noqa: R114 - loop over role-defined fixed nginx configuration directories
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/nginx/conf.d
+    - /etc/nginx/sites-available
+    - /etc/nginx/sites-enabled
+  loop_control:
+    loop_var: item_nginx_config_dir
+
+- name: Deploy nginx configuration
   ansible.builtin.template:
     src: nginx.conf.j2
     dest: /etc/nginx/nginx.conf
@@ -12,7 +26,7 @@
     backup: true
   notify: Reload nginx
 
-- name: Render Nginx security configuration
+- name: Deploy nginx security configuration
   ansible.builtin.template:
     src: security.conf.j2
     dest: /etc/nginx/conf.d/security.conf
@@ -20,7 +34,7 @@
     backup: true
   notify: Reload nginx
 
-- name: Enable and start Nginx
+- name: Enable and start nginx
   ansible.builtin.service:
     name: nginx
     enabled: true
@@ -38,9 +52,9 @@
   loop_control:
     loop_var: item_nginx_site
 
-- name: Deploy placeholder site index
+- name: Deploy site index files
   ansible.builtin.copy:
-    content: "<html><body><h1>{{ item_nginx_site['key'] }}</h1></body></html> "
+    content: "{{ item_nginx_site['key'] }} "
     dest: "{{ item_nginx_site['value']['document_root'] }}/index.html" # noqa: R114 - path from role-defined sites dictionary
     owner: www-data
     group: www-data

@@ -10,11 +10,12 @@
     state: restarted
 
 - name: Reload security sysctl
-  ansible.builtin.command:
-    argv:
-      - sysctl
-      - --system
-  changed_when: false
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.rp_filter
+    value: "1"
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    state: present
+    reload: true
 
 - name: Restart SSH
   ansible.builtin.service:
