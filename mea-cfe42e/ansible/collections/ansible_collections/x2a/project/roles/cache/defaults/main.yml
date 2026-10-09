@@ -1,0 +1,96 @@
+---
+cache_secure_logging: true
+redis_password: ""
+memcached_version:
+memcached_memory: 64
+memcached_port: 11211
+memcached_udp_port: 11211
+memcached_listen: 0.0.0.0
+memcached_maxconn: 1024
+memcached_max_object_size: 1m
+memcached_threads:
+memcached_experimental_options: []
+memcached_extra_cli_options: []
+memcached_ulimit: 1024
+memcached_logfilepath: /var/log/memcached
+redisio_package_install: false
+redisio_safe_install: true
+redisio_bypass_setup: false
+redisio_version: 3.2.11
+redisio_package_name: redis-server
+redisio_mirror: http://download.redis.io/releases/
+redisio_base_name: redis-
+redisio_artifact_type: tar.gz
+redisio_base_piddir: /var/run/redis
+redisio_install_dir:
+redisio_job_control: systemd
+redisio_config_dir: /etc/redis
+redisio_bin_path: /usr/local/bin
+redisio_default_settings:
+  user: redis
+  group: redis
+  permissions: "0644"
+  homedir: /var/lib/redis
+  shell: /bin/false
+  systemuser: true
+  ulimit: 0
+  configdir: /etc/redis
+  name:
+  tcpbacklog: "511"
+  address:
+  databases: "16"
+  backuptype: rdb
+  datadir: /var/lib/redis
+  unixsocket:
+  unixsocketperm:
+  timeout: "0"
+  keepalive: "0"
+  loglevel: notice
+  logfile:
+  syslogenabled: "yes"
+  syslogfacility: local0
+  shutdown_save: false
+  save:
+  stopwritesonbgsaveerror: "yes"
+  rdbcompression: "yes"
+  rdbchecksum: "yes"
+  dbfilename:
+  replicaof:
+  protected_mode:
+  masterauth:
+  replicaservestaledata: "yes"
+  replicareadonly: "yes"
+  repldisklesssync: "no"
+  repldisklesssyncdelay: "5"
+  replpingreplicaperiod: "10"
+  repltimeout: "60"
+  repldisabletcpnodelay: "no"
+  replbacklogsize: 1mb
+  replbacklogttl: 3600
+  replicapriority: "100"
+  requirepass:
+  maxclients: 10000
+  maxmemory:
+  maxmemorypolicy:
+  appendfilename:
+  appendfsync: everysec
+  noappendfsynconrewrite: "no"
+  aofrewritepercentage: "100"
+  aofrewriteminsize: 64mb
+  aofloadtruncated: "yes"
+  luatimelimit: "5000"
+  slowloglogslowerthan: "10000"
+  slowlogmaxlen: "1024"
+  notifykeyspaceevents: ""
+  hz: "10"
+  breadcrumb: true
+  tlsport:
+redisio_servers:
+  - name: "6379"
+    port: 6379
+    requirepass: "{{ redis_password }}"
+    replicaservestaledata:
+redisio_ulimit: 10032
+redisio_users: {}
+redisio_pam_su_template:
+redisio_pam_sudo_file:

@@ -1,0 +1,184 @@
+---
+# Unsupported pre-flight checks: authenticated redis-cli checks require the
+# migrated Redis secret; configuration-value grep output, filesystem statistics,
+# disk-usage checks, journal output, and systemd LimitNOFILE output have no
+# stated expected result; PAM checks are conditional on unset ulimit variables.
+- name: Verify cache services
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Gather service facts for the cache services
+      ansible.builtin.service_facts:
+
+    - name: Verify Memcached is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts.services"
+          - "ansible_facts.services['memcached.service']['state'] == 'running'"
+          - "ansible_facts.services['memcached.service']['status'] == 'enabled'"
+        fail_msg: Memcached is not active and enabled.
+
+    - name: Verify Memcached TCP port 11211 is listening
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        state: started
+        timeout: 5
+
+    - name: Check Memcached UDP port 11211
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -lunp
+        changed_when: false
+      register: memcached_udp_sockets
+
+    - name: Verify Memcached UDP port 11211 is listening
+      ansible.builtin.assert:
+        that:
+          - "memcached_udp_sockets.stdout is search(':11211\\b')"
+        fail_msg: Memcached UDP port 11211 is not listening.
+
+    - name: Request the Memcached version
+      ansible.builtin.command:
+        argv:
+          - nc
+          - -w
+          - '2'
+          - 127.0.0.1
+          - '11211'
+        stdin: "version\r\n"
+        changed_when: false
+      register: memcached_version
+
+    - name: Verify Memcached returns a version response
+      ansible.builtin.assert:
+        that:
+          - "memcached_version.stdout is search('VERSION')"
+        fail_msg: Memcached did not return a version response.
+
+    - name: Verify managed Redis is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'redis@6379.service' in ansible_facts.services"
+          - "ansible_facts.services['redis@6379.service']['state'] == 'running'"
+          - "ansible_facts.services['redis@6379.service']['status'] == 'enabled'"
+        fail_msg: redis@6379 is not active and enabled.
+
+    - name: Verify the distribution Redis service is stopped and disabled
+      ansible.builtin.assert:
+        that:
+          - "redis_distribution_services | length > 0"
+          - >-
+            redis_distribution_services | map(attribute='state') |
+            select('equalto', 'stopped') | list | length ==
+            redis_distribution_services | length
+          - >-
+            redis_distribution_services | map(attribute='status') |
+            select('equalto', 'disabled') | list | length ==
+            redis_distribution_services | length
+        fail_msg: A distribution-provided Redis service is not stopped and disabled.
+      vars:
+        redis_distribution_services: >-
+          {{ ['redis-server.service', 'redis.service'] |
+             select('in', ansible_facts.services) |
+             map('extract', ansible_facts.services) | list }}
+
+    - name: Verify Redis TCP port 6379 is listening
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        state: started
+        timeout: 5
+
+    - name: Verify Redis runtime directories and breadcrumb exist
+      ansible.builtin.stat:
+        path: "{{ item_path }}"
+      loop:
+        - /var/lib/redis
+        - /var/run/redis/6379
+        - /var/log/redis
+        - /etc/redis/6379.conf.breadcrumb
+        - /lib/systemd/system/redis@6379.service
+        - /etc/tmpfiles.d/redis@6379.conf
+      loop_control:
+        loop_var: item_path
+        label: "{{ item_path }}"
+      register: redis_required_paths
+
+    - name: Verify Redis runtime directories and files are present
+      ansible.builtin.assert:
+        that:
+          - "item_result.stat.exists"
+        fail_msg: A required Redis path is missing.
+      loop: "{{ redis_required_paths.results }}"
+      loop_control:
+        loop_var: item_result
+        label: "{{ item_result.item }}"
+
+    - name: Read the managed Redis configuration
+      ansible.builtin.slurp:
+        src: /etc/redis/6379.conf
+      register: redis_configuration
+
+    - name: Verify removed Redis directives are absent
+      ansible.builtin.assert:
+        that:
+          - >-
+            (redis_configuration.content | b64decode) is not search(
+            '(?m)^(replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority)')
+        fail_msg: Removed Redis replication or client-buffer directives are present.
+
+    - name: Inspect the Redis process command line
+      ansible.builtin.command:
+        argv:
+          - ps
+          - aux
+        changed_when: false
+      register: redis_processes
+
+    - name: Verify Redis uses the managed configuration
+      ansible.builtin.assert:
+        that:
+          - "redis_processes.stdout is search('redis-server.*6379.*(/etc/redis/6379\\.conf|/etc/redis/6379)')"
+        fail_msg: The Redis process is not using /etc/redis/6379.conf.
+
+    - name: Verify source-installed Redis prerequisites and version
+      when: not (redisio_package_install | default(true) | bool)
+      block:
+        - name: Check that tar is installed
+          ansible.builtin.command:
+            argv:
+              - command
+              - -v
+              - tar
+            changed_when: false
+
+        - name: Check the source-installed Redis binary version
+          ansible.builtin.command:
+            argv:
+              - /usr/local/bin/redis-server
+              - -v
+            changed_when: false
+          register: source_redis_version
+
+        - name: Verify source-installed Redis is version 3.2.11
+          ansible.builtin.assert:
+            that:
+              - "source_redis_version.stdout is search('3\\.2\\.11')"
+            fail_msg: The source-installed Redis binary is not version 3.2.11.
+
+        - name: Resolve the managed redis-server binary
+          ansible.builtin.command:
+            argv:
+              - readlink
+              - -f
+              - "{{ ansible_facts.env.PATH.split(':')[0] }}/redis-server"
+            changed_when: false
+          register: resolved_redis_binary
+
+        - name: Verify the source-installed Redis binary path
+          ansible.builtin.assert:
+            that:
+              - "resolved_redis_binary.stdout == '/usr/local/bin/redis-server'"
+            fail_msg: Redis is not resolved from /usr/local/bin/redis-server.

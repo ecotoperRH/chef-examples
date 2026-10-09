@@ -1,0 +1,39 @@
+---
+- name: Install Redis source prerequisites
+  ansible.builtin.include_tasks: redis_install_prereqs.yml
+  when: not redisio_package_install | bool
+
+- name: Install Redis from source archive
+  when: not redisio_package_install | bool
+  block:
+    - name: Download Redis source archive  # noqa: R104 - mirror URL may be an internal HTTP mirror without TLS support
+      ansible.builtin.get_url:
+        url: "{{ redisio_mirror }}{{ redisio_base_name }}{{ redisio_version }}.{{ redisio_artifact_type }}"  # noqa: R106 - source archive URL is intentionally parameterized by the configured mirror
+        dest: "/tmp/redis-{{ redisio_version }}.{{ redisio_artifact_type }}"
+        mode: "0644"
+        backup: true
+
+    - name: Extract Redis source archive  # noqa: R104 - source is a local archive already downloaded by the preceding task
+      ansible.builtin.unarchive:
+        src: "/tmp/redis-{{ redisio_version }}.{{ redisio_artifact_type }}"  # noqa: R106 - source path is intentionally parameterized by the configured Redis version
+        dest: /tmp
+        remote_src: true
+        creates: "/tmp/redis-{{ redisio_version }}/src/redis-server"
+
+    - name: Build Redis  # noqa: L039 - file is the Ansible `is file` test, not an undefined variable
+      ansible.builtin.command:
+        cmd: make
+        chdir: "/tmp/redis-{{ redisio_version }}"
+      when: not redisio_safe_install | bool or not (redisio_bin_path + '/redis-server') is file
+
+    - name: Install Redis binaries  # noqa: L039 - file is the Ansible `is file` test, not an undefined variable
+      ansible.builtin.command:
+        cmd: make install
+        chdir: "/tmp/redis-{{ redisio_version }}"
+      when: not redisio_safe_install | bool or not (redisio_bin_path + '/redis-server') is file
+
+- name: Install Redis package
+  ansible.builtin.package:
+    name: "{{ redisio_package_name }}"
+    state: present
+  when: redisio_package_install | bool

@@ -1,0 +1,174 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure Memcached and Redis caching services
+    description:
+      - Installs and configures Memcached and a managed Redis instance on port 6379.
+      - Redis authentication is supplied by the AAP credential variable redis_password.
+    options:
+      cache_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Hide tasks that render or process the Redis password.
+      redis_password:
+        type: str
+        required: false
+        default: ""
+        description: Redis authentication password injected by an AAP credential type.
+      memcached_version:
+        type: str
+        required: false
+        default: null
+        description: Optional Memcached package version.
+      memcached_memory:
+        type: int
+        required: false
+        default: 64
+        description: Memcached memory allocation in megabytes.
+      memcached_port:
+        type: int
+        required: false
+        default: 11211
+        description: Memcached TCP port.
+      memcached_udp_port:
+        type: int
+        required: false
+        default: 11211
+        description: Memcached UDP port.
+      memcached_listen:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: Memcached listen address.
+      memcached_maxconn:
+        type: int
+        required: false
+        default: 1024
+        description: Maximum Memcached connections.
+      memcached_max_object_size:
+        type: str
+        required: false
+        default: 1m
+        description: Maximum Memcached object size.
+      memcached_threads:
+        type: int
+        required: false
+        default: null
+        description: Optional Memcached worker thread count.
+      memcached_experimental_options:
+        type: list
+        elements: str
+        required: false
+        default: []
+        description: Additional Memcached experimental options.
+      memcached_extra_cli_options:
+        type: list
+        elements: str
+        required: false
+        default: []
+        description: Additional Memcached command-line options.
+      memcached_ulimit:
+        type: int
+        required: false
+        default: 1024
+        description: Memcached file descriptor limit.
+      memcached_logfilepath:
+        type: str
+        required: false
+        default: /var/log/memcached
+        description: Memcached log path.
+      redisio_package_install:
+        type: bool
+        required: false
+        default: false
+        description: Install Redis from the operating system package instead of source.
+      redisio_safe_install:
+        type: bool
+        required: false
+        default: true
+        description: Avoid rebuilding Redis when the target binary already exists.
+      redisio_bypass_setup:
+        type: bool
+        required: false
+        default: false
+        description: Skip Redis installation, configuration, and service setup.
+      redisio_version:
+        type: str
+        required: false
+        default: 3.2.11
+        description: Redis source version.
+      redisio_package_name:
+        type: str
+        required: false
+        default: redis-server
+        description: Redis operating system package name.
+      redisio_mirror:
+        type: str
+        required: false
+        default: http://download.redis.io/releases/
+        description: Redis source archive mirror.
+      redisio_base_name:
+        type: str
+        required: false
+        default: redis-
+        description: Redis source archive base name.
+      redisio_artifact_type:
+        type: str
+        required: false
+        default: tar.gz
+        description: Redis source archive extension.
+      redisio_base_piddir:
+        type: str
+        required: false
+        default: /var/run/redis
+        description: Redis PID directory.
+      redisio_install_dir:
+        type: str
+        required: false
+        default: null
+        description: Optional Redis installation directory.
+      redisio_job_control:
+        type: str
+        required: false
+        default: systemd
+        description: Redis service manager.
+      redisio_config_dir:
+        type: str
+        required: false
+        default: /etc/redis
+        description: Redis configuration directory.
+      redisio_bin_path:
+        type: str
+        required: false
+        default: /usr/local/bin
+        description: Redis binary directory.
+      redisio_default_settings:
+        type: dict
+        required: false
+        description: Default Redis configuration settings.
+      redisio_servers:
+        type: list
+        elements: dict
+        required: false
+        description: Redis instance definitions managed by the role.
+      redisio_ulimit:
+        type: int
+        required: false
+        default: 10032
+        description: Redis open-file limit.
+      redisio_users:
+        type: dict
+        required: false
+        default: {}
+        description: Redis users and PAM limits.
+      redisio_pam_su_template:
+        type: str
+        required: false
+        default: null
+        description: Optional PAM su template source.
+      redisio_pam_sudo_file:
+        type: str
+        required: false
+        default: null
+        description: Optional PAM sudo file source.

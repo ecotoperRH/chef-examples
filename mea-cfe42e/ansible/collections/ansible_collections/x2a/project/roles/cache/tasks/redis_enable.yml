@@ -1,0 +1,10 @@
+---
+- name: Enable and start managed Redis service
+  ansible.builtin.service:
+    name: "{{ 'redis@' + item_cache_server['value']['name'] if item_cache_server['value']['name'] | default('') else 'redis@' + (item_cache_server['value']['port']
+      | string) }}"
+    state: started
+    enabled: true
+  loop: "{{ redisio_servers | dict2items if redisio_servers is mapping else redisio_servers | zip(redisio_servers) | list }}"
+  loop_control:
+    loop_var: item_cache_server

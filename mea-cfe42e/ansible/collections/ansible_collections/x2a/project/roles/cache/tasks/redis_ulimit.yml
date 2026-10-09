@@ -1,0 +1,30 @@
+---
+- name: Configure PAM su limits when supplied
+  ansible.builtin.template:
+    src: pam-su.j2
+    dest: /etc/pam.d/su
+    mode: "0644"
+    backup: true
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - redisio_pam_su_template is not none
+
+- name: Configure PAM sudo limits when supplied
+  ansible.builtin.copy:
+    src: pam-sudo
+    dest: /etc/pam.d/sudo
+    mode: "0644"
+    backup: true
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - redisio_pam_sudo_file is not none
+
+- name: Configure Redis user limits
+  ansible.builtin.pam_limits:
+    domain: "{{ item_cache_user['key'] }}"
+    limit_type: "{{ item_cache_user['value']['limit_type'] | default('soft') }}"
+    limit_item: "{{ item_cache_user['value']['limit_item'] | default('nofile') }}"
+    value: "{{ item_cache_user['value']['value'] }}"
+  loop: "{{ redisio_users | dict2items }}"
+  loop_control:
+    loop_var: item_cache_user

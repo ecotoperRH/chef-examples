@@ -1,0 +1,15 @@
+# Managed Redis configuration
+bind {{ redisio_default_settings['address'] or '0.0.0.0' }}
+port 6379
+tcp-backlog {{ redisio_default_settings['tcpbacklog'] }}
+databases {{ redisio_default_settings['databases'] }}
+dir {{ redisio_default_settings['datadir'] }}
+pidfile /var/run/redis/6379/redis.pid
+loglevel {{ redisio_default_settings['loglevel'] }}
+syslog-enabled {{ redisio_default_settings['syslogenabled'] }}
+maxclients {{ redisio_default_settings['maxclients'] }}
+requirepass {{ redis_password }}
+appendonly no
+save 900 1
+save 300 10
+save 60 10000

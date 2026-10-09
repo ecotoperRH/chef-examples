@@ -1,0 +1,55 @@
+---
+- name: Refresh package metadata
+  ansible.builtin.package:
+    name: tar
+    state: present
+  when: not redisio_package_install | bool
+
+- name: Install Redis package
+  ansible.builtin.package:
+    name: "{{ redisio_package_name }}"
+    state: present
+  when: redisio_package_install | bool
+
+- name: Ensure Redis user exists
+  ansible.builtin.user:
+    name: redis
+    system: true
+    home: /var/lib/redis
+    shell: /bin/false
+    create_home: true
+    state: present
+
+- name: Ensure Redis configuration directory exists
+  ansible.builtin.file:
+    path: /etc/redis
+    state: directory
+    owner: root
+    group: redis
+    mode: "0775"
+
+- name: Ensure Redis data directory exists
+  ansible.builtin.file:
+    path: /var/lib/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0775"
+
+- name: Ensure Redis runtime directory exists
+  ansible.builtin.file:
+    path: /var/run/redis/6379
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+
+- name: Render Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: /etc/redis/6379.conf
+    owner: redis
+    group: redis
+    mode: "0644"
+    backup: true
+  no_log: "{{ cache_secure_logging }}"

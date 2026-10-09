@@ -1,0 +1,34 @@
+---
+- name: Create Redis descriptor limits
+  ansible.builtin.pam_limits:
+    domain: redis
+    limit_type: "-"
+    limit_item: nofile
+    value: "{{ redisio_ulimit }}"
+
+- name: Render Redis systemd unit
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /lib/systemd/system/redis@6379.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: redisio_job_control == 'systemd'
+  no_log: "{{ cache_secure_logging }}"
+  vars:
+    redis_bin_path: "{{ redisio_bin_path }}"
+    redis_user: redis
+    redis_group: redis
+    redis_limit_nofile: "{{ redisio_ulimit }}"
+
+- name: Configure Redis systemd runtime directory
+  ansible.builtin.copy:
+    dest: /etc/tmpfiles.d/redis@6379.conf
+    content: "d /var/run/redis/6379 0755 redis redis "
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: redisio_job_control == 'systemd'
+  notify: Reload systemd

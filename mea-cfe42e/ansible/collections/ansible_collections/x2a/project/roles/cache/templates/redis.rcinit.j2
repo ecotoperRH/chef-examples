@@ -1,0 +1,9 @@
+#!/bin/sh
+# PROVIDE: redis{{ redis_name }}
+# REQUIRE: NETWORKING
+command="{{ redis_bin_path }}/redis-server"
+command_args="{{ redis_config_dir }}/{{ redis_name }}.conf"
+redis_user="{{ redis_user }}"
+redis_pidfile="{{ redis_pid_dir }}/redis.pid"
+. /etc/rc.subr
+run_rc_command "$1"
