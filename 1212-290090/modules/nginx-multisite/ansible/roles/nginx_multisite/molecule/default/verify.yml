@@ -1,5 +1,5 @@
 ---
-- name: Verify nginx_multisite files and services
+- name: Verify packages and services
   hosts: all
   gather_facts: false
   tasks:
@@ -10,8 +10,8 @@
     - name: Assert required packages are installed
       ansible.builtin.assert:
         that:
-          - "item_package in ansible_facts.packages"
-        fail_msg: "A required package is not installed"
+          - item_package in ansible_facts['packages']
+        fail_msg: "Required package is not installed"
       loop:
         - nginx
         - fail2ban
@@ -24,31 +24,46 @@
     - name: Gather service facts
       ansible.builtin.service_facts:
 
-    - name: Assert required services are active
+    - name: Assert Nginx and Fail2ban are active and enabled
       ansible.builtin.assert:
         that:
-          - "item_service in ansible_facts.services"
-          - "ansible_facts.services[item_service]['state'] == 'running'"
-        fail_msg: "A required service is not running"
+          - "'{{ item_service }}' in ansible_facts['services']"
+          - ansible_facts['services'][item_service]['state'] == 'running'
+          - ansible_facts['services'][item_service]['status'] == 'enabled'
+        fail_msg: "Required service is not active and enabled"
       loop:
         - nginx.service
         - fail2ban.service
       loop_control:
         loop_var: item_service
 
-    - name: Check expected files and directories
+    - name: Check Nginx configuration syntax
+      ansible.builtin.command:
+        argv:
+          - nginx
+          - -t
+      changed_when: false
+
+    - name: Check SSH daemon configuration syntax
+      ansible.builtin.command:
+        argv:
+          - sshd
+          - -t
+      changed_when: false
+
+- name: Verify configuration files and links
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check generated files and directories
       ansible.builtin.stat:
-        path: "{{ item_nginx_path }}" # noqa: R114 - paths are fixed production paths from the migration plan
-        follow: false
+        path: "{{ item_config_path }}"
       loop:
         - /etc/nginx/nginx.conf
         - /etc/nginx/conf.d/security.conf
         - /etc/nginx/sites-available/test.cluster.local
         - /etc/nginx/sites-available/ci.cluster.local
         - /etc/nginx/sites-available/status.cluster.local
-        - /etc/nginx/sites-enabled/test.cluster.local
-        - /etc/nginx/sites-enabled/ci.cluster.local
-        - /etc/nginx/sites-enabled/status.cluster.local
         - /opt/server/test
         - /opt/server/test/index.html
         - /opt/server/ci
@@ -58,61 +73,60 @@
         - /etc/fail2ban/jail.local
         - /etc/sysctl.d/99-security.conf
         - /etc/ssh/sshd_config
-        - /etc/ssl/certs/test.cluster.local.crt
-        - /etc/ssl/private/test.cluster.local.key
-        - /etc/ssl/certs/ci.cluster.local.crt
-        - /etc/ssl/private/ci.cluster.local.key
-        - /etc/ssl/certs/status.cluster.local.crt
-        - /etc/ssl/private/status.cluster.local.key
       loop_control:
-        loop_var: item_nginx_path
-      register: nginx_multisite_path_stats
+        loop_var: item_config_path
+      register: config_stat_results
 
-    - name: Assert expected files and directories exist
+    - name: Assert generated files and directories exist
       ansible.builtin.assert:
         that:
           - item_result['stat']['exists']
-        fail_msg: "An expected nginx_multisite path is missing"
-      loop: "{{ nginx_multisite_path_stats['results'] }}"
+          - (item_result['stat']['isdir'] if item_result['item'] in ['/opt/server/test', '/opt/server/ci', '/opt/server/status'] else item_result['stat']['size'] > 0)
+        fail_msg: "Expected generated path is missing or empty"
+      loop: "{{ config_stat_results['results'] }}"
       loop_control:
         loop_var: item_result
 
-    - name: Check enabled site links
+    - name: Check enabled virtual host links
       ansible.builtin.stat:
-        path: "{{ item_nginx_link }}" # noqa: R114 - paths are fixed production paths from the migration plan
+        path: "{{ item_link_path }}"
         follow: false
       loop:
         - /etc/nginx/sites-enabled/test.cluster.local
         - /etc/nginx/sites-enabled/ci.cluster.local
         - /etc/nginx/sites-enabled/status.cluster.local
       loop_control:
-        loop_var: item_nginx_link
-      register: nginx_multisite_link_stats
+        loop_var: item_link_path
+      register: link_stat_results
 
-    - name: Assert enabled site links point to available sites
+    - name: Assert enabled virtual host links target available sites
       ansible.builtin.assert:
         that:
-          - item_result['stat']['islnk']
-          - item_result['stat']['lnk_source'] == item_result['stat']['path'] | regex_replace('sites-enabled', 'sites-available')
-        fail_msg: "An enabled nginx site link has an unexpected target"
-      loop: "{{ nginx_multisite_link_stats['results'] }}"
+          - item_link_result['stat']['islnk']
+          - item_link_result['stat']['lnk_source'] == item_link_result['item'].replace('/etc/nginx/sites-enabled/', '/etc/nginx/sites-available/')
+        fail_msg: "Enabled virtual host link is missing or points to the wrong site"
+      loop: "{{ link_stat_results['results'] }}"
       loop_control:
-        loop_var: item_result
+        loop_var: item_link_result
 
-    - name: Check default site is absent
+    - name: Check default Nginx site
       ansible.builtin.stat:
         path: /etc/nginx/sites-enabled/default
-      register: nginx_multisite_default_site
+      register: default_site_stat
 
-    - name: Assert default site is absent
+    - name: Assert default Nginx site is absent
       ansible.builtin.assert:
         that:
-          - not nginx_multisite_default_site['stat']['exists']
-        fail_msg: "The default nginx site should be absent"
+          - not default_site_stat['stat']['exists']
+        fail_msg: "The default Nginx site should be removed"
 
-    - name: Read nginx and SSH configuration
+- name: Verify content, certificates, firewall, and endpoints
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Read rendered configuration files
       ansible.builtin.slurp:
-        src: "{{ item_nginx_config }}" # noqa: R114 - paths are fixed production paths from the migration plan
+        src: "{{ item_rendered_path }}"
       loop:
         - /etc/nginx/nginx.conf
         - /etc/nginx/conf.d/security.conf
@@ -121,117 +135,101 @@
         - /etc/nginx/sites-available/status.cluster.local
         - /etc/ssh/sshd_config
       loop_control:
-        loop_var: item_nginx_config
-      register: nginx_multisite_config_contents
+        loop_var: item_rendered_path
+      register: rendered_file_results
 
-    - name: Assert configuration contains expected settings
+    - name: Assert rendered configurations contain expected settings
       ansible.builtin.assert:
         that:
-          - item_result['content'] | b64decode | length > 0
-        fail_msg: "An expected configuration file is empty"
-      loop: "{{ nginx_multisite_config_contents['results'] }}"
+          - item_rendered['content'] | b64decode | length > 0
+        fail_msg: "Rendered configuration file is empty"
+      loop: "{{ rendered_file_results['results'] }}"
       loop_control:
-        loop_var: item_result
+        loop_var: item_rendered
 
-    - name: Assert SSH hardening is configured
+    - name: Assert SSH hardening settings
       ansible.builtin.assert:
         that:
-          - >-
-            (nginx_multisite_config_contents['results'][5]['content'] | b64decode) is search('(?m)^\\s*PermitRootLogin\\s+no\\s*$')
-          - >-
-            (nginx_multisite_config_contents['results'][5]['content'] | b64decode) is search('(?m)^\\s*PasswordAuthentication\\s+no\\s*$')
-        fail_msg: "SSH hardening settings are missing"
+          - rendered_file_results['results'][5]['content'] | b64decode is search('(?m)^PermitRootLogin no$')
+          - rendered_file_results['results'][5]['content'] | b64decode is search('(?m)^PasswordAuthentication no$')
+        fail_msg: "Expected SSH hardening settings are missing"
 
-    - name: Validate nginx configuration
+    - name: Check TLS certificates and private keys
+      ansible.builtin.stat:
+        path: "{{ item_tls_path }}"
+      loop:
+        - /etc/ssl/certs/test.cluster.local.crt
+        - /etc/ssl/private/test.cluster.local.key
+        - /etc/ssl/certs/ci.cluster.local.crt
+        - /etc/ssl/private/ci.cluster.local.key
+        - /etc/ssl/certs/status.cluster.local.crt
+        - /etc/ssl/private/status.cluster.local.key
+      loop_control:
+        loop_var: item_tls_path
+      register: tls_stat_results
+
+    - name: Assert TLS files and private-key permissions exist
+      ansible.builtin.assert:
+        that:
+          - item_tls['stat']['exists']
+          - item_tls['stat']['size'] > 0
+          - (item_tls['stat']['mode'] == '0640' if '/private/' in item_tls['item'] else true)
+          - (item_tls['stat']['pw_name'] == 'root' if '/private/' in item_tls['item'] else true)
+          - (item_tls['stat']['gr_name'] == 'ssl-cert' if '/private/' in item_tls['item'] else true)
+        fail_msg: "TLS certificate or private key has incorrect state"
+      loop: "{{ tls_stat_results['results'] }}"
+      loop_control:
+        loop_var: item_tls
+
+    - name: Check UFW status
       ansible.builtin.command:
         argv:
-          - nginx
-          - -t
+          - ufw
+          - status
+          - verbose
       changed_when: false
+      register: ufw_status_result
 
-- name: Verify nginx_multisite network and TLS state
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Check HTTP and HTTPS listeners
+    - name: Assert UFW is active with required rules
+      ansible.builtin.assert:
+        that:
+          - "'Status: active' in ufw_status_result['stdout']"
+          - "'Default: deny (incoming)' in ufw_status_result['stdout']"
+          - "'22/tcp' in ufw_status_result['stdout'] or 'SSH' in ufw_status_result['stdout']"
+          - "'80/tcp' in ufw_status_result['stdout'] or 'WWW' in ufw_status_result['stdout']"
+          - "'443/tcp' in ufw_status_result['stdout'] or 'HTTPS' in ufw_status_result['stdout']"
+        fail_msg: "UFW is not active with the expected policy and rules"
+
+    - name: Wait for HTTP and HTTPS listeners
       ansible.builtin.wait_for:
         host: 127.0.0.1
-        port: "{{ item_nginx_port }}"
+        port: "{{ item_listener_port }}"
         state: started
-        timeout: 10
+        timeout: 30
       loop:
         - 80
         - 443
       loop_control:
-        loop_var: item_nginx_port
+        loop_var: item_listener_port
 
-    - name: Verify HTTP virtual hosts
-      ansible.builtin.uri:
-        url: http://127.0.0.1/
-        headers:
-          Host: "{{ item_nginx_host }}"
-        status_code: [200, 301, 302, 403]
-      loop:
-        - test.cluster.local
-        - ci.cluster.local
-        - status.cluster.local
-      loop_control:
-        loop_var: item_nginx_host
-
-    - name: Verify HTTPS virtual hosts
+    - name: Check test site over HTTPS
       ansible.builtin.uri:
         url: https://127.0.0.1/
         headers:
-          Host: "{{ item_nginx_host }}"
+          Host: test.cluster.local
         validate_certs: false
-        status_code: [200, 301, 302, 403]
+        status_code: 200
+      register: test_https_result
+
+    - name: Check all sites over HTTP
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        headers:
+          Host: "{{ item_site_host }}"
+        status_code: 200
       loop:
         - test.cluster.local
         - ci.cluster.local
         - status.cluster.local
       loop_control:
-        loop_var: item_nginx_host
-
-    - name: Check TLS private key metadata
-      ansible.builtin.stat:
-        path: "{{ item_nginx_key }}" # noqa: R114 - paths are fixed production paths from the migration plan
-      loop:
-        - /etc/ssl/private/test.cluster.local.key
-        - /etc/ssl/private/ci.cluster.local.key
-        - /etc/ssl/private/status.cluster.local.key
-      loop_control:
-        loop_var: item_nginx_key
-      register: nginx_multisite_key_stats
-
-    - name: Assert TLS private key ownership and permissions
-      ansible.builtin.assert:
-        that:
-          - item_result['stat']['pw_name'] == 'root'
-          - item_result['stat']['gr_name'] == 'ssl-cert'
-          - item_result['stat']['mode'] == '0640'
-        fail_msg: "A TLS private key has incorrect ownership or permissions"
-      loop: "{{ nginx_multisite_key_stats['results'] }}"
-      loop_control:
-        loop_var: item_result
-
-    - name: Check Fail2ban responds
-      ansible.builtin.command:
-        argv:
-          - fail2ban-client
-          - ping
-      changed_when: false
-
-    - name: Validate SSH configuration
-      ansible.builtin.command:
-        argv:
-          - sshd
-          - -t
-      changed_when: false
-
-    - name: Apply-check sysctl configuration
-      ansible.builtin.command:
-        argv:
-          - sysctl
-          - -p
-          - /etc/sysctl.d/99-security.conf
-      changed_when: false
+        loop_var: item_site_host

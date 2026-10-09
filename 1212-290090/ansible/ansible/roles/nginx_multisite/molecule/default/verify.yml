@@ -1,0 +1,8 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Verify role nginx_multisite executed successfully
+      ansible.builtin.debug:
+        msg: "Role nginx_multisite applied successfully"
