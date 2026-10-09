@@ -20,9 +20,15 @@
     backup: true
   notify: Reload nginx
 
+- name: Enable and start Nginx
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+
 - name: Create site document roots
   ansible.builtin.file:
-    path: "{{ item_nginx_site['value']['document_root'] }}" # noqa: R114 - role-defined site path
+    path: "{{ item_nginx_site['value']['document_root'] }}" # noqa: R114 - path comes from the role-defined sites dictionary
     state: directory
     owner: www-data
     group: www-data
@@ -34,8 +40,8 @@
 
 - name: Deploy site index pages
   ansible.builtin.copy:
-    src: "{{ item_nginx_index['key'].split('.')[0] }}/index.html"
-    dest: "{{ item_nginx_index['value']['document_root'] }}/index.html" # noqa: R114 - role-defined site path
+    content: "<!doctype html> <html><head><title>{{ item_nginx_index['key'] }}</title></head><body><h1>{{ item_nginx_index['key'] }}</h1></body></html> "
+    dest: "{{ item_nginx_index['value']['document_root'] }}/index.html" # noqa: R114 - path comes from the role-defined sites dictionary
     owner: www-data
     group: www-data
     mode: "0644"

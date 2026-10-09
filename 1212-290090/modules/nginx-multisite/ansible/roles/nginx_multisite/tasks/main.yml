@@ -1,3 +1,12 @@
 ---
-- name: Load default nginx multisite tasks
-  ansible.builtin.include_tasks: default.yml
+- name: Include security configuration
+  ansible.builtin.include_tasks: security.yml
+
+- name: Include Nginx installation and configuration
+  ansible.builtin.include_tasks: nginx.yml
+
+- name: Include TLS certificate configuration
+  ansible.builtin.include_tasks: ssl.yml
+
+- name: Include site configuration
+  ansible.builtin.include_tasks: sites.yml

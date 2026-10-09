@@ -10,13 +10,14 @@
     state: restarted
 
 - name: Reload security sysctl
-  ansible.builtin.shell:
-    cmd: sysctl -p /etc/sysctl.d/99-security.conf
-  changed_when: true
-  args:
-    executable: /bin/bash
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.rp_filter
+    value: "1"
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    state: present
+    reload: true
 
-- name: Restart ssh
+- name: Restart SSH
   ansible.builtin.service:
-    name: "{{ 'ssh' if ansible_facts.os_family == 'Debian' else 'sshd' }}"
+    name: ssh
     state: restarted

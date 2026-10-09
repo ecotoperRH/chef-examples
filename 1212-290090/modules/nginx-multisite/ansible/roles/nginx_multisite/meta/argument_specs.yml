@@ -1,9 +1,10 @@
 ---
 argument_specs:
   main:
-    short_description: Configure Nginx as a secure multisite web server.
+    short_description: Install and configure an Nginx multisite web server
     description:
-      - Installs Nginx and security services, configures virtual hosts, and generates self-signed TLS certificates.
+      - Installs Nginx, Fail2ban, UFW, and TLS dependencies.
+      - Configures security hardening, self-signed certificates, and HTTPS virtual hosts.
     options:
       nginx_multisite_sites:
         type: dict
@@ -18,22 +19,22 @@ argument_specs:
           status.cluster.local:
             document_root: /opt/server/status
             ssl_enabled: true
-        description: Mapping of site names to document root and SSL settings.
+        description: Mapping of virtual host names to document-root and TLS settings.
       nginx_multisite_certificate_path:
         type: str
         required: false
         default: /etc/ssl/certs
-        description: Directory for generated TLS certificates.
+        description: Directory where site certificates are stored.
       nginx_multisite_private_key_path:
         type: str
         required: false
         default: /etc/ssl/private
-        description: Directory for generated TLS private keys.
+        description: Directory where site private keys are stored.
       nginx_multisite_fail2ban_enabled:
         type: bool
         required: false
         default: true
-        description: Whether to install and enable Fail2ban.
+        description: Whether to install and configure Fail2ban.
       nginx_multisite_ufw_enabled:
         type: bool
         required: false
@@ -44,8 +45,8 @@ argument_specs:
         required: false
         default: true
         description: Whether to disable SSH root login.
-      nginx_multisite_password_authentication:
+      nginx_multisite_password_auth_disabled:
         type: bool
         required: false
-        default: false
-        description: Whether SSH password authentication is allowed.
+        default: true
+        description: Whether to disable SSH password authentication.
