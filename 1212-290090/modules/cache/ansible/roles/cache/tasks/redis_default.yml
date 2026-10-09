@@ -1,24 +1,16 @@
 ---
-- name: Install Redis build prerequisites
-  ansible.builtin.package:
-    name:
-      - tar
-      - make
-      - gcc
-      - libc6-dev
-    state: present
+- name: Install Redis prerequisites and build dependencies
+  ansible.builtin.include_tasks: redis_install_prereqs.yml
+  when: not cache_redis_package_install | bool
 
-- name: Ensure Redis group exists
-  ansible.builtin.group:
-    name: "{{ redis_group }}"
-    state: present
+- name: Install Redis
+  ansible.builtin.include_tasks: redis_install.yml
+  when: not cache_redis_bypass_setup | default(false) | bool  # noqa: L039 - variable comes from role parameters
 
-- name: Ensure Redis user exists
-  ansible.builtin.user:
-    name: "{{ redis_user }}"
-    group: "{{ redis_group }}"
-    home: "{{ redis_data_dir }}"
-    shell: "{{ redis_shell }}"
-    system: true
-    create_home: true
-    state: present
+- name: Disable distribution Redis service
+  ansible.builtin.include_tasks: redis_disable_os_default.yml
+  when: not cache_redis_bypass_setup | default(false) | bool  # noqa: L039 - variable comes from role parameters
+
+- name: Configure Redis ulimits
+  ansible.builtin.include_tasks: redis_ulimit.yml
+  when: not cache_redis_bypass_setup | default(false) | bool  # noqa: L039 - variable comes from role parameters

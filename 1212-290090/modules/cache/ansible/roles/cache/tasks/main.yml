@@ -2,5 +2,14 @@
 - name: Validate credential variables
   ansible.builtin.include_tasks: validate_credentials.yml
 
-- name: Configure cache services
-  ansible.builtin.include_tasks: default.yml
+- name: Configure Memcached
+  ansible.builtin.include_tasks: memcached.yml
+
+- name: Configure Redis defaults
+  ansible.builtin.include_tasks: redis_default.yml
+
+- name: Configure Redis instance
+  ansible.builtin.include_tasks: redis_configure.yml
+
+- name: Enable Redis instance
+  ansible.builtin.include_tasks: redis_enable.yml

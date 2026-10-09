@@ -1,0 +1,25 @@
+# Limits settings for {{ cache_ulimit_user }}
+{% if cache_filehandle_limit is not none %}{{ cache_ulimit_user }} - nofile {{ cache_filehandle_limit }}
+{% else %}{% if cache_filehandle_soft_limit is not none %}{{ cache_ulimit_user }} soft nofile {{ cache_filehandle_soft_limit }}
+{% endif %}{% if cache_filehandle_hard_limit is not none %}{{ cache_ulimit_user }} hard nofile {{ cache_filehandle_hard_limit }}
+{% endif %}{% endif %}
+{% if cache_process_limit is not none %}{{ cache_ulimit_user }} - nproc {{ cache_process_limit }}
+{% else %}{% if cache_process_soft_limit is not none %}{{ cache_ulimit_user }} soft nproc {{ cache_process_soft_limit }}
+{% endif %}{% if cache_process_hard_limit is not none %}{{ cache_ulimit_user }} hard nproc {{ cache_process_hard_limit }}
+{% endif %}{% endif %}
+{% if cache_memory_limit is not none %}{{ cache_ulimit_user }} - memlock {{ cache_memory_limit }}
+{% endif %}
+{% if cache_core_limit is not none %}{{ cache_ulimit_user }} - core {{ cache_core_limit }}
+{% else %}{% if cache_core_soft_limit is not none %}{{ cache_ulimit_user }} soft core {{ cache_core_soft_limit }}
+{% endif %}{% if cache_core_hard_limit is not none %}{{ cache_ulimit_user }} hard core {{ cache_core_hard_limit }}
+{% endif %}{% endif %}
+{% if cache_stack_limit is not none %}{{ cache_ulimit_user }} - stack {{ cache_stack_limit }}
+{% else %}{% if cache_stack_soft_limit is not none %}{{ cache_ulimit_user }} soft stack {{ cache_stack_soft_limit }}
+{% endif %}{% if cache_stack_hard_limit is not none %}{{ cache_ulimit_user }} hard stack {{ cache_stack_hard_limit }}
+{% endif %}{% endif %}
+{% if cache_rtprio_limit is not none %}{{ cache_ulimit_user }} - rtprio {{ cache_rtprio_limit }}
+{% else %}{% if cache_rtprio_soft_limit is not none %}{{ cache_ulimit_user }} soft rtprio {{ cache_rtprio_soft_limit }}
+{% endif %}{% if cache_rtprio_hard_limit is not none %}{{ cache_ulimit_user }} hard rtprio {{ cache_rtprio_hard_limit }}
+{% endif %}{% endif %}
+{% if cache_virt_limit is not none %}{{ cache_ulimit_user }} - as {{ cache_virt_limit }}
+{% endif %}

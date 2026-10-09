@@ -4,45 +4,98 @@ argument_specs:
     short_description: Configure Memcached and Redis cache services
     description:
       - Installs and configures Memcached and a Redis 6379 instance.
+      - Redis authentication is supplied through the AAP credential variable redis_requirepass.
     options:
-      cache_secure_logging: {type: bool, required: false, default: true}
-      cache_memcached_package: {type: str, required: false, default: memcached}
-      cache_memcached_service: {type: str, required: false, default: memcached}
-      cache_memcached_memory: {type: int, required: false, default: 64}
-      cache_memcached_port: {type: int, required: false, default: 11211}
-      cache_memcached_udp_port: {type: int, required: false, default: 11211}
-      cache_memcached_listen: {type: str, required: false, default: 0.0.0.0}
-      cache_memcached_maxconn: {type: int, required: false, default: 1024}
-      cache_memcached_user: {type: str, required: false, default: memcached}
-      cache_memcached_max_object_size: {type: str, required: false, default: 1m}
-      cache_memcached_threads: {type: int, required: false, default: 4}
-      cache_memcached_ulimit: {type: int, required: false, default: 1024}
-      cache_memcached_experimental_options: {type: list, elements: str, required: false, default: []}
-      cache_memcached_extra_cli_options: {type: list, elements: str, required: false, default: []}
-      cache_redis_package_install: {type: bool, required: false, default: false}
-      cache_redis_package_name: {type: str, required: false, default: redis-server}
-      cache_redis_version: {type: str, required: false, default: 3.2.11}
-      cache_redis_download_url: {type: str, required: false, default: http://download.redis.io/releases/redis-3.2.11.tar.gz}
-      cache_redis_download_dir: {type: path, required: false, default: /usr/local/src}
-      cache_redis_source_dir: {type: path, required: false, default: /usr/local/src/redis-3.2.11}
-      cache_redis_install_dir: {type: path, required: false, default: /usr/local}
-      cache_redis_user: {type: str, required: false, default: redis}
-      cache_redis_group: {type: str, required: false, default: redis}
-      cache_redis_shell: {type: path, required: false, default: /bin/false}
-      cache_redis_config_dir: {type: path, required: false, default: /etc/redis}
-      cache_redis_config_file: {type: path, required: false, default: /etc/redis/6379.conf}
-      cache_redis_data_dir: {type: path, required: false, default: /var/lib/redis}
-      cache_redis_pid_dir: {type: path, required: false, default: /var/run/redis/6379}
-      cache_redis_log_dir: {type: path, required: false, default: /var/log/redis}
-      cache_redis_port: {type: int, required: false, default: 6379}
-      cache_redis_bind: {type: str, required: false, default: 0.0.0.0}
-      cache_redis_databases: {type: int, required: false, default: 16}
-      cache_redis_maxclients: {type: int, required: false, default: 10000}
-      cache_redis_loglevel: {type: str, required: false, default: notice}
-      cache_redis_syslog_enabled: {type: str, required: false, default: "yes"}
-      cache_redis_syslog_facility: {type: str, required: false, default: local0}
-      cache_redis_shutdown_save: {type: bool, required: false, default: false}
-      cache_redis_job_control: {type: str, required: false, default: systemd}
-      cache_redis_package_prerequisites: {type: list, elements: str, required: false, default: [tar, build-essential]}
-      cache_redis_save: {type: list, elements: str, required: false, default: [900 1, 300 10, 60 10000]}
-      cache_redis_requirepass: {type: str, required: false, default: "{{ redis_requirepass }}"}
+      cache_secure_logging: {type: bool, default: true}
+      cache_memcached_package: {type: str, default: memcached}
+      cache_memcached_service: {type: str, default: memcached}
+      cache_memcached_memory: {type: int, default: 64}
+      cache_memcached_port: {type: int, default: 11211}
+      cache_memcached_udp_port: {type: int, default: 11211}
+      cache_memcached_listen: {type: str, default: 0.0.0.0}
+      cache_memcached_maxconn: {type: int, default: 1024}
+      cache_memcached_user: {type: str, default: memcache}
+      cache_memcached_max_object_size: {type: str, default: 1m}
+      cache_memcached_threads: {type: int, default: 4}
+      cache_memcached_ulimit: {type: int, default: 1024}
+      cache_redis_package_install: {type: bool, default: false}
+      cache_redis_package_name: {type: str, default: redis-server}
+      cache_redis_version: {type: str, default: 3.2.11}
+      cache_redis_download_url: {type: str, default: 'http://download.redis.io/releases/redis-3.2.11.tar.gz'}
+      cache_redis_install_dir: {type: path, default: /usr/local}
+      cache_redis_bin_path: {type: path, default: /usr/local/bin}
+      cache_redis_user: {type: str, default: redis}
+      cache_redis_group: {type: str, default: redis}
+      cache_redis_shell: {type: path, default: /bin/false}
+      cache_redis_config_dir: {type: path, default: /etc/redis}
+      cache_redis_config_file: {type: path, default: /etc/redis/6379.conf}
+      cache_redis_datadir: {type: path, default: /var/lib/redis}
+      cache_redis_pid_dir: {type: path, default: /var/run/redis/6379}
+      cache_redis_log_dir: {type: path, default: /var/log/redis}
+      cache_redis_port: {type: int, default: 6379}
+      cache_redis_name: {type: str, default: '6379'}
+      cache_redis_address: {type: str, default: 0.0.0.0}
+      cache_redis_job_control: {type: str, default: systemd}
+      cache_redis_databases: {type: int, default: 16}
+      cache_redis_maxclients: {type: int, default: 10000}
+      cache_redis_loglevel: {type: str, default: notice}
+      cache_redis_syslogenabled: {type: str, default: 'yes'}
+      cache_redis_syslogfacility: {type: str, default: local0}
+      cache_redis_backuptype: {type: str, default: rdb}
+      cache_redis_tcp_backlog: {type: int, default: 511}
+      cache_redis_timeout: {type: int, default: 0}
+      cache_redis_keepalive: {type: int, default: 0}
+      cache_redis_stopwritesonbgsaveerror: {type: str, default: 'yes'}
+      cache_redis_rdbcompression: {type: str, default: 'yes'}
+      cache_redis_rdbchecksum: {type: str, default: 'yes'}
+      cache_redis_shutdown_save: {type: bool, default: false}
+      cache_redis_replicaservestaledata: {type: str, default: null}
+      cache_redis_replicareadonly: {type: str, default: 'yes'}
+      cache_redis_repldisklesssync: {type: str, default: 'no'}
+      cache_redis_repldisklesssyncdelay: {type: int, default: 5}
+      cache_redis_replpingreplicaperiod: {type: int, default: 10}
+      cache_redis_repltimeout: {type: int, default: 60}
+      cache_redis_repldisabletcpnodelay: {type: str, default: 'no'}
+      cache_redis_replbacklogsize: {type: str, default: 1mb}
+      cache_redis_replbacklogttl: {type: int, default: 3600}
+      cache_redis_replicapriority: {type: int, default: 100}
+      cache_redis_maxmemory: {type: str, default: null}
+      cache_redis_maxmemorypolicy: {type: str, default: null}
+      cache_redis_maxmemorysamples: {type: int, default: null}
+      cache_redis_appendfilename: {type: str, default: null}
+      cache_redis_appendfsync: {type: str, default: everysec}
+      cache_redis_noappendfsynconrewrite: {type: str, default: 'no'}
+      cache_redis_aofrewritepercentage: {type: int, default: 100}
+      cache_redis_aofrewriteminsize: {type: str, default: 64mb}
+      cache_redis_aofloadtruncated: {type: str, default: 'yes'}
+      cache_redis_luatimelimit: {type: int, default: 5000}
+      cache_redis_slowloglogslowerthan: {type: int, default: 10000}
+      cache_redis_slowlogmaxlen: {type: int, default: 1024}
+      cache_redis_notifykeyspaceevents: {type: str, default: ''}
+      cache_redis_hashmaxziplistentries: {type: int, default: 512}
+      cache_redis_hashmaxziplistvalue: {type: int, default: 64}
+      cache_redis_setmaxintsetentries: {type: int, default: 512}
+      cache_redis_zsetmaxziplistentries: {type: int, default: 128}
+      cache_redis_zsetmaxziplistvalue: {type: int, default: 64}
+      cache_redis_hllsparsemaxbytes: {type: int, default: 3000}
+      cache_redis_activerehasing: {type: str, default: 'yes'}
+      cache_redis_clientoutputbufferlimit: {type: list, default: [[normal, 0, 0, 0], [replica, 256mb, 64mb, 60], [pubsub, 32mb, 8mb, 60]]}
+      cache_redis_hz: {type: int, default: 10}
+      cache_redis_aofrewriteincrementalfsync: {type: str, default: 'yes'}
+      cache_redis_tlsport: {type: int, default: null}
+      cache_redis_protected_mode: {type: str, default: null}
+      cache_redis_unixsocket: {type: path, default: null}
+      cache_redis_unixsocketperm: {type: int, default: null}
+      cache_redis_logfile: {type: path, default: null}
+      cache_redis_save: {type: list, default: null}
+      cache_redis_replicaof: {type: dict, default: null}
+      cache_redis_masterauth: {type: str, default: null}
+      cache_redis_dbfilename: {type: str, default: null}
+      cache_redis_limit_nofile: {type: int, default: 10032}
+      cache_redis_required_start: {type: str, default: ''}
+      cache_redis_required_stop: {type: str, default: ''}
+      cache_redis_ulimit_users: {type: dict, default: {}}
+      redis_requirepass:
+        type: str
+        required: true
+        description: Redis password injected by an AAP credential type.

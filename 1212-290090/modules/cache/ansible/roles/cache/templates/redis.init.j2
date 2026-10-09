@@ -1,27 +1,36 @@
 #!/bin/sh
-# Redis init script
+# Simple Redis init.d script
 ### BEGIN INIT INFO
 # Provides: redis{{ cache_redis_port }}
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
+# Required-Start: {{ cache_redis_required_start }}
+# Required-Stop: {{ cache_redis_required_stop }}
 # Description: redis{{ cache_redis_port }} init script
 ### END INIT INFO
 
-REDISNAME={{ cache_redis_port }}
+REDISNAME={{ cache_redis_name }}
 REDISPORT={{ cache_redis_port }}
-EXEC="{{ cache_redis_install_dir }}/bin/redis-server {{ cache_redis_config_dir }}/${REDISNAME}.conf"
-CLIEXEC={{ cache_redis_install_dir }}/bin/redis-cli
+EXEC="su -s /bin/sh -c '{{ cache_redis_bin_path }}/redis-server {{ cache_redis_config_dir }}/${REDISNAME}.conf' {{ cache_redis_user }}"
+CLIEXEC={{ cache_redis_bin_path }}/redis-cli
 PIDFILE={{ cache_redis_pid_dir }}/redis_${REDISNAME}.pid
 
+ulimit -n {{ cache_redis_limit_nofile }}
+
 case "$1" in
-  start)
-    exec su -s /bin/sh -c "$EXEC" {{ cache_redis_user }}
-    ;;
-  stop)
-    $CLIEXEC -p {{ cache_redis_port }} -a '{{ redis_requirepass }}' shutdown
-    ;;
-  *)
-    echo "Please use start or stop as first argument"
-    exit 1
-    ;;
+    start)
+        mkdir -p {{ cache_redis_pid_dir }}
+        chown {{ cache_redis_user }} {{ cache_redis_pid_dir }}
+        eval "$EXEC"
+        ;;
+    stop)
+        $CLIEXEC -p {{ cache_redis_port }} -h {{ cache_redis_address }} shutdown
+        ;;
+    status)
+        test -f "$PIDFILE"
+        ;;
+    *)
+        echo "Please use start, stop, or status"
+        exit 1
+        ;;
 esac

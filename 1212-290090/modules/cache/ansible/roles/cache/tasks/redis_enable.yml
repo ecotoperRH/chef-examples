@@ -1,0 +1,6 @@
+---
+- name: Enable and start Redis instance
+  ansible.builtin.service:
+    name: redis@6379
+    enabled: true
+    state: started

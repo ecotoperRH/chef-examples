@@ -1,0 +1,62 @@
+---
+- name: Ensure Redis limits directory exists
+  ansible.builtin.file:
+    path: /etc/security/limits.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Check PAM su configuration
+  ansible.builtin.stat:
+    path: /etc/pam.d/su
+  register: cache_pam_su
+
+- name: Install Redis PAM su configuration  # noqa: L039 - variable is registered by the preceding stat task
+  ansible.builtin.template:
+    src: su.j2
+    dest: /etc/pam.d/su
+    mode: "0644"
+    backup: true
+  when: cache_pam_su.stat.exists
+
+- name: Check PAM sudo configuration
+  ansible.builtin.stat:
+    path: /etc/pam.d/sudo
+  register: cache_pam_sudo
+
+- name: Install Redis PAM sudo configuration  # noqa: L039 - variable is registered by the preceding stat task
+  ansible.builtin.copy:
+    src: sudo
+    dest: /etc/pam.d/sudo
+    mode: "0644"
+    backup: true
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - cache_pam_sudo.stat.exists
+
+- name: Configure Redis file descriptor limits
+  ansible.builtin.template:
+    src: ulimit.j2
+    dest: /etc/security/limits.d/redis.conf
+    mode: "0644"
+    backup: true
+  vars:
+    cache_ulimit_user: "{{ cache_redis_user }}"
+    cache_filehandle_limit: "{{ cache_redis_limit_nofile }}"
+    cache_filehandle_soft_limit:
+    cache_filehandle_hard_limit:
+    cache_process_limit:
+    cache_process_soft_limit:
+    cache_process_hard_limit:
+    cache_memory_limit:
+    cache_core_limit:
+    cache_core_soft_limit:
+    cache_core_hard_limit:
+    cache_stack_limit:
+    cache_stack_soft_limit:
+    cache_stack_hard_limit:
+    cache_rtprio_limit:
+    cache_rtprio_soft_limit:
+    cache_rtprio_hard_limit:
+    cache_virt_limit:

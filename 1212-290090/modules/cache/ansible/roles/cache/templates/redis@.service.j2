@@ -4,10 +4,10 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart={{ cache_redis_install_dir }}/bin/redis-server /etc/redis/%i.conf --daemonize no
+ExecStart={{ cache_redis_bin_path if not cache_redis_package_install else '/usr/bin' }}/redis-server /etc/redis/%i.conf --daemonize no
 User={{ cache_redis_user }}
 Group={{ cache_redis_group }}
-LimitNOFILE={{ cache_redis_maxclients + 32 }}
+LimitNOFILE={{ cache_redis_limit_nofile }}
 
 [Install]
 WantedBy=multi-user.target

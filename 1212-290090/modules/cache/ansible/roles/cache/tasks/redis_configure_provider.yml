@@ -1,0 +1,3 @@
+---
+- name: Apply Redis instance configuration
+  ansible.builtin.include_tasks: redis_configure.yml

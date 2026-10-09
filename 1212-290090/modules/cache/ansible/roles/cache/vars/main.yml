@@ -1,4 +1,9 @@
 ---
-cache_memcached_package: memcached
-cache_memcached_service: memcached
-cache_redis_service: redis
+cache_platform_package_name: redis-server
+cache_platform_service_name: redis-server
+cache_build_packages:
+  - build-essential
+  - make
+  - gcc
+  - tar
+  - ca-certificates

@@ -1,0 +1,5 @@
+---
+- name: Install Redis source build prerequisites
+  ansible.builtin.package:
+    name: "{{ cache_build_packages }}"
+    state: present

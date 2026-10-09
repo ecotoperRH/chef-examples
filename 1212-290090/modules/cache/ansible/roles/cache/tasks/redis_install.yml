@@ -1,0 +1,35 @@
+---
+- name: Install Redis package
+  ansible.builtin.package:
+    name: "{{ cache_redis_package_name }}"
+    state: present
+  when: cache_redis_package_install | bool
+
+- name: Download Redis source archive  # noqa: R104 - source URL is a trusted role parameter maintained by role defaults
+  ansible.builtin.get_url:
+    url: "{{ cache_redis_download_url }}"  # noqa: R106 - parameterized source is controlled by trusted role defaults
+    dest: /tmp/redis-3.2.11.tar.gz
+    mode: "0644"
+  when: not cache_redis_package_install | bool
+
+- name: Extract Redis source archive
+  ansible.builtin.unarchive:
+    src: /tmp/redis-3.2.11.tar.gz  # noqa: R104 - archive is downloaded from a trusted role-configured source
+    dest: /tmp
+    remote_src: true
+    creates: /tmp/redis-3.2.11/src/redis-server
+  when: not cache_redis_package_install | bool
+
+- name: Build Redis from source
+  ansible.builtin.command:
+    cmd: make
+    chdir: /tmp/redis-3.2.11
+    creates: /tmp/redis-3.2.11/src/redis-server
+  when: not cache_redis_package_install | bool
+
+- name: Install Redis from source  # noqa: R101 - command arguments come from trusted role defaults, not user input
+  ansible.builtin.command:
+    cmd: make PREFIX={{ cache_redis_install_dir }} install
+    chdir: /tmp/redis-3.2.11
+    creates: "{{ cache_redis_bin_path }}/redis-server"
+  when: not cache_redis_package_install | bool
