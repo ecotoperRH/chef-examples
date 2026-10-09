@@ -1,0 +1,164 @@
+---
+# Unsupported pre-flight checks: recipe-relative source availability is environment-dependent;
+# PostgreSQL ownership/privilege output, systemctl cat output, .env contents/metadata,
+# pip list contents, service-log output, and application-endpoint output have no stated
+# expected result. The requested systemd reload-trigger causality cannot be established
+# by a read-only verification check.
+- name: Verify fastapi-tutorial pre-flight checks
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Check required files and directories
+      ansible.builtin.stat:
+        path: "{{ item_path }}"
+      loop:
+        - cookbooks/fastapi-tutorial/recipes/default.rb
+        - /opt/fastapi-tutorial
+        - /opt/fastapi-tutorial/requirements.txt
+        - /opt/fastapi-tutorial/venv
+        - /opt/fastapi-tutorial/.env
+        - /etc/systemd/system/fastapi-tutorial.service
+      loop_control:
+        loop_var: item_path
+      register: required_paths
+
+    - name: Assert required files and directories exist
+      ansible.builtin.assert:
+        that:
+          - item_path.stat.exists
+          - (item_path.stat.isdir if item_path.item in ['/opt/fastapi-tutorial', '/opt/fastapi-tutorial/venv'] else item_path.stat.isreg)
+        fail_msg: "A required path is absent or has the wrong type."
+      loop: "{{ required_paths.results }}"
+      loop_control:
+        loop_var: item_path
+
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert required packages are installed
+      ansible.builtin.assert:
+        that:
+          - item_package in ansible_facts.packages
+        fail_msg: "A required package is not installed."
+      loop:
+        - python3
+        - python3-pip
+        - python3-venv
+        - git
+        - postgresql
+        - postgresql-contrib
+        - libpq-dev
+      loop_control:
+        loop_var: item_package
+
+    - name: Gather service facts for PostgreSQL and FastAPI services
+      ansible.builtin.service_facts:
+
+    - name: Assert PostgreSQL service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'postgresql.service' in ansible_facts.services"
+          - ansible_facts.services['postgresql.service'].state == 'running'
+          - ansible_facts.services['postgresql.service'].enabled in ['enabled', true]
+        fail_msg: "The PostgreSQL service is not active and enabled."
+
+    - name: Verify PostgreSQL user fastapi exists
+      become: true
+      become_user: postgres
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -tAc
+          - "SELECT usename FROM pg_catalog.pg_user WHERE usename = 'fastapi';"
+      register: postgres_user_check
+      changed_when: false
+
+    - name: Assert PostgreSQL user fastapi exists
+      ansible.builtin.assert:
+        that:
+          - postgres_user_check.stdout | trim == 'fastapi'
+        fail_msg: "The PostgreSQL user fastapi does not exist."
+
+    - name: Verify PostgreSQL database fastapi_db exists
+      become: true
+      become_user: postgres
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -tAc
+          - "SELECT datname FROM pg_database WHERE datname = 'fastapi_db';"
+      register: postgres_database_check
+      changed_when: false
+
+    - name: Assert PostgreSQL database fastapi_db exists
+      ansible.builtin.assert:
+        that:
+          - postgres_database_check.stdout | trim == 'fastapi_db'
+        fail_msg: "The PostgreSQL database fastapi_db does not exist."
+
+    - name: Verify connection to database fastapi_db
+      become: true
+      become_user: postgres
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -d
+          - fastapi_db
+          - -tAc
+          - 'SELECT current_database();'
+      register: current_database_check
+      changed_when: false
+
+    - name: Assert current database is fastapi_db
+      ansible.builtin.assert:
+        that:
+          - current_database_check.stdout | trim == 'fastapi_db'
+        fail_msg: "The selected PostgreSQL database is not fastapi_db."
+
+    - name: Assert FastAPI service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'fastapi-tutorial.service' in ansible_facts.services"
+          - ansible_facts.services['fastapi-tutorial.service'].state == 'running'
+          - ansible_facts.services['fastapi-tutorial.service'].enabled in ['enabled', true]
+        fail_msg: "The fastapi-tutorial service is not active and enabled."
+
+    - name: Validate FastAPI systemd unit syntax
+      ansible.builtin.command:
+        argv:
+          - systemd-analyze
+          - verify
+          - /etc/systemd/system/fastapi-tutorial.service
+      register: fastapi_unit_syntax
+      changed_when: false
+
+    - name: Assert FastAPI systemd unit syntax is valid
+      ansible.builtin.assert:
+        that:
+          - fastapi_unit_syntax.rc == 0
+        fail_msg: "The fastapi-tutorial systemd unit failed systemd-analyze verify."
+
+    - name: Check virtual environment Python executable
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial/venv/bin/python
+      register: venv_python
+
+    - name: Assert virtual environment Python is executable
+      ansible.builtin.assert:
+        that:
+          - venv_python.stat.exists
+          - venv_python.stat.executable
+        fail_msg: "The virtual environment Python executable is missing or not executable."
+
+    - name: Check virtual environment pip executable
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial/venv/bin/pip
+      register: venv_pip
+
+    - name: Assert virtual environment pip is executable
+      ansible.builtin.assert:
+        that:
+          - venv_pip.stat.exists
+          - venv_pip.stat.executable
+        fail_msg: "The virtual environment pip executable is missing or not executable."

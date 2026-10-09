@@ -1,0 +1,4 @@
+---
+- name: Reload systemd after FastAPI tutorial unit changes
+  ansible.builtin.systemd:
+    daemon_reload: true
