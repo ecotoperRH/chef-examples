@@ -1,0 +1,227 @@
+---
+- name: Verify installed files and links
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check expected files and directories
+      ansible.builtin.stat:
+        path: "{{ item_path }}"
+      loop:
+        - /etc/nginx/nginx.conf
+        - /etc/nginx/conf.d/security.conf
+        - /etc/nginx/sites-available/test.cluster.local
+        - /etc/nginx/sites-available/ci.cluster.local
+        - /etc/nginx/sites-available/status.cluster.local
+        - /etc/nginx/sites-enabled/test.cluster.local
+        - /etc/nginx/sites-enabled/ci.cluster.local
+        - /etc/nginx/sites-enabled/status.cluster.local
+        - /opt/server/test
+        - /opt/server/test/index.html
+        - /opt/server/ci
+        - /opt/server/ci/index.html
+        - /opt/server/status
+        - /opt/server/status/index.html
+        - /etc/fail2ban/jail.local
+        - /etc/sysctl.d/99-security.conf
+        - /etc/ssh/sshd_config
+        - /etc/ssl/certs/test.cluster.local.crt
+        - /etc/ssl/private/test.cluster.local.key
+        - /etc/ssl/certs/ci.cluster.local.crt
+        - /etc/ssl/private/ci.cluster.local.key
+        - /etc/ssl/certs/status.cluster.local.crt
+        - /etc/ssl/private/status.cluster.local.key
+      loop_control:
+        loop_var: item_path
+      register: expected_path_results
+
+    - name: Assert expected files and directories exist
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+        fail_msg: "An expected nginx_multisite path is missing"
+      loop: "{{ expected_path_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Check default site is absent
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: default_site_result
+
+    - name: Assert default site is absent
+      ansible.builtin.assert:
+        that:
+          - not default_site_result['stat']['exists']
+        fail_msg: "The default nginx site should be absent"
+
+    - name: Check enabled site targets
+      ansible.builtin.stat:
+        path: "{{ item_link }}"
+      loop:
+        - /etc/nginx/sites-enabled/test.cluster.local
+        - /etc/nginx/sites-enabled/ci.cluster.local
+        - /etc/nginx/sites-enabled/status.cluster.local
+      loop_control:
+        loop_var: item_link
+      register: enabled_link_results
+
+    - name: Assert enabled sites are symbolic links
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['islnk']
+          - item_result['stat']['lnk_source'] == '/etc/nginx/sites-available/' + item_result['stat']['lnk_target'].split('/')[-1]
+        fail_msg: "An nginx enabled site link is invalid"
+      loop: "{{ enabled_link_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Read rendered configuration files
+      ansible.builtin.slurp:
+        src: "{{ item_config }}"
+      loop:
+        - /etc/nginx/nginx.conf
+        - /etc/nginx/conf.d/security.conf
+        - /etc/nginx/sites-available/test.cluster.local
+        - /etc/nginx/sites-available/ci.cluster.local
+        - /etc/nginx/sites-available/status.cluster.local
+        - /etc/ssh/sshd_config
+      loop_control:
+        loop_var: item_config
+      register: config_content_results
+
+    - name: Assert rendered configurations contain expected settings
+      ansible.builtin.assert:
+        that:
+          - item_result['content'] | b64decode | length > 0
+        fail_msg: "An expected configuration file is empty"
+      loop: "{{ config_content_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Read SSH configuration
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: ssh_config_result
+
+    - name: Assert SSH hardening settings
+      ansible.builtin.assert:
+        that:
+          - "'PermitRootLogin no' in (ssh_config_result['content'] | b64decode)"
+          - "'PasswordAuthentication no' in (ssh_config_result['content'] | b64decode)"
+        fail_msg: "SSH hardening settings are missing"
+
+    - name: Check private key metadata
+      ansible.builtin.stat:
+        path: "{{ item_key }}"
+      loop:
+        - /etc/ssl/private/test.cluster.local.key
+        - /etc/ssl/private/ci.cluster.local.key
+        - /etc/ssl/private/status.cluster.local.key
+      loop_control:
+        loop_var: item_key
+      register: private_key_results
+
+    - name: Assert private key ownership and mode
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['pw_name'] == 'root'
+          - item_result['stat']['gr_name'] == 'ssl-cert'
+          - item_result['stat']['mode'] == '0640'
+        fail_msg: "A TLS private key has incorrect ownership or permissions"
+      loop: "{{ private_key_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+- name: Verify services, configuration, and network endpoints
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert nginx and fail2ban are running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['nginx.service']['state'] == 'running'
+          - ansible_facts.services['fail2ban.service']['state'] == 'running'
+        fail_msg: "nginx or fail2ban is not running"
+
+    - name: Validate nginx configuration
+      ansible.builtin.command:
+        argv:
+          - nginx
+          - -t
+      changed_when: false
+
+    - name: Validate SSH configuration syntax
+      ansible.builtin.command:
+        argv:
+          - sshd
+          - -t
+      changed_when: false
+
+    - name: Check HTTP endpoint
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        headers:
+          Host: "{{ item_site }}"
+        status_code: [200, 301, 302, 403]
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_site
+
+    - name: Check HTTPS endpoint
+      ansible.builtin.uri:
+        url: https://127.0.0.1/
+        headers:
+          Host: "{{ item_site }}"
+        validate_certs: false
+        status_code: [200, 301, 302, 403]
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_site
+
+    - name: Wait for HTTP port
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 80
+        state: started
+        timeout: 10
+
+    - name: Wait for HTTPS port
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 443
+        state: started
+        timeout: 10
+
+    - name: Check UFW status
+      ansible.builtin.command:
+        argv:
+          - ufw
+          - status
+          - verbose
+      changed_when: false
+      register: ufw_status_result
+
+    - name: Assert UFW policy and rules
+      ansible.builtin.assert:
+        that:
+          - "'Default: deny (incoming)' in ufw_status_result['stdout']"
+          - "'22/tcp' in ufw_status_result['stdout'] or 'SSH' in ufw_status_result['stdout']"
+          - "'80/tcp' in ufw_status_result['stdout'] or 'HTTP' in ufw_status_result['stdout']"
+          - "'443/tcp' in ufw_status_result['stdout'] or 'HTTPS' in ufw_status_result['stdout']"
+        fail_msg: "UFW does not have the expected policy and rules"
+
+    - name: Check fail2ban responds
+      ansible.builtin.command:
+        argv:
+          - fail2ban-client
+          - ping
+      changed_when: false

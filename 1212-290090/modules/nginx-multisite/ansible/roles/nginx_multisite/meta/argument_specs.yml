@@ -1,0 +1,57 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure an Nginx multisite server.
+    description:
+      - Installs Nginx, Fail2ban, UFW, and TLS dependencies.
+      - Configures HTTPS virtual hosts, security hardening, and self-signed certificates.
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+        description: Site definitions and document roots.
+      nginx_multisite_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Directory for TLS certificates.
+      nginx_multisite_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Directory for TLS private keys.
+      nginx_multisite_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether Fail2ban is enabled and started.
+      nginx_multisite_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether UFW rules are configured and enabled.
+      nginx_multisite_disable_root_login:
+        type: bool
+        required: false
+        default: true
+        description: Disable SSH root login.
+      nginx_multisite_disable_password_auth:
+        type: bool
+        required: false
+        default: true
+        description: Disable SSH password authentication.
+      nginx_multisite_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Controls secret-task logging; locally generated keys are protected by file permissions.
