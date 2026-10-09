@@ -1,13 +1,9 @@
 ---
+fastapi_tutorial_app_directory: /opt/fastapi-tutorial
 fastapi_tutorial_repository: https://github.com/dibanez/fastapi_tutorial.git
 fastapi_tutorial_revision: main
-fastapi_tutorial_path: /opt/fastapi-tutorial
-fastapi_tutorial_venv_path: /opt/fastapi-tutorial/venv
+fastapi_tutorial_virtualenv: /opt/fastapi-tutorial/venv
 fastapi_tutorial_service_name: fastapi-tutorial
 fastapi_tutorial_service_file: /etc/systemd/system/fastapi-tutorial.service
-fastapi_tutorial_app_module: app.main:app
-fastapi_tutorial_bind_address: 0.0.0.0
-fastapi_tutorial_port: 8000
-fastapi_tutorial_project_name: FastAPI Tutorial
-fastapi_tutorial_api_version: 1.0.0
+fastapi_tutorial_app_port: 8000
 fastapi_tutorial_secure_logging: true

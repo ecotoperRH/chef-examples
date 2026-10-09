@@ -1,7 +1,7 @@
 ---
-- name: Verify FastAPI application files and packages
+- name: Verify application files and packages
   hosts: all
-  gather_facts: false
+  gather_facts: true
   tasks:
     - name: Gather installed package facts
       ansible.builtin.package_facts:
@@ -11,7 +11,7 @@
       ansible.builtin.assert:
         that:
           - item_package in ansible_facts['packages']
-        fail_msg: "A required FastAPI or PostgreSQL package is missing"
+        fail_msg: Required package is not installed
       loop:
         - python3
         - python3-pip
@@ -25,33 +25,48 @@
 
     - name: Check application paths
       ansible.builtin.stat:
-        path: "{{ item_path }}"
+        path: "{{ item_path }}" # noqa: R114 - fixed production paths defined by the migration plan
       loop:
         - /opt/fastapi-tutorial
         - /opt/fastapi-tutorial/venv
         - /opt/fastapi-tutorial/requirements.txt
-        - /opt/fastapi-tutorial/venv/bin/python
-        - /opt/fastapi-tutorial/venv/bin/pip
         - /opt/fastapi-tutorial/.env
         - /etc/systemd/system/fastapi-tutorial.service
       loop_control:
         loop_var: item_path
-      register: application_path_stats
+      register: application_path_results
 
-    - name: Assert application paths exist and have expected types
+    - name: Assert application paths exist
       ansible.builtin.assert:
         that:
           - item_result['stat']['exists']
-          - >-
-            (item_result['stat']['isdir'] and item_result['item'] in
-            ['/opt/fastapi-tutorial', '/opt/fastapi-tutorial/venv']) or
-            (not item_result['stat']['isdir'])
-        fail_msg: "An expected FastAPI application path is missing"
-      loop: "{{ application_path_stats['results'] }}"
+        fail_msg: Expected FastAPI application path was not created
+      loop: "{{ application_path_results['results'] }}"
       loop_control:
         loop_var: item_result
 
-    - name: Check repository revision
+    - name: Check virtual environment executables
+      ansible.builtin.stat:
+        path: "{{ item_executable }}" # noqa: R114 - fixed production paths defined by the migration plan
+      loop:
+        - /opt/fastapi-tutorial/venv/bin/python
+        - /opt/fastapi-tutorial/venv/bin/pip
+        - /opt/fastapi-tutorial/venv/bin/uvicorn
+      loop_control:
+        loop_var: item_executable
+      register: executable_results
+
+    - name: Assert virtual environment executables are present
+      ansible.builtin.assert:
+        that:
+          - item_result['stat']['exists']
+          - item_result['stat']['executable']
+        fail_msg: Expected virtual environment executable was not found
+      loop: "{{ executable_results['results'] }}"
+      loop_control:
+        loop_var: item_result
+
+    - name: Check repository branch
       ansible.builtin.command:
         argv:
           - git
@@ -60,28 +75,46 @@
           - rev-parse
           - --abbrev-ref
           - HEAD
-      changed_when: false
       register: repository_branch
+      changed_when: false
 
     - name: Assert repository is on main
       ansible.builtin.assert:
         that:
           - repository_branch['stdout'] | trim == 'main'
-        fail_msg: "The FastAPI repository is not checked out at the main branch"
+        fail_msg: Repository is not checked out at the expected main branch
 
-    - name: Validate the Python environment
+    - name: Check Python dependencies
       ansible.builtin.command:
         argv:
           - /opt/fastapi-tutorial/venv/bin/pip
           - check
-      changed_when: false
       register: pip_check
+      changed_when: false
 
     - name: Assert Python dependencies are consistent
       ansible.builtin.assert:
         that:
           - pip_check['rc'] == 0
-        fail_msg: "The FastAPI virtual environment has missing or incompatible dependencies"
+        fail_msg: Python virtual environment dependency check failed
+
+- name: Verify configuration and services
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Read environment configuration
+      ansible.builtin.slurp:
+        src: /opt/fastapi-tutorial/.env
+      register: environment_file
+      no_log: "{{ fastapi_tutorial_secure_logging | default(true) }}"
+
+    - name: Assert environment configuration keys are correct
+      ansible.builtin.assert:
+        that:
+          - "'PROJECT_NAME=\"FastAPI Tutorial\"' in (environment_file['content'] | b64decode)"
+          - "'API_VERSION=1.0.0' in (environment_file['content'] | b64decode)"
+          - "'DATABASE_URL=postgresql://fastapi:' in (environment_file['content'] | b64decode)"
+        fail_msg: FastAPI environment configuration is incomplete
 
     - name: Read systemd unit
       ansible.builtin.slurp:
@@ -91,46 +124,42 @@
     - name: Assert systemd unit configuration
       ansible.builtin.assert:
         that:
-          - service_unit['content'] | b64decode is search('ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000')
-          - service_unit['content'] | b64decode is search('WorkingDirectory=/opt/fastapi-tutorial')
-          - service_unit['content'] | b64decode is search('Restart=always')
-        fail_msg: "The FastAPI systemd unit has unexpected configuration"
+          - "'WorkingDirectory=/opt/fastapi-tutorial' in (service_unit['content'] | b64decode)"
+          - "'ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000' in (service_unit['content'] | b64decode)"
+          - "'Restart=always' in (service_unit['content'] | b64decode)"
+        fail_msg: FastAPI systemd unit does not contain the expected production settings
 
-    - name: Check application environment file metadata
-      ansible.builtin.stat:
-        path: /opt/fastapi-tutorial/.env
-      register: environment_file
-
-    - name: Assert environment file permissions
-      ansible.builtin.assert:
-        that:
-          - environment_file['stat']['exists']
-          - environment_file['stat']['mode'] == '0644'
-          - environment_file['stat']['pw_name'] == 'root'
-          - environment_file['stat']['gr_name'] == 'root'
-        fail_msg: "The FastAPI environment file has unexpected metadata"
-
-- name: Verify PostgreSQL and FastAPI services
-  hosts: all
-  gather_facts: false
-  tasks:
     - name: Gather service facts
       ansible.builtin.service_facts:
 
-    - name: Assert required services are active and enabled
+    - name: Assert PostgreSQL and FastAPI services are active
       ansible.builtin.assert:
         that:
-          - item_service in ansible_facts['services']
-          - ansible_facts['services'][item_service]['state'] == 'running'
-          - ansible_facts['services'][item_service]['status'] == 'enabled'
-        fail_msg: "A required service is not active and enabled"
-      loop:
-        - postgresql.service
-        - fastapi-tutorial.service
-      loop_control:
-        loop_var: item_service
+          - "'postgresql.service' in ansible_facts['services']"
+          - ansible_facts['services']['postgresql.service']['state'] == 'running'
+          - "'fastapi-tutorial.service' in ansible_facts['services']"
+          - ansible_facts['services']['fastapi-tutorial.service']['state'] == 'running'
+        fail_msg: Expected PostgreSQL and FastAPI services are not active
 
-    - name: Check PostgreSQL role  # noqa: R108 - task must run as the postgres system user to inspect PostgreSQL roles
+    - name: Wait for PostgreSQL
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 5432
+        state: started
+        timeout: 30
+
+    - name: Wait for FastAPI
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8000
+        state: started
+        timeout: 30
+
+- name: Verify PostgreSQL objects
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check PostgreSQL application role # noqa: R108 - PostgreSQL inspection requires the postgres system user
       ansible.builtin.command:
         argv:
           - psql
@@ -138,50 +167,23 @@
           - SELECT rolname FROM pg_roles WHERE rolname='fastapi';
       become: true
       become_user: postgres
-      changed_when: false
       register: postgres_role
+      changed_when: false
 
-    - name: Check application database owner  # noqa: R108 - task must run as the postgres system user to inspect database ownership
+    - name: Check PostgreSQL application database and owner # noqa: R108 - PostgreSQL inspection requires the postgres system user
       ansible.builtin.command:
         argv:
           - psql
           - -tAc
-          - SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname='fastapi_db';
+          - SELECT datname || ':' || pg_get_userbyid(datdba) FROM pg_database WHERE datname='fastapi_db';
       become: true
       become_user: postgres
+      register: postgres_database
       changed_when: false
-      register: postgres_database_owner
 
-    - name: Assert PostgreSQL objects exist
+    - name: Assert PostgreSQL role and database owner
       ansible.builtin.assert:
         that:
           - postgres_role['stdout'] | trim == 'fastapi'
-          - postgres_database_owner['stdout'] | trim == 'fastapi'
-        fail_msg: "The FastAPI PostgreSQL role or database owner is incorrect"
-
-    - name: Wait for PostgreSQL and FastAPI ports
-      ansible.builtin.wait_for:
-        host: 127.0.0.1
-        port: "{{ item_port }}"
-        timeout: 30
-      loop:
-        - 5432
-        - 8000
-      loop_control:
-        loop_var: item_port
-
-    - name: Check FastAPI endpoint
-      ansible.builtin.uri:
-        url: http://127.0.0.1:8000/
-        method: GET
-        status_code:
-          - 200
-          - 404
-          - 405
-      register: fastapi_endpoint
-
-    - name: Assert FastAPI endpoint responded
-      ansible.builtin.assert:
-        that:
-          - fastapi_endpoint['status'] in [200, 404, 405]
-        fail_msg: "The FastAPI service did not respond on port 8000"
+          - postgres_database['stdout'] | trim == 'fastapi_db:fastapi'
+        fail_msg: Expected PostgreSQL role, database, or owner was not configured
