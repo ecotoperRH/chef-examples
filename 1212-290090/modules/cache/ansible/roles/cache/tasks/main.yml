@@ -2,27 +2,5 @@
 - name: Validate credential variables
   ansible.builtin.include_tasks: validate_credentials.yml
 
-- name: Load Memcached defaults
-  ansible.builtin.include_vars: memcached.yml
-  when: memcached_memory is defined
-
-- name: Configure Memcached
-  ansible.builtin.include_tasks: memcached.yml
-
-- name: Configure Redis prerequisites
-  ansible.builtin.include_tasks: redis_default.yml
-
-- name: Configure Redis installation
-  ansible.builtin.include_tasks: install.yml
-
-- name: Configure Redis limits
-  ansible.builtin.include_tasks: ulimit.yml
-
-- name: Disable distribution Redis service
-  ansible.builtin.include_tasks: disable_os_default.yml
-
-- name: Configure Redis instance
-  ansible.builtin.include_tasks: configure.yml
-
-- name: Enable Redis instance
-  ansible.builtin.include_tasks: enable.yml
+- name: Configure cache services
+  ansible.builtin.include_tasks: default.yml

@@ -1,16 +1,6 @@
-description "Start the redis instance on port {{ redis_port }}"
+description "Start the redis instance on port {{ cache_redis_port }}"
 author "Installed by Ansible cache role"
-
 stop on runlevel [06]
-
-script
-  if [ ! -d {{ redis_pid_dir }} ]; then
-    mkdir -p {{ redis_pid_dir }}
-    chown {{ redis_user }}:{{ redis_group }} {{ redis_pid_dir }}
-  fi
-end script
-
 respawn
 respawn limit 10 30
-
-exec su -s /bin/sh -c 'exec "$0" "$@"' {{ redis_user }} {{ redis_bin_path }}/redis-server {{ redis_config_dir }}/{{ redis_instance_name }}.conf
+exec su -s /bin/sh -c 'exec "$0" "$@"' {{ cache_redis_user }} {{ cache_redis_install_dir }}/bin/redis-server {{ cache_redis_config_file }}

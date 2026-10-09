@@ -1,0 +1,6 @@
+# PAM configuration for the sudo service
+# Installed by the Ansible cache role.
+
+@include common-auth
+@include common-account
+@include common-session-noninteractive

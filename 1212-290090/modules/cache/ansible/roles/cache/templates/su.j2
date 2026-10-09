@@ -1,5 +1,5 @@
-# The PAM configuration file for the Shadow `su' service
-# This file was migrated from the Chef redisio ulimit template.
+# PAM configuration for the Shadow su service
+# This file enables ulimit switching with su
 
 auth       sufficient pam_rootok.so
 session       required   pam_env.so readenv=1

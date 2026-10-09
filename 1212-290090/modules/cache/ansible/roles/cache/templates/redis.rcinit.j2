@@ -1,18 +1,16 @@
 #!/bin/sh
-# PROVIDE: redis{{ redis_instance_name }}
+# PROVIDE: redis{{ cache_redis_port }}
 # REQUIRE: LOGIN
-# BEFORE: securelevel
-# KEYWORD: shutdown
-
 . /etc/rc.subr
-name="redis{{ redis_instance_name }}"
+
+name="redis{{ cache_redis_port }}"
 rcvar="${name}_enable"
-command="{{ redis_bin_path }}/redis-server"
-pidfile="{{ redis_pid_dir }}/redis_{{ redis_instance_name }}.pid"
+command="{{ cache_redis_install_dir }}/bin/redis-server"
+pidfile="{{ cache_redis_pid_dir }}/redis_{{ cache_redis_port }}.pid"
 load_rc_config "$name"
-: ${redis{{ redis_instance_name }}_enable="NO"}
-: ${redis_user="{{ redis_user }}"}
-: ${redis_config="{{ redis_config_dir }}/{{ redis_instance_name }}.conf"}
+: ${redis{{ cache_redis_port }}_enable="NO"}
+: ${redis_user="{{ cache_redis_user }}"}
+: ${redis_config="{{ cache_redis_config_file }}"}
 command_args="${redis_config}"
 required_files="${redis_config}"
 run_rc_command "$1"

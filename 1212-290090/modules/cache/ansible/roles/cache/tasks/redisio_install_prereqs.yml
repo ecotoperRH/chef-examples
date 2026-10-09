@@ -1,5 +1,5 @@
 ---
-- name: Install Redis source prerequisites
+- name: Install Redis build prerequisites
   ansible.builtin.package:
-    name: "{{ ['tar', 'build-essential'] if ansible_facts['os_family'] == 'Debian' else ['tar', 'gcc', 'make'] }}"
+    name: "{{ cache_redis_package_prerequisites }}"
     state: present

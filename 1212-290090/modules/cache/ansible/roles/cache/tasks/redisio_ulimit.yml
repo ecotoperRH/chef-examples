@@ -1,11 +1,15 @@
 ---
-- name: Check for PAM su configuration
+- name: Check PAM su configuration
   ansible.builtin.stat:
     path: /etc/pam.d/su
   register: cache_pam_su
-  when: ansible_facts['os_family'] == 'Debian'
 
-- name: Render PAM su configuration # noqa: L039 - variable is registered by the preceding stat task
+- name: Check PAM sudo configuration
+  ansible.builtin.stat:
+    path: /etc/pam.d/sudo
+  register: cache_pam_sudo
+
+- name: Install PAM su configuration # noqa: L039 - cache_pam_su is registered by the preceding stat task
   ansible.builtin.template:
     src: su.j2
     dest: /etc/pam.d/su
@@ -15,15 +19,9 @@
     - ansible_facts['os_family'] == 'Debian'
     - cache_pam_su.stat.exists
 
-- name: Check for PAM sudo configuration
-  ansible.builtin.stat:
-    path: /etc/pam.d/sudo
-  register: cache_pam_sudo
-  when: ansible_facts['os_family'] == 'Debian'
-
-- name: Install PAM sudo configuration # noqa: L039 - variable is registered by the preceding stat task
+- name: Install PAM sudo configuration # noqa: L039 - cache_pam_sudo is registered by the preceding stat task
   ansible.builtin.copy:
-    src: pam-sudo
+    src: sudo
     dest: /etc/pam.d/sudo
     mode: "0644"
     backup: true

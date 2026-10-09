@@ -1,3 +1,57 @@
 ---
-- name: Configure Redis directories and service
-  ansible.builtin.include_tasks: redisio_configure_provider.yml
+- name: Create Redis group
+  ansible.builtin.group:
+    name: "{{ cache_redis_group }}"
+    state: present
+
+- name: Create Redis user
+  ansible.builtin.user:
+    name: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    home: /var/lib/redis
+    shell: "{{ cache_redis_shell }}"
+    system: true
+    create_home: true
+    state: present
+
+- name: Create Redis directories
+  ansible.builtin.file:
+    path: "{{ item_cache_path['path'] }}" # noqa: R114 - paths come from role defaults
+    state: directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "{{ item_cache_path['mode'] }}"
+  loop:
+    - path: "{{ cache_redis_config_dir }}"
+      mode: "0775"
+    - path: "{{ cache_redis_data_dir }}"
+      mode: "0775"
+    - path: "{{ cache_redis_pid_dir }}"
+      mode: "0755"
+    - path: "{{ cache_redis_log_dir }}"
+      mode: "0755"
+  loop_control:
+    loop_var: item_cache_path
+
+- name: Render Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ cache_redis_config_file }}" # noqa: R114 - path comes from role defaults
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0644"
+    backup: true
+  notify: Restart redis
+  no_log: "{{ cache_secure_logging }}"
+
+- name: Install Redis systemd unit
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /lib/systemd/system/redis@.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify:
+    - Reload systemd
+    - Restart redis

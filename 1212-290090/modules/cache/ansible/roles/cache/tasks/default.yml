@@ -1,0 +1,12 @@
+---
+- name: Configure Memcached
+  ansible.builtin.include_tasks: memcached_default.yml
+
+- name: Configure Redis
+  ansible.builtin.include_tasks: redisio_default.yml
+
+- name: Remove obsolete Redis configuration directives
+  ansible.builtin.replace:
+    path: "{{ cache_redis_config_file }}" # noqa: R114 - fixed role-controlled configuration path
+    regexp: ^((replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority).*)$
+    replace: ""

@@ -1,12 +1,10 @@
 ---
-- name: Gather service facts before disabling distribution Redis
+- name: Check distribution Redis service
   ansible.builtin.service_facts:
 
 - name: Stop and disable distribution Redis service
   ansible.builtin.service:
     name: "{{ 'redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis' }}"
-    state: stopped
     enabled: false
-  when:
-    - ansible_facts['os_family'] in ['Debian', 'RedHat']
-    - (('redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis') + '.service') in ansible_facts.services
+    state: stopped
+  when: "((('redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis') + '.service') in ansible_facts.services) or (('redis-server' if ansible_facts['os_family'] == 'Debian' else 'redis') in ansible_facts.services)"

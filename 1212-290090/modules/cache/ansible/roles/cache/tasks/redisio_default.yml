@@ -1,9 +1,18 @@
 ---
-- name: Install Redis source or package
+- name: Include credential validation
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Install cache prerequisites
+  ansible.builtin.include_tasks: redisio_install_prereqs.yml
+
+- name: Install Redis
   ansible.builtin.include_tasks: redisio_install.yml
 
-- name: Disable operating system Redis service
+- name: Disable distribution Redis service
   ansible.builtin.include_tasks: redisio_disable_os_default.yml
 
-- name: Configure Redis ulimits
-  ansible.builtin.include_tasks: redisio_ulimit.yml
+- name: Configure Redis
+  ansible.builtin.include_tasks: redisio_configure.yml
+
+- name: Enable Redis
+  ansible.builtin.include_tasks: redisio_enable.yml

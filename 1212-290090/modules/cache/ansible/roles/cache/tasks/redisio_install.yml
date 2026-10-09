@@ -1,54 +1,49 @@
 ---
-- name: Install Redis package
+- name: Install Redis prerequisites
   ansible.builtin.package:
-    name: "{{ cache_redis_package_name }}"
+    name: "{{ cache_redis_package_prerequisites }}"
     state: present
-  when: cache_redis_package_install | bool
 
-- name: Install Redis source prerequisites
-  ansible.builtin.include_tasks: redisio_install_prereqs.yml
-  when: not cache_redis_package_install | bool
-
-- name: Ensure Redis download directory exists
+- name: Create Redis download directory
   ansible.builtin.file:
     path: "{{ cache_redis_download_dir }}" # noqa: R114 - path comes from role defaults
     state: directory
     mode: "0755"
-  when: not cache_redis_package_install | bool
 
-- name: Download Redis source archive
-  ansible.builtin.get_url: # noqa: R104 - source mirror is role-controlled and may be an internal HTTP mirror; R106 - source URL is assembled from role defaults
-    url: "{{ cache_redis_mirror | replace('http://', 'https://') }}{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }}" # noqa: R106 - source URL is assembled from role defaults
-    dest: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}.{{ cache_redis_artifact_type }}" # noqa: R114 - path is a role-controlled cache directory
+- name: Download Redis source archive # noqa: R106 - download URL is role-controlled by role defaults
+  ansible.builtin.get_url:
+    url: "{{ cache_redis_download_url | regex_replace('^http://', 'https://') }}" # noqa: R104 - download URL is role-controlled
+    dest: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}.tar.gz" # noqa: R114 - fixed role-controlled source path
     mode: "0644"
-  when: not cache_redis_package_install | bool
+    backup: true
+
+- name: Create Redis source directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_source_dir }}" # noqa: R114 - fixed role-controlled source path
+    state: directory
+    mode: "0755"
 
 - name: Extract Redis source
-  ansible.builtin.unarchive: # noqa: R104 - source is a local archive, not a network URL
-    src: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}.{{ cache_redis_artifact_type }}" # noqa: R106 - source path is a role-controlled local archive
-    dest: "{{ cache_redis_download_dir }}" # noqa: R114 - path is a role-controlled cache directory
+  ansible.builtin.unarchive:
+    src: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}.tar.gz" # noqa: R104,R106 - source path is built from role defaults
+    dest: "{{ cache_redis_source_dir }}"
     remote_src: true
-    creates: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}/src/redis-server"
-  when: not cache_redis_package_install | bool
+    extra_opts:
+      - --strip-components=1
+    creates: "{{ cache_redis_source_dir }}/src/redis-server"
 
-- name: Build Redis from source # noqa: R101 - command path comes from role defaults
-  ansible.builtin.command:
-    argv:
-      - make
-      - -C
-      - "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}"
-  when: not cache_redis_package_install | bool
-  args:
-    creates: "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}/src/redis-server"
+- name: Build Redis
+  ansible.builtin.shell:
+    cmd: |
+      make clean && make
+    chdir: "{{ cache_redis_source_dir }}"
+    creates: "{{ cache_redis_source_dir }}/src/redis-server"
+  changed_when: true
 
-- name: Install Redis from source # noqa: R101 - command paths come from role defaults
-  ansible.builtin.command:
-    argv:
-      - make
-      - -C
-      - "{{ cache_redis_download_dir }}/redis-{{ cache_redis_version }}"
-      - install
-      - PREFIX={{ cache_redis_install_dir }}
-  when: not cache_redis_package_install | bool
-  args:
-    creates: "{{ cache_redis_bin_path }}/redis-server"
+- name: Install Redis # noqa: R101 - install command uses role-default paths, not user input
+  ansible.builtin.shell:
+    cmd: |
+      make PREFIX={{ cache_redis_install_dir }} install
+    chdir: "{{ cache_redis_source_dir }}"
+    creates: "{{ cache_redis_install_dir }}/bin/redis-server"
+  changed_when: true
