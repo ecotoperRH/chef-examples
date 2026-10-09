@@ -4,7 +4,7 @@
     name: nginx
     state: present
 
-- name: Render nginx main configuration
+- name: Deploy nginx main configuration
   ansible.builtin.template:
     src: nginx.conf.j2
     dest: /etc/nginx/nginx.conf
@@ -12,7 +12,7 @@
     backup: true
   notify: Reload nginx
 
-- name: Render nginx security configuration
+- name: Deploy nginx security configuration
   ansible.builtin.template:
     src: security.conf.j2
     dest: /etc/nginx/conf.d/security.conf
@@ -20,15 +20,15 @@
     backup: true
   notify: Reload nginx
 
-- name: Enable and start nginx
+- name: Ensure nginx is enabled and running
   ansible.builtin.service:
     name: nginx
     enabled: true
     state: started
 
-- name: Create site document roots
+- name: Create nginx document roots
   ansible.builtin.file:
-    path: "{{ item_nginx_site['value']['document_root'] }}" # noqa: R114 - path from role-defined sites dictionary, not user input
+    path: "{{ item_nginx_site['value']['document_root'] }}" # noqa: R114 - path comes from the role-defined sites dictionary
     state: directory
     owner: www-data
     group: www-data
@@ -38,10 +38,10 @@
   loop_control:
     loop_var: item_nginx_site
 
-- name: Deploy site static index files
+- name: Deploy site index files
   ansible.builtin.copy:
     src: "{{ item_nginx_site['key'].split('.')[0] }}/index.html"
-    dest: "{{ item_nginx_site['value']['document_root'] }}/index.html" # noqa: R114 - destination from role-defined sites dictionary
+    dest: "{{ item_nginx_site['value']['document_root'] }}/index.html" # noqa: R114 - destination is from the role-defined sites dictionary
     owner: www-data
     group: www-data
     mode: "0644"

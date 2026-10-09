@@ -1,10 +1,10 @@
 ---
 argument_specs:
   main:
-    short_description: Configure a secure nginx multisite server
+    short_description: Configure nginx with multiple SSL-enabled virtual hosts
     description:
-      - Installs and configures nginx with three HTTPS virtual hosts.
-      - Applies fail2ban, UFW, SSH, sysctl, and TLS security settings.
+      - Installs and configures nginx, fail2ban, UFW, SSH hardening, and kernel security settings.
+      - Generates self-signed TLS certificates and deploys static multisite virtual hosts.
     options:
       nginx_multisite_sites:
         type: dict
@@ -19,32 +19,32 @@ argument_specs:
           status.cluster.local:
             document_root: /opt/server/status
             ssl_enabled: true
-        description: Site names and document-root configuration.
+        description: Site names and document-root configuration for nginx virtual hosts.
       nginx_multisite_ssl_certificate_path:
         type: str
         required: false
         default: /etc/ssl/certs
-        description: Directory for site certificates.
+        description: Directory containing site certificates.
       nginx_multisite_ssl_private_key_path:
         type: str
         required: false
         default: /etc/ssl/private
-        description: Directory for site private keys.
+        description: Directory containing site private keys.
       nginx_multisite_fail2ban_enabled:
         type: bool
         required: false
         default: true
-        description: Whether fail2ban protection is enabled.
+        description: Whether fail2ban configuration is enabled.
       nginx_multisite_ufw_enabled:
         type: bool
         required: false
         default: true
-        description: Whether UFW firewall configuration is enabled.
+        description: Whether UFW rules and activation are configured.
       nginx_multisite_ssh_disable_root:
         type: bool
         required: false
         default: true
-        description: Whether to disable SSH root login.
+        description: Whether root SSH login is disabled.
       nginx_multisite_ssh_password_auth:
         type: bool
         required: false

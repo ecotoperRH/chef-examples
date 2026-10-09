@@ -2,7 +2,7 @@
 - name: Render nginx virtual host configurations
   ansible.builtin.template:
     src: site.conf.j2
-    dest: /etc/nginx/sites-available/{{ item_site['key'] }} # noqa: R114 - filename from role-defined sites dictionary
+    dest: /etc/nginx/sites-available/{{ item_site['key'] }} # noqa: R114 - site name comes from the role-defined sites dictionary
     mode: "0644"
     backup: true
   loop: "{{ nginx_multisite_sites | dict2items }}"
@@ -18,16 +18,35 @@
 
 - name: Enable nginx virtual hosts
   ansible.builtin.file:
-    src: /etc/nginx/sites-available/{{ item_site['key'] }} # noqa: R114 - link target from role-defined sites dictionary
-    dest: /etc/nginx/sites-enabled/{{ item_site['key'] }} # noqa: R114 - link name from role-defined sites dictionary
+    src: /etc/nginx/sites-available/{{ item_site['key'] }} # noqa: R114 - site name comes from the role-defined sites dictionary
+    dest: /etc/nginx/sites-enabled/{{ item_site['key'] }} # noqa: R114 - site name comes from the role-defined sites dictionary
     state: link
+    force: true
+    mode: "0644"
   loop: "{{ nginx_multisite_sites | dict2items }}"
   loop_control:
     loop_var: item_site
   notify: Reload nginx
 
-- name: Remove nginx default site
+- name: Remove the default nginx site
   ansible.builtin.file:
     path: /etc/nginx/sites-enabled/default
     state: absent
   notify: Reload nginx
+
+- name: Deploy site index files
+  ansible.builtin.copy:
+    content: |-
+      <!doctype html>
+      <html lang="en">
+      <head><meta charset="utf-8"><title>{{ item_nginx_site['key'] }}</title></head>
+      <body><h1>{{ item_nginx_site['key'] }}</h1></body>
+      </html>
+    dest: "{{ item_nginx_site['value']['document_root'] }}/index.html" # noqa: R114 - destination is from the role-defined sites dictionary
+    owner: www-data
+    group: www-data
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_site

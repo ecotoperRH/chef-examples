@@ -5,8 +5,8 @@
 - name: Install and configure nginx
   ansible.builtin.include_tasks: nginx.yml
 
-- name: Generate TLS certificates
+- name: Generate SSL certificates
   ansible.builtin.include_tasks: ssl.yml
 
-- name: Configure nginx sites
+- name: Configure nginx virtual hosts
   ansible.builtin.include_tasks: sites.yml

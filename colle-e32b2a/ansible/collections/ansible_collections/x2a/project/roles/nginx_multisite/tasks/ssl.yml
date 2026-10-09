@@ -6,14 +6,14 @@
       - ca-certificates
     state: present
 
-- name: Create ssl-cert group
+- name: Ensure ssl-cert group exists
   ansible.builtin.group:
     name: ssl-cert
     state: present
 
 - name: Create certificate directory
   ansible.builtin.file:
-    path: "{{ nginx_multisite_ssl_certificate_path }}"  # noqa: R114 - path comes from role defaults, not user input
+    path: "{{ nginx_multisite_ssl_certificate_path }}"  # noqa: R114 - path is a role-defined default
     state: directory
     owner: root
     group: root
@@ -21,37 +21,37 @@
 
 - name: Create private key directory
   ansible.builtin.file:
-    path: "{{ nginx_multisite_ssl_private_key_path }}"  # noqa: R114 - path comes from role defaults, not user input
+    path: "{{ nginx_multisite_ssl_private_key_path }}"  # noqa: R114 - path is a role-defined default
     state: directory
     owner: root
     group: ssl-cert
     mode: "0710"
 
-- name: Check site certificate
+- name: Check site certificate files
   ansible.builtin.stat:
-    path: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_ssl_site['key'] }}.crt"
+    path: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_ssl_site['key'] }}.crt"  # noqa: R114 - path is from the role-defined sites dictionary
+  register: nginx_multisite_certificates
   loop: "{{ nginx_multisite_sites | dict2items }}"
   loop_control:
     loop_var: item_ssl_site
-  register: nginx_multisite_certificate_stat
 
-- name: Check site private key
+- name: Check site private key files
   ansible.builtin.stat:
-    path: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_ssl_site['key'] }}.key"
+    path: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_ssl_site['key'] }}.key"  # noqa: R114 - path is from the role-defined sites dictionary
+  register: nginx_multisite_private_keys
   loop: "{{ nginx_multisite_sites | dict2items }}"
   loop_control:
     loop_var: item_ssl_site
-  register: nginx_multisite_key_stat
 
-- name: Generate self-signed certificates  # noqa: R101, L039 - command uses role-default paths and role-defined site keys; certificate and key stats are registered by preceding tasks
-  ansible.builtin.command:
+- name: Generate self-signed site certificates  # noqa: L039,R101 - certificate and key results are registered by prior tasks; command uses role-defined paths and site keys
+  ansible.builtin.command:  # noqa: command-instead-of-module - openssl req creates a certificate with a custom subject
     argv:
       - openssl
       - req
       - -x509
       - -nodes
       - -days
-      - "365"
+      - '365'
       - -newkey
       - rsa:2048
       - -keyout
@@ -60,25 +60,24 @@
       - "{{ nginx_multisite_ssl_certificate_path }}/{{ item_ssl_site['key'] }}.crt"
       - -subj
       - "/C=US/ST=Example/L=Example/O=Example Org/OU=IT/CN={{ item_ssl_site['key'] }}/emailAddress=admin@example.com"
-  when:
-    - item_ssl_site['value']['ssl_enabled']
-    - not (nginx_multisite_certificate_stat.results[item_ssl_site_index].stat.exists and nginx_multisite_key_stat.results[item_ssl_site_index].stat.exists)
-  changed_when: true
   loop: "{{ nginx_multisite_sites | dict2items }}"
   loop_control:
     loop_var: item_ssl_site
-    index_var: item_ssl_site_index
-  register: nginx_multisite_certificate_result
+  when:
+    - item_ssl_site['value']['ssl_enabled']
+    - not (nginx_multisite_certificates['results'][ansible_loop.index0]['stat']['exists'] and
+      nginx_multisite_private_keys['results'][ansible_loop.index0]['stat']['exists'])
+  changed_when: true  # noqa: no-changed-when - runs only when either certificate or key is absent
   notify: Reload nginx
 
-- name: Protect generated private keys
+- name: Set private key ownership and mode
   ansible.builtin.file:
-    path: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_ssl_site['key'] }}.key" # noqa: R114 - path from role-defined sites dictionary
+    path: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_ssl_site['key'] }}.key"  # noqa: R114 - path is from the role-defined sites dictionary
     state: file
     owner: root
     group: ssl-cert
     mode: "0640"
-  when: item_ssl_site['value']['ssl_enabled']
   loop: "{{ nginx_multisite_sites | dict2items }}"
   loop_control:
     loop_var: item_ssl_site
+  when: item_ssl_site['value']['ssl_enabled']
