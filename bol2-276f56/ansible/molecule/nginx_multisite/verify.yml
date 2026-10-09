@@ -1,0 +1,263 @@
+---
+# Unsupported without inventing an expected value: the exact rendered security,
+# sysctl, and log contents; certificate issuer/dates and key metadata; HTTP/HTTPS
+# response headers; and the diagnostic output of the sysctl/listening-port checks.
+- name: Verify nginx-multisite pre-flight checks
+  hosts: all
+  gather_facts: true
+  vars:
+    expected_packages:
+      - nginx
+      - fail2ban
+      - ufw
+      - openssl
+      - ca-certificates
+    sites:
+      - name: test.cluster.local
+        root: /opt/server/test
+        config: /etc/nginx/sites-available/test.cluster.local
+        enabled: /etc/nginx/sites-enabled/test.cluster.local
+        certificate: /etc/ssl/certs/test.cluster.local.crt
+        key: /etc/ssl/private/test.cluster.local.key
+      - name: ci.cluster.local
+        root: /opt/server/ci
+        config: /etc/nginx/sites-available/ci.cluster.local
+        enabled: /etc/nginx/sites-enabled/ci.cluster.local
+        certificate: /etc/ssl/certs/ci.cluster.local.crt
+        key: /etc/ssl/private/ci.cluster.local.key
+      - name: status.cluster.local
+        root: /opt/server/status
+        config: /etc/nginx/sites-available/status.cluster.local
+        enabled: /etc/nginx/sites-enabled/status.cluster.local
+        certificate: /etc/ssl/certs/status.cluster.local.crt
+        key: /etc/ssl/private/status.cluster.local.key
+
+  tasks:
+    - name: Gather installed packages
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Verify required packages are installed
+      ansible.builtin.assert:
+        that:
+          - item_check in ansible_facts.packages
+        fail_msg: "A required package is not installed."
+      loop: "{{ expected_packages }}"
+      loop_control:
+        loop_var: item_check
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Verify nginx is enabled and active
+      ansible.builtin.assert:
+        that:
+          - "'nginx.service' in ansible_facts.services"
+          - ansible_facts.services['nginx.service'].status == 'enabled'
+          - ansible_facts.services['nginx.service'].state == 'running'
+        fail_msg: "The nginx service is not enabled and running."
+
+    - name: Verify fail2ban is enabled and active
+      ansible.builtin.assert:
+        that:
+          - "'fail2ban.service' in ansible_facts.services"
+          - ansible_facts.services['fail2ban.service'].status == 'enabled'
+          - ansible_facts.services['fail2ban.service'].state == 'running'
+        fail_msg: "The fail2ban service is not enabled and running."
+
+    - name: Validate nginx configuration
+      ansible.builtin.command:
+        argv:
+          - nginx
+          - -t
+        changed_when: false
+        failed_when: false
+      register: nginx_test
+
+    - name: Assert nginx configuration is valid
+      ansible.builtin.assert:
+        that:
+          - nginx_test.rc == 0
+        fail_msg: "nginx -t did not validate the nginx configuration."
+
+    - name: Check global nginx configuration files
+      ansible.builtin.stat:
+        path: "{{ item_check }}"
+      loop:
+        - /etc/nginx/nginx.conf
+        - /etc/nginx/conf.d/security.conf
+      loop_control:
+        loop_var: item_check
+      register: nginx_config_files
+
+    - name: Assert global nginx configuration files exist
+      ansible.builtin.assert:
+        that:
+          - item_check.stat.exists
+          - item_check.stat.isreg
+        fail_msg: "A required nginx configuration file is missing."
+      loop: "{{ nginx_config_files.results }}"
+      loop_control:
+        loop_var: item_check
+
+    - name: Read global nginx configuration
+      ansible.builtin.slurp:
+        src: /etc/nginx/nginx.conf
+      register: nginx_global_config
+
+    - name: Assert expected global nginx directives are present
+      ansible.builtin.assert:
+        that:
+          - (nginx_global_config.content | b64decode) is search('(?m)^\\s*user\\b')
+          - (nginx_global_config.content | b64decode) is search('(?m)^\\s*worker_processes\\b')
+          - (nginx_global_config.content | b64decode) is search('(?m)^\\s*events\\b')
+          - (nginx_global_config.content | b64decode) is search('(?m)^\\s*http\\b')
+        fail_msg: "Expected global nginx directives are missing."
+
+    - name: Check site files, roots, certificates, and keys
+      ansible.builtin.stat:
+        path: "{{ item_check.path }}"
+      loop: "{{ sites | map(attribute='root') | list + sites | map(attribute='config') | list + sites | map(attribute='certificate') | list + sites | map(attribute='key') | list }}"
+      loop_control:
+        loop_var: item_check
+      register: site_required_files
+
+    - name: Assert site files, roots, certificates, and keys exist
+      ansible.builtin.assert:
+        that:
+          - item_check.stat.exists
+        fail_msg: "A required site file is missing."
+      loop: "{{ site_required_files.results }}"
+      loop_control:
+        loop_var: item_check
+
+    - name: Check enabled site links
+      ansible.builtin.stat:
+        path: "{{ item_check.enabled }}"
+        follow: false
+      loop: "{{ sites }}"
+      loop_control:
+        loop_var: item_check
+      register: enabled_site_links
+
+    - name: Assert enabled site links exist
+      ansible.builtin.assert:
+        that:
+          - item_check.stat.exists
+          - item_check.stat.islnk
+        fail_msg: "A required enabled nginx site link is missing."
+      loop: "{{ enabled_site_links.results }}"
+      loop_control:
+        loop_var: item_check
+
+    - name: Resolve enabled site links
+      ansible.builtin.command:
+        argv:
+          - readlink
+          - -f
+          - "{{ item_check.enabled }}"
+        changed_when: false
+        failed_when: false
+      loop: "{{ sites }}"
+      loop_control:
+        loop_var: item_check
+      register: resolved_site_links
+
+    - name: Assert enabled site links target their site configurations
+      ansible.builtin.assert:
+        that:
+          - item_check.rc == 0
+          - item_check.stdout == (item_check.item.config)
+        fail_msg: "An enabled nginx site link targets the wrong configuration."
+      loop: "{{ resolved_site_links.results }}"
+      loop_control:
+        loop_var: item_check
+
+    - name: Read virtual host configurations
+      ansible.builtin.slurp:
+        src: "{{ item_check.config }}"
+      loop: "{{ sites }}"
+      loop_control:
+        loop_var: item_check
+      register: site_config_contents
+
+    - name: Assert virtual host configurations contain required site values
+      ansible.builtin.assert:
+        that:
+          - (item_check.content | b64decode) is search(item_check.item.name | regex_escape)
+          - (item_check.content | b64decode) is search(item_check.item.root | regex_escape)
+          - (item_check.content | b64decode) is search('ssl_certificate\\s+')
+          - (item_check.content | b64decode) is search('ssl_certificate_key\\s+')
+        fail_msg: "A virtual host configuration is missing an expected site value."
+      loop: "{{ site_config_contents.results }}"
+      loop_control:
+        loop_var: item_check
+
+    - name: Verify certificate common names
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -in
+          - "{{ item_check.certificate }}"
+          - -noout
+          - -subject
+        changed_when: false
+        failed_when: false
+      loop: "{{ sites }}"
+      loop_control:
+        loop_var: item_check
+      register: certificate_subjects
+
+    - name: Assert certificate common names
+      ansible.builtin.assert:
+        that:
+          - item_check.rc == 0
+          - item_check.stdout is search('CN\\s*=\\s*' ~ item_check.item.name | regex_escape)
+        fail_msg: "A site certificate has an unexpected common name."
+      loop: "{{ certificate_subjects.results }}"
+      loop_control:
+        loop_var: item_check
+
+    - name: Assert the default nginx site is absent
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: default_site
+
+    - name: Verify the default nginx site does not exist
+      ansible.builtin.assert:
+        that:
+          - not default_site.stat.exists
+        fail_msg: "The default nginx site exists."
+
+    - name: Check UFW status and rules
+      ansible.builtin.command:
+        argv:
+          - ufw
+          - status
+          - verbose
+        changed_when: false
+        failed_when: false
+      register: ufw_status
+
+    - name: Assert UFW default policy and required rules
+      ansible.builtin.assert:
+        that:
+          - ufw_status.rc == 0
+          - ufw_status.stdout is search('(?i)default.*deny')
+          - ufw_status.stdout is search('22')
+          - ufw_status.stdout is search('80')
+          - ufw_status.stdout is search('443')
+        fail_msg: "UFW does not show the expected default policy and rules."
+
+    - name: Read SSH daemon configuration
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: sshd_config
+
+    - name: Assert SSH hardening directives
+      ansible.builtin.assert:
+        that:
+          - (sshd_config.content | b64decode) is search('(?m)^\\s*PermitRootLogin\\s+no\\s*$')
+          - (sshd_config.content | b64decode) is search('(?m)^\\s*PasswordAuthentication\\s+no\\s*$')
+        fail_msg: "Expected SSH hardening directives are missing."
