@@ -1,7 +1,7 @@
 ---
-- name: Install Memcached
+- name: Install Memcached package
   ansible.builtin.package:
-    name: "{{ cache_memcached_package }}"
+    name: "{{ memcached_package_name }}"
     state: present
 
 - name: Configure Memcached service
@@ -10,10 +10,10 @@
     dest: /etc/memcached.conf
     mode: "0644"
     backup: true
-  notify: Restart memcached
+  notify: Restart Memcached
 
 - name: Enable and start Memcached
   ansible.builtin.service:
-    name: "{{ cache_memcached_service }}"
+    name: "{{ memcached_service_name }}"
     state: started
     enabled: true

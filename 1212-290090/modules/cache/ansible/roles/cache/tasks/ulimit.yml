@@ -1,0 +1,24 @@
+---
+- name: Check whether PAM su configuration exists
+  ansible.builtin.stat:
+    path: /etc/pam.d/su
+  register: pam_su_config
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Render PAM su limits configuration # noqa: L039 - variable is registered by the preceding stat task
+  ansible.builtin.template:
+    src: su.j2
+    dest: /etc/pam.d/su
+    mode: "0644"
+    backup: true
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - pam_su_config.stat.exists
+
+- name: Ensure Redis data directory exists
+  ansible.builtin.file:
+    path: "{{ redis_data_dir }}" # noqa: R114 - path is a role default, not user input
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0775"

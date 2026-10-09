@@ -1,20 +1,33 @@
 #!/bin/sh
+# Simple Redis init.d script
 ### BEGIN INIT INFO
-# Provides: redis{{ cache_redis_port }}
+# Provides: redis{{ redis_port }}
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
-# Required-Start: {{ cache_redis_required_start }}
-# Required-Stop: {{ cache_redis_required_stop }}
+# Required-Start: {{ redis_required_start }}
+# Required-Stop: {{ redis_required_stop }}
+# Description: redis{{ redis_port }} init script
 ### END INIT INFO
-REDISNAME={{ cache_redis_name }}
-REDISPORT={{ cache_redis_port }}
-EXEC="{{ cache_redis_bin_path }}/redis-server {{ cache_redis_config_dir }}/${REDISNAME}.conf"
-CLIEXEC={{ cache_redis_bin_path }}/redis-cli
-PIDFILE={{ cache_redis_pid_dir }}/redis_${REDISNAME}.pid
-ulimit -n {{ cache_redis_limit_nofile }}
+
+REDISNAME={{ redis_instance_name }}
+REDISPORT={{ redis_port }}
+EXEC="su -s /bin/sh -c '{{ redis_bin_path }}/redis-server {{ redis_config_dir }}/${REDISNAME}.conf' {{ redis_user }}"
+CLIEXEC={{ redis_bin_path }}/redis-cli
+PIDFILE={{ redis_pid_dir }}/redis_${REDISNAME}.pid
+ulimit -n {{ redis_limit_nofile }}
+
 case "$1" in
-  start) $EXEC ;;
-  stop) $CLIEXEC -p {{ cache_redis_port }} shutdown ;;
-  status) test -f "$PIDFILE" ;;
-  *) echo "Please use start, stop, or status"; exit 1 ;;
+  start)
+    exec $EXEC
+    ;;
+  stop)
+    $CLIEXEC -p {{ redis_port }}{% if redis_address %} -h {{ redis_address[0] if redis_address is iterable and redis_address is not string else redis_address }}{% endif %}{% if redis_requirepass %} -a '{{ redis_requirepass }}'{% endif %} shutdown
+    ;;
+  status)
+    test -f "$PIDFILE"
+    ;;
+  *)
+    echo "Please use start, stop, or status as first argument"
+    exit 1
+    ;;
 esac

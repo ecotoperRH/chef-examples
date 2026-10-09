@@ -4,10 +4,10 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart={{ (cache_redis_bin_path ~ '/redis-server') if not cache_redis_package_install else '/usr/bin/redis-server' }} /etc/redis/%i.conf --daemonize no
-User={{ cache_redis_user }}
-Group={{ cache_redis_group }}
-LimitNOFILE={{ cache_redis_limit_nofile }}
+ExecStart={{ ('/usr/bin' if redis_package_install else redis_bin_path) }}/redis-server {{ redis_config_dir }}/%i.conf --daemonize no
+User={{ redis_user }}
+Group={{ redis_group }}
+LimitNOFILE={{ redis_limit_nofile }}
 
 [Install]
 WantedBy=multi-user.target

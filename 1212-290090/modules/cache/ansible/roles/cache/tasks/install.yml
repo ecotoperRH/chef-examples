@@ -1,0 +1,35 @@
+---
+- name: Install Redis package when enabled
+  ansible.builtin.package:
+    name: "{{ redis_package_name }}"
+    state: present
+  when: redis_package_install | bool
+
+- name: Download Redis source archive # noqa: R104 - mirror is a role-controlled HTTPS source URL
+  ansible.builtin.get_url:
+    url: "{{ redis_mirror | regex_replace('^http://', 'https://') }}{{ redis_base_name }}{{ redis_version }}.{{ redis_artifact_type }}" # noqa: R106 - mirror is a role-controlled source URL
+    dest: /tmp/{{ redis_base_name }}{{ redis_version }}.{{ redis_artifact_type }} # noqa: R114 - fixed role-controlled source archive path
+    mode: "0644"
+  when: not (redis_package_install | bool)
+
+- name: Extract Redis source archive # noqa: R104 - archive is transferred from the role-controlled local path
+  ansible.builtin.unarchive:
+    src: /tmp/{{ redis_base_name }}{{ redis_version }}.{{ redis_artifact_type }} # noqa: R106 - archive source is the role-controlled local download path
+    dest: /tmp
+    remote_src: true
+    creates: /tmp/{{ redis_base_name }}{{ redis_version }}/src/redis-server # noqa: R114 - fixed role-controlled build path
+  when: not (redis_package_install | bool)
+
+- name: Build Redis from source
+  ansible.builtin.command:
+    cmd: make
+    chdir: /tmp/{{ redis_base_name }}{{ redis_version }} # noqa: R114 - fixed role-controlled build path
+    creates: /tmp/{{ redis_base_name }}{{ redis_version }}/src/redis-server # noqa: R114 - fixed role-controlled build path
+  when: not (redis_package_install | bool)
+
+- name: Install Redis from source # noqa: R101 - command uses a role-controlled installation directory
+  ansible.builtin.command:
+    cmd: make PREFIX={{ redis_install_dir }} install
+    chdir: /tmp/{{ redis_base_name }}{{ redis_version }} # noqa: R114 - fixed role-controlled build path
+    creates: "{{ redis_bin_path }}/redis-server"
+  when: not (redis_package_install | bool)

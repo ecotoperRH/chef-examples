@@ -1,0 +1,4 @@
+---
+- name: Build Redis source installation
+  ansible.builtin.include_tasks: install.yml
+  when: not (redis_package_install | bool)

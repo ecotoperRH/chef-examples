@@ -1,0 +1,24 @@
+---
+- name: Install Redis build prerequisites
+  ansible.builtin.package:
+    name:
+      - tar
+      - make
+      - gcc
+      - libc6-dev
+    state: present
+
+- name: Ensure Redis group exists
+  ansible.builtin.group:
+    name: "{{ redis_group }}"
+    state: present
+
+- name: Ensure Redis user exists
+  ansible.builtin.user:
+    name: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    home: "{{ redis_data_dir }}"
+    shell: "{{ redis_shell }}"
+    system: true
+    create_home: true
+    state: present

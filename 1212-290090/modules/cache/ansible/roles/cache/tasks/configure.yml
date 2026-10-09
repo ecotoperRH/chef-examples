@@ -1,0 +1,61 @@
+---
+- name: Create Redis configuration directory
+  ansible.builtin.file:
+    path: "{{ redis_config_dir }}" # noqa: R114 - path is a role default, not user input
+    state: directory
+    owner: root
+    group: "{{ redis_group }}"
+    mode: "0775"
+
+- name: Create Redis data directory
+  ansible.builtin.file:
+    path: "{{ redis_data_dir }}" # noqa: R114 - path is a role default, not user input
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0775"
+
+- name: Create Redis PID directory
+  ansible.builtin.file:
+    path: "{{ redis_pid_base_dir }}/6379" # noqa: R114 - path is a role default, not user input
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: "{{ redis_log_dir }}" # noqa: R114 - path is a role default, not user input
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+
+- name: Render Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ redis_config_file }}" # noqa: R114 - path is a role default, not user input
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0644"
+    backup: true
+  no_log: "{{ cache_secure_logging }}"
+  vars:
+    redis_instance_name: "6379"
+    redis_pid_dir: "{{ redis_pid_base_dir }}/6379"
+    redis_requirepass: "{{ redis_requirepass }}"
+
+- name: Remove obsolete Redis configuration directives
+  ansible.builtin.replace:
+    path: "{{ redis_config_file }}" # noqa: R114 - path is a role default, not user input
+    regexp: ^({{ item_cache }}).*$
+    replace: ""
+  loop:
+    - replica-serve-stale-data
+    - replica-read-only
+    - repl-ping-replica-period
+    - client-output-buffer-limit
+    - replica-priority
+  loop_control:
+    loop_var: item_cache
+  notify: Restart Redis

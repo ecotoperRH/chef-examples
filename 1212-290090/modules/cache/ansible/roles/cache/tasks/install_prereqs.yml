@@ -1,0 +1,5 @@
+---
+- name: Install Redis prerequisite archive tool
+  ansible.builtin.package:
+    name: tar
+    state: present

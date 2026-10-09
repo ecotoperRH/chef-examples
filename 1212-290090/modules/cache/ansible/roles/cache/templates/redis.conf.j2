@@ -1,65 +1,61 @@
-{% if cache_redis_job_control in ['initd', 'rcinit'] %}
-daemonize yes
-{% endif %}
-pidfile {{ cache_redis_pid_dir }}/redis_{{ cache_redis_name }}.pid
-port {{ cache_redis_port }}
-tcp-backlog {{ cache_redis_tcp_backlog }}
-{% if cache_redis_address is not none %}bind {{ cache_redis_address | join(' ') if cache_redis_address is iterable and cache_redis_address is not string else cache_redis_address }}
-{% endif %}{% if cache_redis_protected_mode is not none %}protected-mode {{ cache_redis_protected_mode }}
-{% endif %}{% if cache_redis_unixsocket is not none %}unixsocket {{ cache_redis_unixsocket }}
-unixsocketperm {{ cache_redis_unixsocketperm }}
-{% endif %}timeout {{ cache_redis_timeout }}
-tcp-keepalive {{ cache_redis_keepalive }}
-loglevel {{ cache_redis_loglevel }}
-syslog-enabled {{ cache_redis_syslogenabled }}
-syslog-ident redis-{{ cache_redis_name }}
-syslog-facility {{ cache_redis_syslogfacility }}
-databases {{ cache_redis_databases }}
-{% if cache_redis_tlsport is not none %}tls-port {{ cache_redis_tlsport }}
-{% endif %}{% if cache_redis_backuptype in ['rdb', 'both'] %}{% for save_option in cache_redis_save %}save {{ save_option }}
-{% endfor %}stop-writes-on-bgsave-error {{ cache_redis_stopwritesonbgsaveerror }}
-rdbcompression {{ cache_redis_rdbcompression }}
-rdbchecksum {{ cache_redis_rdbchecksum }}
-dbfilename {{ cache_redis_dbfilename }}
-{% endif %}dir {{ cache_redis_datadir }}
-{% if cache_redis_replicaof is not none %}replicaof {{ cache_redis_replicaof['address'] }} {{ cache_redis_replicaof['port'] }}
-{% endif %}{% if cache_redis_masterauth is not none %}masterauth {{ cache_redis_masterauth }}
-{% endif %}{% if cache_redis_replicaservestaledata is not none %}replica-serve-stale-data {{ cache_redis_replicaservestaledata }}
-{% endif %}{% if cache_redis_replicareadonly is not none %}replica-read-only {{ cache_redis_replicareadonly }}
-{% endif %}{% if cache_redis_repldisklesssync is not none %}repl-diskless-sync {{ cache_redis_repldisklesssync }}
-{% endif %}repl-diskless-sync-delay {{ cache_redis_repldisklesssyncdelay }}
-repl-ping-replica-period {{ cache_redis_replpingreplicaperiod }}
-repl-timeout {{ cache_redis_repltimeout }}
-repl-disable-tcp-nodelay {{ cache_redis_repldisabletcpnodelay }}
-repl-backlog-size {{ cache_redis_replbacklogsize }}
-repl-backlog-ttl {{ cache_redis_replbacklogttl }}
-replica-priority {{ cache_redis_replicapriority }}
-{% if cache_redis_requirepass is not none %}requirepass {{ cache_redis_requirepass }}
-{% endif %}maxclients {{ cache_redis_maxclients }}
-{% if cache_redis_maxmemory %}maxmemory {{ cache_redis_maxmemory }}
-{% endif %}{% if cache_redis_maxmemorypolicy is not none %}maxmemory-policy {{ cache_redis_maxmemorypolicy }}
-{% endif %}{% if cache_redis_maxmemorysamples is not none %}maxmemory-samples {{ cache_redis_maxmemorysamples }}
-{% endif %}{% if cache_redis_backuptype in ['aof', 'both'] %}appendonly yes
+# Redis instance {{ redis_instance_name }} configuration
+{% if redis_job_control in ['initd', 'rcinit'] %}daemonize yes
+{% endif %}pidfile {{ redis_pid_dir }}/redis_{{ redis_instance_name }}.pid
+port {{ redis_port }}
+tcp-backlog {{ redis_tcp_backlog }}
+{% if redis_address is not none %}bind {{ redis_address | join(' ') if redis_address is iterable and redis_address is not string else redis_address }}
+{% endif %}{% if redis_protected_mode is not none %}protected-mode {{ redis_protected_mode }}
+{% endif %}timeout {{ redis_timeout }}
+tcp-keepalive {{ redis_keepalive }}
+loglevel {{ redis_loglevel }}
+{% if redis_logfile is not none %}logfile {{ redis_logfile }}
+{% endif %}syslog-enabled {{ redis_syslog_enabled }}
+syslog-ident redis-{{ redis_instance_name }}
+syslog-facility {{ redis_syslog_facility }}
+databases {{ redis_databases }}
+{% if redis_tls_port is not none %}tls-port {{ redis_tls_port }}
+{% endif %}{% if redis_save is none %}save 900 1
+save 300 10
+save 60 10000
+{% else %}{% for save_option in redis_save %}save {{ save_option }}
+{% endfor %}{% endif %}stop-writes-on-bgsave-error {{ redis_stop_writes_on_bgsave_error }}
+rdbcompression {{ redis_rdbcompression }}
+rdbchecksum {{ redis_rdbchecksum }}
+dbfilename {{ redis_dbfilename | default('dump-' ~ redis_instance_name ~ '.rdb', true) }}
+dir {{ redis_data_dir }}
+{% if redis_replicaof is not none %}replicaof {{ redis_replicaof['address'] }} {{ redis_replicaof['port'] }}
+{% endif %}{% if redis_masterauth is not none %}masterauth {{ redis_masterauth }}
+{% endif %}{% if redis_replica_serve_stale_data is not none %}replica-serve-stale-data {{ redis_replica_serve_stale_data }}
+{% endif %}{% if redis_replica_read_only is not none %}replica-read-only {{ redis_replica_read_only }}
+{% endif %}{% if redis_requirepass is not none %}requirepass {{ redis_requirepass }}
+{% endif %}maxclients {{ redis_maxclients }}
+{% if redis_maxmemory %}maxmemory {{ redis_maxmemory }}
+{% endif %}{% if redis_maxmemory_policy is not none %}maxmemory-policy {{ redis_maxmemory_policy }}
+{% endif %}{% if redis_maxmemory_samples is not none %}maxmemory-samples {{ redis_maxmemory_samples }}
+{% endif %}{% if redis_backuptype in ['aof', 'both'] %}appendonly yes
 {% else %}appendonly no
-{% endif %}appendfilename {{ cache_redis_appendfilename }}
-appendfsync {{ cache_redis_appendfsync }}
-no-appendfsync-on-rewrite {{ cache_redis_noappendfsynconrewrite }}
-auto-aof-rewrite-percentage {{ cache_redis_aofrewritepercentage }}
-auto-aof-rewrite-min-size {{ cache_redis_aofrewriteminsize }}
-aof-load-truncated {{ cache_redis_aofloadtruncated }}
-lua-time-limit {{ cache_redis_luatimelimit }}
-slowlog-log-slower-than {{ cache_redis_slowloglogslowerthan }}
-slowlog-max-len {{ cache_redis_slowlogmaxlen }}
-notify-keyspace-events "{{ cache_redis_notifykeyspaceevents }}"
-hash-max-ziplist-entries {{ cache_redis_hashmaxziplistentries }}
-hash-max-ziplist-value {{ cache_redis_hashmaxziplistvalue }}
-set-max-intset-entries {{ cache_redis_setmaxintsetentries }}
-zset-max-ziplist-entries {{ cache_redis_zsetmaxziplistentries }}
-zset-max-ziplist-value {{ cache_redis_zsetmaxziplistvalue }}
-hll-sparse-max-bytes {{ cache_redis_hllsparsemaxbytes }}
-activerehashing {{ cache_redis_activerehasing }}
-{% for c in cache_redis_clientoutputbufferlimit %}client-output-buffer-limit {{ c | join(' ') }}
-{% endfor %}hz {{ cache_redis_hz }}
-aof-rewrite-incremental-fsync {{ cache_redis_aofrewriteincrementalfsync }}
-{% if cache_redis_includes is not none %}{% for include_option in cache_redis_includes %}include {{ include_option }}
-{% endfor %}{% endif %}
+{% endif %}appendfilename {{ redis_appendfilename | default(redis_data_dir ~ '/appendonly-' ~ redis_instance_name ~ '.aof', true) }}
+appendfsync {{ redis_appendfsync }}
+no-appendfsync-on-rewrite {{ redis_no_appendfsync_on_rewrite }}
+auto-aof-rewrite-percentage {{ redis_aof_rewrite_percentage }}
+auto-aof-rewrite-min-size {{ redis_aof_rewrite_min_size }}
+aof-load-truncated {{ redis_aof_load_truncated }}
+lua-time-limit {{ redis_lua_time_limit }}
+slowlog-log-slower-than {{ redis_slowlog_log_slower_than }}
+slowlog-max-len {{ redis_slowlog_max_len }}
+notify-keyspace-events "{{ redis_notify_keyspace_events }}"
+hash-max-ziplist-entries {{ redis_hash_max_ziplist_entries }}
+hash-max-ziplist-value {{ redis_hash_max_ziplist_value }}
+set-max-intset-entries {{ redis_set_max_intset_entries }}
+zset-max-ziplist-entries {{ redis_zset_max_ziplist_entries }}
+zset-max-ziplist-value {{ redis_zset_max_ziplist_value }}
+hll-sparse-max-bytes {{ redis_hll_sparse_max_bytes }}
+activerehashing {{ redis_active_rehashing }}
+{% for client_limit in redis_client_output_buffer_limit %}client-output-buffer-limit {{ client_limit | join(' ') }}
+{% endfor %}hz {{ redis_hz }}
+aof-rewrite-incremental-fsync {{ redis_aof_rewrite_incremental_fsync }}
+{% if redis_cluster_enabled == 'yes' %}cluster-enabled yes
+cluster-config-file {{ redis_cluster_config_file | default('nodes-' ~ redis_instance_name ~ '.conf', true) }}
+cluster-node-timeout {{ redis_cluster_node_timeout }}
+{% endif %}{% for include_option in redis_includes | default([], true) %}include {{ include_option }}
+{% endfor %}
