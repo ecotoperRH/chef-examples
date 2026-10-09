@@ -1,6 +1,7 @@
 ---
+# noqa: R401 - inbound repository source is audited in the role task
 - name: Converge
-  hosts: all # noqa: R401 - inbound sources are defined within the role under test
+  hosts: all
   gather_facts: true
   tasks:
     - name: Include fastapi_tutorial

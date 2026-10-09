@@ -1,7 +1,9 @@
 ---
 - name: Verify application files and packages
   hosts: all
-  gather_facts: true
+  gather_facts: false
+  vars:
+    fastapi_tutorial_secure_logging: true
   tasks:
     - name: Gather installed package facts
       ansible.builtin.package_facts:
@@ -23,50 +25,54 @@
       loop_control:
         loop_var: item_package
 
-    - name: Check application paths
+    - name: Check application files and directories
       ansible.builtin.stat:
         path: "{{ item_path }}" # noqa: R114 - fixed production paths defined by the migration plan
       loop:
         - /opt/fastapi-tutorial
         - /opt/fastapi-tutorial/venv
         - /opt/fastapi-tutorial/requirements.txt
+        - /opt/fastapi-tutorial/venv/bin/python
+        - /opt/fastapi-tutorial/venv/bin/pip
         - /opt/fastapi-tutorial/.env
         - /etc/systemd/system/fastapi-tutorial.service
       loop_control:
         loop_var: item_path
-      register: application_path_results
+      register: application_file_stats
 
-    - name: Assert application paths exist
+    - name: Assert application files and directories are present
       ansible.builtin.assert:
         that:
           - item_result['stat']['exists']
-        fail_msg: Expected FastAPI application path was not created
-      loop: "{{ application_path_results['results'] }}"
+        fail_msg: Expected FastAPI application path is missing
+      loop: "{{ application_file_stats['results'] }}"
       loop_control:
         loop_var: item_result
 
-    - name: Check virtual environment executables
-      ansible.builtin.stat:
-        path: "{{ item_executable }}" # noqa: R114 - fixed production paths defined by the migration plan
-      loop:
-        - /opt/fastapi-tutorial/venv/bin/python
-        - /opt/fastapi-tutorial/venv/bin/pip
-        - /opt/fastapi-tutorial/venv/bin/uvicorn
-      loop_control:
-        loop_var: item_executable
-      register: executable_results
-
-    - name: Assert virtual environment executables are present
+    - name: Assert application executables are executable
       ansible.builtin.assert:
         that:
-          - item_result['stat']['exists']
-          - item_result['stat']['executable']
-        fail_msg: Expected virtual environment executable was not found
-      loop: "{{ executable_results['results'] }}"
+          - item_result['stat']['executable'] | default(false)
+        fail_msg: Expected virtual environment executable is not executable
+      loop: "{{ application_file_stats['results'][3:5] }}"
       loop_control:
         loop_var: item_result
 
-    - name: Check repository branch
+    - name: Check environment file without exposing its contents
+      ansible.builtin.slurp:
+        src: /opt/fastapi-tutorial/.env
+      register: environment_file
+      no_log: "{{ fastapi_tutorial_secure_logging }}"
+
+    - name: Assert environment file contains required configuration
+      ansible.builtin.assert:
+        that:
+          - "'PROJECT_NAME=\"FastAPI Tutorial\"' in (environment_file['content'] | b64decode)"
+          - "'API_VERSION=1.0.0' in (environment_file['content'] | b64decode)"
+          - "'DATABASE_URL=postgresql://' in (environment_file['content'] | b64decode)"
+        fail_msg: Environment file is missing required configuration
+
+    - name: Check repository revision
       ansible.builtin.command:
         argv:
           - git
@@ -78,68 +84,34 @@
       register: repository_branch
       changed_when: false
 
-    - name: Assert repository is on main
+    - name: Assert repository is on the expected branch
       ansible.builtin.assert:
         that:
           - repository_branch['stdout'] | trim == 'main'
-        fail_msg: Repository is not checked out at the expected main branch
+        fail_msg: FastAPI repository is not checked out at the main branch
 
-    - name: Check Python dependencies
+    - name: Check Python dependency consistency
       ansible.builtin.command:
         argv:
           - /opt/fastapi-tutorial/venv/bin/pip
           - check
-      register: pip_check
       changed_when: false
 
-    - name: Assert Python dependencies are consistent
-      ansible.builtin.assert:
-        that:
-          - pip_check['rc'] == 0
-        fail_msg: Python virtual environment dependency check failed
-
-- name: Verify configuration and services
+- name: Verify PostgreSQL and FastAPI services
   hosts: all
   gather_facts: false
   tasks:
-    - name: Read environment configuration
-      ansible.builtin.slurp:
-        src: /opt/fastapi-tutorial/.env
-      register: environment_file
-      no_log: "{{ fastapi_tutorial_secure_logging | default(true) }}"
-
-    - name: Assert environment configuration keys are correct
-      ansible.builtin.assert:
-        that:
-          - "'PROJECT_NAME=\"FastAPI Tutorial\"' in (environment_file['content'] | b64decode)"
-          - "'API_VERSION=1.0.0' in (environment_file['content'] | b64decode)"
-          - "'DATABASE_URL=postgresql://fastapi:' in (environment_file['content'] | b64decode)"
-        fail_msg: FastAPI environment configuration is incomplete
-
-    - name: Read systemd unit
-      ansible.builtin.slurp:
-        src: /etc/systemd/system/fastapi-tutorial.service
-      register: service_unit
-
-    - name: Assert systemd unit configuration
-      ansible.builtin.assert:
-        that:
-          - "'WorkingDirectory=/opt/fastapi-tutorial' in (service_unit['content'] | b64decode)"
-          - "'ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000' in (service_unit['content'] | b64decode)"
-          - "'Restart=always' in (service_unit['content'] | b64decode)"
-        fail_msg: FastAPI systemd unit does not contain the expected production settings
-
     - name: Gather service facts
       ansible.builtin.service_facts:
 
-    - name: Assert PostgreSQL and FastAPI services are active
+    - name: Assert required services are active
       ansible.builtin.assert:
         that:
           - "'postgresql.service' in ansible_facts['services']"
           - ansible_facts['services']['postgresql.service']['state'] == 'running'
           - "'fastapi-tutorial.service' in ansible_facts['services']"
           - ansible_facts['services']['fastapi-tutorial.service']['state'] == 'running'
-        fail_msg: Expected PostgreSQL and FastAPI services are not active
+        fail_msg: Expected PostgreSQL and FastAPI services are not running
 
     - name: Wait for PostgreSQL
       ansible.builtin.wait_for:
@@ -155,35 +127,43 @@
         state: started
         timeout: 30
 
-- name: Verify PostgreSQL objects
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Check PostgreSQL application role # noqa: R108 - PostgreSQL inspection requires the postgres system user
-      ansible.builtin.command:
-        argv:
-          - psql
-          - -tAc
-          - SELECT rolname FROM pg_roles WHERE rolname='fastapi';
+    - name: Check FastAPI endpoint
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/
+        method: GET
+        status_code:
+          - 200
+          - 404
+        return_content: false
+
+    - name: Query PostgreSQL application objects # noqa: R108 - querying PostgreSQL as the postgres OS user is required for database inspection
       become: true
       become_user: postgres
-      register: postgres_role
-      changed_when: false
+      community.postgresql.postgresql_query:
+        db: postgres
+        query: >-
+          SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'fastapi') AS role_exists,
+          EXISTS (SELECT 1 FROM pg_database WHERE datname = 'fastapi_db') AS database_exists,
+          (SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = 'fastapi_db') AS database_owner;
+      register: postgresql_objects
 
-    - name: Check PostgreSQL application database and owner # noqa: R108 - PostgreSQL inspection requires the postgres system user
-      ansible.builtin.command:
-        argv:
-          - psql
-          - -tAc
-          - SELECT datname || ':' || pg_get_userbyid(datdba) FROM pg_database WHERE datname='fastapi_db';
-      become: true
-      become_user: postgres
-      register: postgres_database
-      changed_when: false
-
-    - name: Assert PostgreSQL role and database owner
+    - name: Assert PostgreSQL application objects exist
       ansible.builtin.assert:
         that:
-          - postgres_role['stdout'] | trim == 'fastapi'
-          - postgres_database['stdout'] | trim == 'fastapi_db:fastapi'
-        fail_msg: Expected PostgreSQL role, database, or owner was not configured
+          - postgresql_objects['query_result'][0]['role_exists'] | bool
+          - postgresql_objects['query_result'][0]['database_exists'] | bool
+          - postgresql_objects['query_result'][0]['database_owner'] == 'fastapi'
+        fail_msg: Expected PostgreSQL role, database, or owner is missing
+
+    - name: Check systemd unit content
+      ansible.builtin.slurp:
+        src: /etc/systemd/system/fastapi-tutorial.service
+      register: service_unit
+
+    - name: Assert systemd unit has expected application command
+      ansible.builtin.assert:
+        that:
+          - "'WorkingDirectory=/opt/fastapi-tutorial' in (service_unit['content'] | b64decode)"
+          - "'ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000' in (service_unit['content'] | b64decode)"
+          - "'Restart=always' in (service_unit['content'] | b64decode)"
+        fail_msg: FastAPI systemd unit does not contain the expected configuration

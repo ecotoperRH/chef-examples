@@ -19,3 +19,6 @@ galaxy_info:
         - "9"
         - "10"
   role_name: fastapi_tutorial
+dependencies: []
+collections:
+  - community.postgresql

@@ -26,11 +26,19 @@
       "notes": ""
     },
     {
+      "category": "recipes",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/roles/fastapi_tutorial/tasks/main.yml",
+      "status": "complete",
+      "description": "Migrate the default recipe: install packages, checkout the FastAPI repository, create the virtualenv, install requirements, configure PostgreSQL, render .env and systemd unit, and enable/start services.",
+      "notes": ""
+    },
+    {
       "category": "structure",
       "source_path": "N/A",
       "target_path": "ansible/roles/fastapi_tutorial/defaults/main.yml",
       "status": "complete",
-      "description": "Role defaults for application, database, repository, service, and vaulted credential parameters",
+      "description": "Role defaults for application and PostgreSQL settings, including the vaulted database password interface.",
       "notes": ""
     },
     {
@@ -38,7 +46,7 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/fastapi_tutorial/meta/main.yml",
       "status": "complete",
-      "description": "Role metadata; no external Chef cookbook dependencies are declared",
+      "description": "Role metadata; no external cookbook dependencies are declared.",
       "notes": "Created standard meta/main.yml"
     },
     {
@@ -46,7 +54,7 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/fastapi_tutorial/meta/argument_specs.yml",
       "status": "complete",
-      "description": "Role argument specifications for fail-fast validation; generate after defaults/main.yml",
+      "description": "Role argument specs for fail-fast parameter validation; generate after defaults/main.yml.",
       "notes": ""
     },
     {
@@ -54,15 +62,7 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/fastapi_tutorial/handlers/main.yml",
       "status": "complete",
-      "description": "Handler to reload systemd when the FastAPI service unit changes",
-      "notes": ""
-    },
-    {
-      "category": "recipes",
-      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
-      "target_path": "ansible/roles/fastapi_tutorial/tasks/main.yml",
-      "status": "complete",
-      "description": "Migrate package installation, repository checkout, virtualenv and dependencies, PostgreSQL setup, environment file, systemd unit, handler notification, and service management",
+      "description": "Handler to reload systemd only when the FastAPI systemd unit changes.",
       "notes": ""
     },
     {
@@ -70,7 +70,7 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/fastapi_tutorial/molecule/default/molecule.yml",
       "status": "complete",
-      "description": "AAP-compatible Molecule scenario configuration using delegated driver and local connection",
+      "description": "AAP-compatible Molecule scenario configuration using a delegated driver and local connection.",
       "notes": "Created by MoleculeAgent (deterministic scaffold)"
     },
     {
@@ -78,23 +78,23 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/fastapi_tutorial/molecule/default/converge.yml",
       "status": "complete",
-      "description": "Molecule converge play that runs the role for real via ansible.builtin.include_role",
-      "notes": ""
+      "description": "Molecule converge playbook that runs the role for real via include_role.",
+      "notes": "Includes the fastapi_tutorial role directly for real execution."
     },
     {
       "category": "molecule",
       "source_path": "N/A",
       "target_path": "ansible/roles/fastapi_tutorial/molecule/default/verify.yml",
       "status": "complete",
-      "description": "Molecule verification tasks for packages, repository, virtualenv, PostgreSQL objects, environment file, systemd unit, and port 8000",
-      "notes": ""
+      "description": "Molecule verification tasks covering packages, repository, virtualenv, environment file, PostgreSQL objects, systemd service, and port 8000.",
+      "notes": "Verifies production paths, packages, PostgreSQL objects, services, endpoint, environment, and systemd unit."
     },
     {
       "category": "molecule",
       "source_path": "N/A",
       "target_path": "ansible/roles/fastapi_tutorial/molecule/default/create.yml",
       "status": "complete",
-      "description": "No-op Molecule instance creation for delegated testing",
+      "description": "No-op Molecule instance creation for delegated execution.",
       "notes": "Created by MoleculeAgent (deterministic scaffold)"
     },
     {
@@ -102,7 +102,7 @@
       "source_path": "N/A",
       "target_path": "ansible/roles/fastapi_tutorial/molecule/default/destroy.yml",
       "status": "complete",
-      "description": "No-op Molecule instance destruction for delegated testing",
+      "description": "No-op Molecule instance destruction for delegated execution.",
       "notes": "Created by MoleculeAgent (deterministic scaffold)"
     }
   ]
