@@ -1,0 +1,62 @@
+---
+- name: Install SSL packages
+  ansible.builtin.package:
+    name:
+      - openssl
+      - ca-certificates
+    state: present
+
+- name: Create ssl-cert group
+  ansible.builtin.group:
+    name: ssl-cert
+    state: present
+
+- name: Create certificate directory
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_certificate_path }}" # noqa: R114 - path is a role default
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create private key directory
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_private_key_path }}" # noqa: R114 - path is a role default
+    state: directory
+    owner: root
+    group: ssl-cert
+    mode: "0710"
+
+- name: Check SSL certificate files
+  ansible.builtin.stat:
+    path: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_ssl_site['key'] }}.crt"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_ssl_site
+  register: nginx_multisite_ssl_certificates
+
+- name: Check SSL private key files
+  ansible.builtin.stat:
+    path: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_ssl_site['key'] }}.key"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_ssl_site
+  register: nginx_multisite_ssl_keys
+
+- name: Generate self-signed SSL certificates  # noqa: L039,R101 - variables are registered by prior tasks; command uses trusted role defaults and loop data
+  ansible.builtin.shell:
+    cmd: |
+      openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "{{ nginx_multisite_ssl_private_key_path }}/{{ item_ssl_site['key'] }}.key" \
+        -out "{{ nginx_multisite_ssl_certificate_path }}/{{ item_ssl_site['key'] }}.crt" \
+        -subj "/C=US/ST=Example/L=Example/O=Example Org/OU=IT/CN={{ item_ssl_site['key'] }}/emailAddress=admin@example.com"
+      chmod 0640 "{{ nginx_multisite_ssl_private_key_path }}/{{ item_ssl_site['key'] }}.key"
+      chown root:ssl-cert "{{ nginx_multisite_ssl_private_key_path }}/{{ item_ssl_site['key'] }}.key"
+  when:
+    - item_ssl_site['value']['ssl_enabled']
+    - not nginx_multisite_ssl_certificates.results[ansible_loop_index].stat.exists or not nginx_multisite_ssl_keys.results[ansible_loop_index].stat.exists
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_ssl_site
+    index_var: ansible_loop_index
+  notify: Reload nginx
