@@ -1,0 +1,23 @@
+---
+- name: Restart Fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted
+
+- name: Reload kernel security settings
+  ansible.builtin.command:
+    argv:
+      - sysctl
+      - -p
+      - /etc/sysctl.d/99-security.conf
+  changed_when: true
+
+- name: Restart SSH
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+
+- name: Reload NGINX
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded

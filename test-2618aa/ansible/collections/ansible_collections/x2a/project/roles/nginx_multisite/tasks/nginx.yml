@@ -1,0 +1,60 @@
+---
+- name: Install NGINX
+  ansible.builtin.package:
+    name:
+      - nginx
+    state: present
+
+- name: Create NGINX runtime group
+  ansible.builtin.group:
+    name: www-data
+    system: true
+    state: present
+
+- name: Create NGINX runtime user
+  ansible.builtin.user:
+    name: www-data
+    group: www-data
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+
+- name: Configure NGINX main configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+    backup: true
+  notify: Reload NGINX
+
+- name: Configure NGINX security settings
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload NGINX
+
+- name: Create NGINX site document roots
+  ansible.builtin.file:
+    path: "{{ item_nginx_multisite['value']['document_root'] }}" # noqa: R114 - path from role-defined sites dict, not user input
+    owner: www-data
+    group: www-data
+    mode: "0755"
+    state: directory
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_multisite
+
+- name: Deploy NGINX site index pages
+  ansible.builtin.copy:
+    src: "{{ item_nginx_multisite['key'].split('.')[0] }}/index.html" # noqa: R114 - path from role-defined site key, not user input
+    dest: "{{ item_nginx_multisite['value']['document_root'] }}/index.html" # noqa: R114 - path from role-defined sites dict, not user input
+    owner: www-data
+    group: www-data
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_multisite
