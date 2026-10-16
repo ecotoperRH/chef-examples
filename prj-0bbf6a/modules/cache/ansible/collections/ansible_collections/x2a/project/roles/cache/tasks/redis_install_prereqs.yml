@@ -1,0 +1,7 @@
+---
+- name: Install Redis build prerequisites
+  ansible.builtin.package:
+    name: >-
+      {{ ['tar', 'make', 'gcc', 'libc6-dev'] if ansible_facts['os_family'] == 'Debian'
+        else ['tar', 'make', 'gcc', 'glibc-devel'] }}
+    state: present

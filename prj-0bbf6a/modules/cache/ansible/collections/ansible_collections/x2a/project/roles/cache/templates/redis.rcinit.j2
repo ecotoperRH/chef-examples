@@ -1,0 +1,21 @@
+#!/bin/sh
+# PROVIDE: redis{{ redis_name }}
+# REQUIRE: LOGIN
+# BEFORE: securelevel
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="redis{{ redis_name }}"
+rcvar="${name}_enable"
+extra_commands="reload"
+command="{{ redis_bin_path }}/redis-server"
+pidfile="{{ redis_piddir }}/redis_{{ redis_name }}.pid"
+
+load_rc_config "$name"
+: ${redis{{ redis_name }}_enable="NO"}
+: ${redis_user="{{ redis_user }}"}
+: ${redis_config="{{ redis_configdir }}/{{ redis_name }}.conf"}
+command_args="${redis_config}"
+required_files="${redis_config}"
+run_rc_command "$1"

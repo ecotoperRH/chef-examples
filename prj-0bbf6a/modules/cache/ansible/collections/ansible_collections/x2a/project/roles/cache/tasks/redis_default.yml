@@ -1,0 +1,10 @@
+---
+- name: Install Redis package when package installation is enabled
+  ansible.builtin.package:
+    name: "{{ cache_redis_package_name }}"
+    state: present
+  when: cache_redis_package_install | bool
+
+- name: Include Redis source installation
+  ansible.builtin.include_tasks: redis_install.yml
+  when: not cache_redis_package_install | bool

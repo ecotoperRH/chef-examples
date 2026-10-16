@@ -1,0 +1,138 @@
+---
+# Unsupported pre-flight checks: authenticated Redis commands require the Vault password;
+# configuration value inspection, runtime-directory metadata/listings, PAM files, systemd unit
+# and limit inspection, and log diagnostics have no stated expected outcome; Redis Unix-socket
+# absence has no supported diagnostic in the pre-flight commands.
+- name: Verify cache services, files, binaries, and listeners
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather service facts for Redis and Memcached checks
+      ansible.builtin.service_facts:
+
+    - name: Assert Redis instance service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'redis@6379.service' in ansible_facts['services']"
+          - ansible_facts['services']['redis@6379.service']['state'] == 'running'
+          - ansible_facts['services']['redis@6379.service']['status'] == 'enabled'
+        fail_msg: Redis instance redis@6379 is not active and enabled.
+
+    - name: Assert the operating-system Redis service is inactive and disabled
+      ansible.builtin.assert:
+        that:
+          - "'redis-server.service' in ansible_facts['services']"
+          - ansible_facts['services']['redis-server.service']['state'] == 'stopped'
+          - ansible_facts['services']['redis-server.service']['status'] == 'disabled'
+        fail_msg: The operating-system redis-server service is not inactive and disabled.
+
+    - name: Assert Memcached service is active and enabled
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts['services']"
+          - ansible_facts['services']['memcached.service']['state'] == 'running'
+          - ansible_facts['services']['memcached.service']['status'] == 'enabled'
+        fail_msg: Memcached is not active and enabled.
+
+    - name: Check source-installed Redis binaries
+      ansible.builtin.command:
+        argv:
+          - "{{ item_binary['path'] }}"
+          - --version
+        changed_when: false
+      loop:
+        - path: /usr/local/bin/redis-server
+        - path: /usr/local/bin/redis-cli
+      loop_control:
+        loop_var: item_binary
+      register: redis_binary_checks
+
+    - name: Assert source-installed Redis binaries respond to --version
+      ansible.builtin.assert:
+        that:
+          - item_binary_check['rc'] == 0
+          - item_binary_check['stdout'] is search('Redis server|redis-cli')
+        loop: "{{ redis_binary_checks['results'] }}"
+        loop_control:
+          loop_var: item_binary_check
+        fail_msg: A source-installed Redis binary did not respond to --version.
+
+    - name: Check Redis configuration and breadcrumb files exist
+      ansible.builtin.stat:
+        path: "{{ item_redis_file['path'] }}"
+      loop:
+        - path: /etc/redis/6379.conf
+        - path: /etc/redis/6379.conf.breadcrumb
+      loop_control:
+        loop_var: item_redis_file
+      register: redis_file_checks
+
+    - name: Assert Redis configuration and breadcrumb files exist
+      ansible.builtin.assert:
+        that:
+          - item_redis_file_check['stat']['exists']
+        loop: "{{ redis_file_checks['results'] }}"
+        loop_control:
+          loop_var: item_redis_file_check
+        fail_msg: A required Redis configuration file does not exist.
+
+    - name: Read Redis configuration for post-configuration cleanup check
+      ansible.builtin.slurp:
+        src: /etc/redis/6379.conf
+      register: redis_configuration
+
+    - name: Assert Redis replica directives removed by post-configuration cleanup are absent
+      ansible.builtin.assert:
+        that:
+          - >-
+            (redis_configuration['content'] | b64decode) is not
+            search('(?m)^(replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority)')
+        fail_msg: A removed Redis replica-related directive is present in the configuration.
+
+    - name: Wait for Redis TCP listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        state: started
+        timeout: 10
+
+    - name: Wait for Memcached TCP listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        state: started
+        timeout: 10
+
+    - name: Check Memcached accepts the version command
+      ansible.builtin.command:
+        argv:
+          - nc
+          - -w
+          - '2'
+          - 127.0.0.1
+          - '11211'
+        stdin: "version\r\n"
+        changed_when: false
+      register: memcached_version
+
+    - name: Assert Memcached returns a version response
+      ansible.builtin.assert:
+        that:
+          - memcached_version['rc'] == 0
+          - memcached_version['stdout'] is search('VERSION')
+        fail_msg: Memcached did not accept the version command.
+
+    - name: Check Memcached UDP listener
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -ulnp
+        changed_when: false
+      register: memcached_udp_listener
+
+    - name: Assert Memcached has a UDP listener on port 11211
+      ansible.builtin.assert:
+        that:
+          - memcached_udp_listener['rc'] == 0
+          - memcached_udp_listener['stdout'] is search(':11211')
+        fail_msg: Memcached does not have a UDP listener on port 11211.

@@ -1,0 +1,7 @@
+---
+- name: Remove obsolete replica directives
+  ansible.builtin.replace:
+    path: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf" # noqa: R114 - role-defined Redis configuration path
+    regexp: ^(replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority)\s+.*$
+    replace: ""
+  no_log: "{{ cache_secure_logging }}"

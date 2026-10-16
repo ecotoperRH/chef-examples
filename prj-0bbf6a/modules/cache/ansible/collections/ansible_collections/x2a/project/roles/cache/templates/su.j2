@@ -1,0 +1,11 @@
+# PAM configuration for the Shadow su service.
+# Managed by the Ansible cache role to enable ulimit switching.
+
+auth       sufficient pam_rootok.so
+session       required   pam_env.so readenv=1
+session       required   pam_env.so readenv=1 envfile=/etc/default/locale
+session    optional   pam_mail.so nopen
+session    required   pam_limits.so
+@include common-auth
+@include common-account
+@include common-session

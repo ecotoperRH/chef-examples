@@ -1,0 +1,25 @@
+---
+- name: Download Redis source archive # noqa: R106 - source is the trusted role-default Redis endpoint
+  ansible.builtin.get_url:
+    url: "{{ cache_redis_source_url }}" # noqa: R104 - Redis release source is the trusted role-default endpoint; legacy HTTP is required by that endpoint. noqa: R106 - source is the trusted role-default Redis endpoint
+    dest: "/tmp/redis-{{ cache_redis_version }}.tar.gz"
+    mode: "0644"
+
+- name: Extract Redis source # noqa: R104,R106 - archive source is the local file downloaded from the trusted role-default endpoint
+  ansible.builtin.unarchive:
+    src: "/tmp/redis-{{ cache_redis_version }}.tar.gz"
+    dest: /tmp
+    remote_src: true
+    creates: "/tmp/redis-{{ cache_redis_version }}"
+
+- name: Build Redis from source
+  ansible.builtin.command:
+    cmd: make
+    chdir: "/tmp/redis-{{ cache_redis_version }}"
+    creates: "/tmp/redis-{{ cache_redis_version }}/src/redis-server"
+
+- name: Install Redis binaries
+  ansible.builtin.command:
+    cmd: make install
+    chdir: "/tmp/redis-{{ cache_redis_version }}"
+    creates: "{{ cache_redis_bin_path }}/redis-server"

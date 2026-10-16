@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  role_name: cache
+  namespace: x2a
+  author: Chef community / Ansible migration
+  description: Installs and configures Memcached and Redis cache services.
+  license: Apache-2.0
+  min_ansible_version: 2.14.0
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+  galaxy_tags:
+    - cache
+    - redis
+    - memcached
+    - database

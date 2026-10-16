@@ -1,0 +1,123 @@
+---
+- name: Create Redis group
+  ansible.builtin.group:
+    name: "{{ cache_redis_group }}"
+    system: true
+    state: present
+
+- name: Create Redis user
+  ansible.builtin.user:
+    name: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    home: "{{ cache_redis_homedir }}" # noqa R114 - role default path is trusted
+    shell: "{{ cache_redis_shell }}"
+    system: true
+    create_home: false
+    state: present
+
+- name: Create Redis directories
+  ansible.builtin.file:
+    path: "{{ item_cache_dir['path'] }}" # noqa: R114 - paths are role-defined
+    state: directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+  loop:
+    - path: "{{ cache_redis_configdir }}"
+    - path: "{{ cache_redis_datadir }}"
+    - path: "{{ cache_redis_piddir }}"
+    - path: "{{ cache_redis_logdir }}"
+  loop_control:
+    loop_var: item_cache_dir
+
+- name: Render Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ cache_redis_configdir }}/{{ cache_redis_name }}.conf" # noqa: R114 - role-defined configuration directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "{{ cache_redis_permissions }}"
+    backup: true
+  no_log: "{{ cache_secure_logging }}"
+  vars:
+    redis_job_control: "{{ cache_redis_job_control }}"
+    redis_name: "{{ cache_redis_name }}"
+    redis_port: "{{ cache_redis_port }}"
+    redis_piddir: "{{ cache_redis_piddir }}"
+    redis_tcpbacklog: "{{ cache_redis_tcpbacklog }}"
+    redis_address: "{{ cache_redis_address }}"
+    redis_protected_mode: "{{ cache_redis_protected_mode }}"
+    redis_unixsocket: "{{ cache_redis_unixsocket }}"
+    redis_unixsocketperm: "{{ cache_redis_unixsocketperm }}"
+    redis_datadir: "{{ cache_redis_datadir }}"
+    redis_logfile: "{{ cache_redis_logfile }}"
+    redis_requirepass: "{{ cache_redis_requirepass }}"
+    redis_databases: "{{ cache_redis_databases }}"
+    redis_backuptype: "{{ cache_redis_backuptype }}"
+    redis_save: "{{ cache_redis_save }}"
+    redis_stopwritesonbgsaveerror: "{{ cache_redis_stopwritesonbgsaveerror }}"
+    redis_rdbcompression: "{{ cache_redis_rdbcompression }}"
+    redis_rdbchecksum: "{{ cache_redis_rdbchecksum }}"
+    redis_dbfilename: "{{ cache_redis_dbfilename }}"
+    redis_maxclients: "{{ cache_redis_maxclients }}"
+    redis_loglevel: "{{ cache_redis_loglevel }}"
+    redis_syslogenabled: "{{ cache_redis_syslogenabled }}"
+    redis_syslogfacility: "{{ cache_redis_syslogfacility }}"
+    redis_timeout: "{{ cache_redis_timeout }}"
+    redis_keepalive: "{{ cache_redis_keepalive }}"
+    redis_replicaservestaledata: "{{ cache_redis_replicaservestaledata }}"
+    redis_replicareadonly: "{{ cache_redis_replicareadonly }}"
+    redis_repldisklesssync: "{{ cache_redis_repldisklesssync }}"
+    redis_repldisklesssyncdelay: "{{ cache_redis_repldisklesssyncdelay }}"
+    redis_replpingreplicaperiod: "{{ cache_redis_replpingreplicaperiod }}"
+    redis_repltimeout: "{{ cache_redis_repltimeout }}"
+    redis_repldisabletcpnodelay: "{{ cache_redis_repldisabletcpnodelay }}"
+    redis_replbacklogsize: "{{ cache_redis_replbacklogsize }}"
+    redis_replbacklogttl: "{{ cache_redis_replbacklogttl }}"
+    redis_replicapriority: "{{ cache_redis_replicapriority }}"
+    redis_replicaof: "{{ cache_redis_replicaof }}"
+    redis_masterauth: "{{ cache_redis_masterauth }}"
+    redis_rename_commands: "{{ cache_redis_rename_commands }}"
+    redis_maxmemory: "{{ cache_redis_maxmemory }}"
+    redis_maxmemorypolicy: "{{ cache_redis_maxmemorypolicy }}"
+    redis_maxmemorysamples: "{{ cache_redis_maxmemorysamples }}"
+    redis_appendfilename: "{{ cache_redis_appendfilename }}"
+    redis_appendfsync: "{{ cache_redis_appendfsync }}"
+    redis_noappendfsynconrewrite: "{{ cache_redis_noappendfsynconrewrite }}"
+    redis_aofrewritepercentage: "{{ cache_redis_aofrewritepercentage }}"
+    redis_aofrewriteminsize: "{{ cache_redis_aofrewriteminsize }}"
+    redis_aofloadtruncated: "{{ cache_redis_aofloadtruncated }}"
+    redis_luatimelimit: "{{ cache_redis_luatimelimit }}"
+    redis_slowloglogslowerthan: "{{ cache_redis_slowloglogslowerthan }}"
+    redis_slowlogmaxlen: "{{ cache_redis_slowlogmaxlen }}"
+    redis_notifykeyspaceevents: "{{ cache_redis_notifykeyspaceevents }}"
+    redis_hashmaxziplistentries: "{{ cache_redis_hashmaxziplistentries }}"
+    redis_hashmaxziplistvalue: "{{ cache_redis_hashmaxziplistvalue }}"
+    redis_setmaxintsetentries: "{{ cache_redis_setmaxintsetentries }}"
+    redis_zsetmaxziplistentries: "{{ cache_redis_zsetmaxziplistentries }}"
+    redis_zsetmaxziplistvalue: "{{ cache_redis_zsetmaxziplistvalue }}"
+    redis_hllsparsemaxbytes: "{{ cache_redis_hllsparsemaxbytes }}"
+    redis_activerehasing: "{{ cache_redis_activerehasing }}"
+    redis_clientoutputbufferlimit: "{{ cache_redis_clientoutputbufferlimit }}"
+    redis_hz: "{{ cache_redis_hz }}"
+    redis_aofrewriteincrementalfsync: "{{ cache_redis_aofrewriteincrementalfsync }}"
+    redis_clusterenabled: "{{ cache_redis_clusterenabled }}"
+    redis_clusterconfigfile: "{{ cache_redis_clusterconfigfile }}"
+    redis_clusternodetimeout: "{{ cache_redis_clusternodetimeout }}"
+    redis_clusterport: "{{ cache_redis_clusterport }}"
+    redis_aclfile: "{{ cache_redis_aclfile }}"
+    redis_includes: "{{ cache_redis_includes }}"
+    redis_tlsport: "{{ cache_redis_tlsport }}"
+
+- name: Install Redis systemd unit
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /lib/systemd/system/redis@6379.service
+    mode: "0644"
+    backup: true
+  notify: Reload systemd
+  vars:
+    redis_bin_path: "{{ cache_redis_bin_path }}"
+    redis_user: "{{ cache_redis_user }}"
+    redis_group: "{{ cache_redis_group }}"
+    redis_limit_nofile: "{{ cache_redis_limit_nofile }}"

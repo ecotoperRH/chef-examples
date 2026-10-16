@@ -1,0 +1,9 @@
+# Managed by the Ansible cache role.
+-m {{ cache_memcached_memory }}
+-p {{ cache_memcached_port }}
+-U {{ cache_memcached_udp_port }}
+-l {{ cache_memcached_listen }}
+-c {{ cache_memcached_maxconn }}
+-t {{ cache_memcached_threads }}
+{% for option in cache_memcached_extra_cli_options %}{{ option }}
+{% endfor %}

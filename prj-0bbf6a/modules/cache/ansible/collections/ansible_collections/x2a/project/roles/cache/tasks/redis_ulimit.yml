@@ -1,0 +1,45 @@
+---
+- name: Check whether PAM su configuration exists
+  ansible.builtin.stat:
+    path: /etc/pam.d/su
+  register: cache_pam_su
+
+- name: Configure PAM su limits # noqa: L039 - cache_pam_su is registered by the prior stat task
+  ansible.builtin.template:
+    src: su.j2
+    dest: /etc/pam.d/su
+    mode: "0644"
+    backup: true
+  when: cache_pam_su.stat.exists
+
+- name: Check whether security limits directory exists
+  ansible.builtin.stat:
+    path: /etc/security/limits.d
+  register: cache_limits_dir
+
+- name: Configure Redis file descriptor limits # noqa: L039 - cache_limits_dir is registered by the prior stat task
+  ansible.builtin.template:
+    src: ulimit.j2
+    dest: /etc/security/limits.d/redis.conf
+    mode: "0644"
+    backup: true
+  when: cache_limits_dir.stat.isdir | default(false)
+  vars:
+    ulimit_user: "{{ cache_redis_user }}"
+    filehandle_limit: "{{ cache_redis_limit_nofile }}"
+    filehandle_soft_limit:
+    filehandle_hard_limit:
+    process_limit:
+    process_soft_limit:
+    process_hard_limit:
+    memory_limit:
+    core_limit:
+    core_soft_limit:
+    core_hard_limit:
+    stack_limit:
+    stack_soft_limit:
+    stack_hard_limit:
+    rtprio_limit:
+    rtprio_soft_limit:
+    rtprio_hard_limit:
+    virt_limit:
