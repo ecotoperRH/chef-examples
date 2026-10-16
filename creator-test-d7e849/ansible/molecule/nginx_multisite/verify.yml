@@ -1,0 +1,345 @@
+---
+# Unsupported diagnostics with no stated expected result: private-key stat output,
+# sysctl values, UFW verbose output, Nginx log tails, and journal excerpts.
+- name: Verify nginx_multisite deployment
+  hosts: all
+  gather_facts: false
+  vars:
+    nginx_multisite_packages: [nginx, fail2ban, ufw, openssl, ca-certificates]
+    nginx_multisite_sites:
+      - hostname: test.cluster.local
+        document_root: /opt/server/test
+      - hostname: ci.cluster.local
+        document_root: /opt/server/ci
+      - hostname: status.cluster.local
+        document_root: /opt/server/status
+    nginx_multisite_config_checks:
+      - path: /etc/ssh/sshd_config
+        pattern: '^PermitRootLogin no$'
+      - path: /etc/ssh/sshd_config
+        pattern: '^PasswordAuthentication no$'
+      - path: /etc/nginx/nginx.conf
+        pattern: '^worker_processes auto;$'
+      - path: /etc/nginx/nginx.conf
+        pattern: '^worker_connections 768;$'
+      - path: /etc/nginx/conf.d/security.conf
+        pattern: '^server_tokens off;$'
+      - path: /etc/nginx/conf.d/security.conf
+        pattern: '^ssl_protocols TLSv1.2 TLSv1.3;$'
+    nginx_multisite_file_checks:
+      - /opt/server/test/index.html
+      - /opt/server/ci/index.html
+      - /opt/server/status/index.html
+      - /etc/nginx/sites-available/test.cluster.local
+      - /etc/nginx/sites-available/ci.cluster.local
+      - /etc/nginx/sites-available/status.cluster.local
+      - /etc/ssl/certs/test.cluster.local.crt
+      - /etc/ssl/certs/ci.cluster.local.crt
+      - /etc/ssl/certs/status.cluster.local.crt
+      - /etc/ssl/private/test.cluster.local.key
+      - /etc/ssl/private/ci.cluster.local.key
+      - /etc/ssl/private/status.cluster.local.key
+
+  tasks:
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert required packages are installed
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['packages'][item_nginx_multisite] is defined
+        fail_msg: Required package is not installed.
+        success_msg: Required package is installed.
+      loop: "{{ nginx_multisite_packages }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Check Nginx and Fail2ban systemd status
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - "{{ item_nginx_multisite['check'] }}"
+          - "{{ item_nginx_multisite['service'] }}"
+      changed_when: false
+      failed_when: false
+      register: nginx_multisite_systemd_checks
+      loop:
+        - service: nginx
+          check: is-enabled
+          expected: enabled
+        - service: nginx
+          check: is-active
+          expected: active
+        - service: fail2ban
+          check: is-enabled
+          expected: enabled
+        - service: fail2ban
+          check: is-active
+          expected: active
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Assert Nginx and Fail2ban systemd status
+      ansible.builtin.assert:
+        that:
+          - item_nginx_multisite['rc'] == 0
+          - item_nginx_multisite['stdout'] == item_nginx_multisite['item']['expected']
+        fail_msg: A required service does not have its expected systemd status.
+        success_msg: Required service has its expected systemd status.
+      loop: "{{ nginx_multisite_systemd_checks['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Validate Nginx configuration
+      ansible.builtin.command:
+        argv: [nginx, -t]
+      changed_when: false
+
+    - name: Check HTTP and HTTPS listeners
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ item_nginx_multisite }}"
+        state: started
+        timeout: 5
+      loop: [80, 443]
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Get UFW status
+      ansible.builtin.command:
+        argv: [ufw, status]
+      changed_when: false
+      register: nginx_multisite_ufw_status
+
+    - name: Assert UFW allows required TCP ports
+      ansible.builtin.assert:
+        that:
+          - item_nginx_multisite in nginx_multisite_ufw_status['stdout']
+        fail_msg: UFW does not list a required TCP allow rule.
+        success_msg: UFW lists the required TCP allow rule.
+      loop: [22/tcp, 80/tcp, 443/tcp]
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Read SSH and Nginx security configuration files
+      ansible.builtin.slurp:
+        src: "{{ item_nginx_multisite['path'] }}"
+      register: nginx_multisite_config_files
+      loop: "{{ nginx_multisite_config_checks }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Assert SSH and Nginx security configuration directives
+      ansible.builtin.assert:
+        that:
+          - >-
+            (item_nginx_multisite['content'] | b64decode |
+            regex_search(item_nginx_multisite['item']['pattern'], multiline=True)) is not none
+        fail_msg: Required SSH or Nginx security directive is absent.
+        success_msg: Required SSH or Nginx security directive is present.
+      loop: "{{ nginx_multisite_config_files['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Validate SSH daemon configuration
+      ansible.builtin.command:
+        argv: [sshd, -t]
+      changed_when: false
+
+    - name: Ping Fail2ban daemon
+      ansible.builtin.command:
+        argv: [fail2ban-client, ping]
+      changed_when: false
+
+    - name: Check required Fail2ban jails
+      ansible.builtin.command:
+        argv: [fail2ban-client, status, "{{ item_nginx_multisite }}"]
+      changed_when: false
+      register: nginx_multisite_fail2ban_jails
+      loop: [sshd, nginx-http-auth, nginx-limit-req, nginx-botsearch]
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Read Fail2ban jail configuration
+      ansible.builtin.slurp:
+        src: /etc/fail2ban/jail.local
+      register: nginx_multisite_fail2ban_jail
+
+    - name: Assert Fail2ban default settings are present
+      ansible.builtin.assert:
+        that:
+          - >-
+            (nginx_multisite_fail2ban_jail['content'] | b64decode |
+            regex_search('^bantime = ', multiline=True)) is not none
+          - >-
+            (nginx_multisite_fail2ban_jail['content'] | b64decode |
+            regex_search('^findtime = ', multiline=True)) is not none
+          - >-
+            (nginx_multisite_fail2ban_jail['content'] | b64decode |
+            regex_search('^maxretry = ', multiline=True)) is not none
+        fail_msg: Required Fail2ban default setting is absent.
+        success_msg: Required Fail2ban default settings are present.
+
+    - name: Inspect site document roots
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite['document_root'] }}"
+      register: nginx_multisite_document_roots
+      loop: "{{ nginx_multisite_sites }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Assert site document roots are directories
+      ansible.builtin.assert:
+        that:
+          - item_nginx_multisite['stat']['isdir']
+        fail_msg: Site document root is not a directory.
+        success_msg: Site document root is a directory.
+      loop: "{{ nginx_multisite_document_roots['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Inspect required site and TLS files
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite }}"
+      register: nginx_multisite_required_files
+      loop: "{{ nginx_multisite_file_checks }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Assert required site and TLS files are regular files
+      ansible.builtin.assert:
+        that:
+          - item_nginx_multisite['stat']['isreg']
+        fail_msg: A required site or TLS path is not a regular file.
+        success_msg: Required site and TLS paths are regular files.
+      loop: "{{ nginx_multisite_required_files['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Inspect enabled site links
+      ansible.builtin.stat:
+        path: "/etc/nginx/sites-enabled/{{ item_nginx_multisite['hostname'] }}"
+        follow: false
+      register: nginx_multisite_enabled_links
+      loop: "{{ nginx_multisite_sites }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Assert enabled site paths are symbolic links
+      ansible.builtin.assert:
+        that:
+          - item_nginx_multisite['stat']['islnk']
+        fail_msg: Enabled site path is not a symbolic link.
+        success_msg: Enabled site path is a symbolic link.
+      loop: "{{ nginx_multisite_enabled_links['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Resolve enabled site links
+      ansible.builtin.command:
+        argv: [readlink, -f, "/etc/nginx/sites-enabled/{{ item_nginx_multisite['hostname'] }}"]
+      changed_when: false
+      register: nginx_multisite_enabled_link_targets
+      loop: "{{ nginx_multisite_sites }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Assert enabled site links target available site configurations
+      ansible.builtin.assert:
+        that:
+          - >-
+            item_nginx_multisite['stdout'] == '/etc/nginx/sites-available/' ~
+            item_nginx_multisite['item']['hostname']
+        fail_msg: Enabled site link does not target its available site configuration.
+        success_msg: Enabled site link targets its available site configuration.
+      loop: "{{ nginx_multisite_enabled_link_targets['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Check certificate subjects
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -in
+          - "/etc/ssl/certs/{{ item_nginx_multisite['hostname'] }}.crt"
+          - -noout
+          - -subject
+          - -dates
+      changed_when: false
+      register: nginx_multisite_certificate_subjects
+      loop: "{{ nginx_multisite_sites }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Assert certificate subjects match site names
+      ansible.builtin.assert:
+        that:
+          - item_nginx_multisite['stdout'] is search('CN = ' ~ item_nginx_multisite['item']['hostname'])
+        fail_msg: Certificate subject does not match the site name.
+        success_msg: Certificate subject matches the site name.
+      loop: "{{ nginx_multisite_certificate_subjects['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Check HTTP redirects and HTTPS endpoints for each site
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -skI
+          - --resolve
+          - "{{ item_nginx_multisite['hostname'] }}:{{ item_nginx_multisite['port'] }}:127.0.0.1"
+          - "{{ item_nginx_multisite['url'] }}"
+      changed_when: false
+      register: nginx_multisite_endpoint_checks
+      loop:
+        - hostname: test.cluster.local
+          port: 80
+          url: http://test.cluster.local/
+          expected: 'HTTP/.* 301'
+        - hostname: test.cluster.local
+          port: 443
+          url: https://test.cluster.local/
+          expected: 'HTTP/.* 200'
+        - hostname: ci.cluster.local
+          port: 80
+          url: http://ci.cluster.local/
+          expected: 'HTTP/.* 301'
+        - hostname: ci.cluster.local
+          port: 443
+          url: https://ci.cluster.local/
+          expected: 'HTTP/.* 200'
+        - hostname: status.cluster.local
+          port: 80
+          url: http://status.cluster.local/
+          expected: 'HTTP/.* 301'
+        - hostname: status.cluster.local
+          port: 443
+          url: https://status.cluster.local/
+          expected: 'HTTP/.* 200'
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Assert HTTP redirects and HTTPS endpoints respond as expected
+      ansible.builtin.assert:
+        that:
+          - item_nginx_multisite['stdout'] is search(item_nginx_multisite['item']['expected'])
+        fail_msg: Site endpoint did not return its expected HTTP status.
+        success_msg: Site endpoint returned its expected HTTP status.
+      loop: "{{ nginx_multisite_endpoint_checks['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite
+
+    - name: Inspect default enabled site path
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+        follow: false
+      register: nginx_multisite_default_site
+
+    - name: Assert default enabled site is removed
+      ansible.builtin.assert:
+        that:
+          - not nginx_multisite_default_site['stat']['exists']
+        fail_msg: Default enabled Nginx site is still present.
+        success_msg: Default enabled Nginx site is removed.
