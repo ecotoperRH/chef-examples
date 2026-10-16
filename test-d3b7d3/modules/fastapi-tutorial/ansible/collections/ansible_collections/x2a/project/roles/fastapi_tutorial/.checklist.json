@@ -1,0 +1,165 @@
+{
+  "module_name": "fastapi_tutorial",
+  "items": [
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/run_fastapi_tutorial.yml",
+      "status": "complete",
+      "description": "Deployment entry point for the migrated role",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/requirements.yml",
+      "status": "complete",
+      "description": "Test-only Podman collection dependency",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/README.md",
+      "status": "complete",
+      "description": "Developer instructions for running Molecule",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/fastapi_tutorial/molecule.yml",
+      "status": "complete",
+      "description": "Ansible-native Molecule scenario configuration",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/fastapi_tutorial/inventory/hosts.yml",
+      "status": "complete",
+      "description": "Disposable Podman target inventory",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/fastapi_tutorial/create.yml",
+      "status": "complete",
+      "description": "Create and inspect disposable Podman targets",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/fastapi_tutorial/destroy.yml",
+      "status": "complete",
+      "description": "Remove disposable Podman targets",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/fastapi_tutorial/prepare.yml",
+      "status": "complete",
+      "description": "Bootstrap Python on the disposable Linux target",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/fastapi_tutorial/converge.yml",
+      "status": "complete",
+      "description": "Run the deployment playbook under test",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/fastapi_tutorial/verify.yml",
+      "status": "complete",
+      "description": "Verify migrated behavior against the source plan",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/fastapi_tutorial/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/fastapi_tutorial/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/fastapi_tutorial/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/fastapi-tutorial/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/fastapi_tutorial/tasks/main.yml",
+      "status": "complete",
+      "description": "Migrate the default Chef recipe: install OS and PostgreSQL packages, synchronize the application repository, create the virtual environment, install requirements, provision the PostgreSQL role/database, write the .env and systemd unit, reload systemd, and enable/start services.",
+      "notes": "Rewrote PostgreSQL tasks to use only ansible.builtin.command; removed unapproved community.postgresql modules while preserving idempotent checks and secret logging."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/fastapi_tutorial/defaults/main.yml",
+      "status": "complete",
+      "description": "Define role defaults for application paths, repository settings, PostgreSQL database/user credentials, environment content, and systemd/application settings; keep secrets vaulted.",
+      "notes": "Added application, repository, service, database, and secure logging defaults."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/fastapi_tutorial/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata; no external Chef cookbook dependencies are listed.",
+      "notes": "Created standard meta/main.yml"
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/fastapi_tutorial/handlers/main.yml",
+      "status": "complete",
+      "description": "Provide handlers for systemd daemon reload and any intentional service restart/reload behavior introduced during migration.",
+      "notes": "Added systemd daemon reload handler for unit changes."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/fastapi_tutorial/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Role argument specifications for fail-fast validation of role inputs; generate after defaults/main.yml.",
+      "notes": "Documented role defaults and AAP credential parameters in argument specifications."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/fastapi_tutorial/vars/Debian.yml",
+      "status": "complete",
+      "description": "Add Debian package and service variables for cross-platform role support.",
+      "notes": "Written with the role OS-specific package and service names."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/fastapi_tutorial/vars/RedHat.yml",
+      "status": "complete",
+      "description": "Add RedHat package and service variables for cross-platform role support.",
+      "notes": "Written with EL package names and PostgreSQL service name."
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+---
+fastapi_tutorial_python_package: python3
+fastapi_tutorial_pip_package: python3-pip
+fastapi_tutorial_venv_package: python3-venv
+fastapi_tutorial_postgresql_package: postgresql-server
+fastapi_tutorial_postgresql_contrib_package: postgresql-contrib
+fastapi_tutorial_libpq_package: libpq-devel
+fastapi_tutorial_postgresql_service: postgresql

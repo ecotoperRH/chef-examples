@@ -1,0 +1,178 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Load operating system variables
+  ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
+  when: ansible_facts['os_family'] is defined
+
+- name: Install required system packages
+  ansible.builtin.package:
+    name:
+      - "{{ fastapi_tutorial_python_package }}" # noqa: R113 - package name comes from role OS defaults
+      - "{{ fastapi_tutorial_pip_package }}" # noqa: R113 - package name comes from role OS defaults
+      - "{{ fastapi_tutorial_venv_package }}" # noqa: R113 - package name comes from role OS defaults
+      - git
+      - "{{ fastapi_tutorial_postgresql_package }}" # noqa: R113 - package name comes from role OS defaults
+      - "{{ fastapi_tutorial_postgresql_contrib_package }}" # noqa: R113 - package name comes from role OS defaults
+      - "{{ fastapi_tutorial_libpq_package }}" # noqa: R113 - package name comes from role OS defaults
+    state: present
+
+- name: Create application directory
+  ansible.builtin.file:
+    path: "{{ fastapi_tutorial_app_dir }}" # noqa: R114 - path from role defaults, not user input
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Synchronize application repository # noqa: R104 - repository default uses HTTPS
+  ansible.builtin.git:
+    repo: "{{ fastapi_tutorial_repository }}" # noqa: R106 - repository is a role-configured source
+    dest: "{{ fastapi_tutorial_app_dir }}" # noqa: R114 - destination from role defaults, not user input
+    version: "{{ fastapi_tutorial_revision }}"
+    update: true
+
+- name: Create Python virtual environment # noqa: R101 - virtualenv path comes from role defaults
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -m
+      - venv
+      - "{{ fastapi_tutorial_venv_dir }}"
+    creates: "{{ fastapi_tutorial_venv_dir }}/bin/python" # noqa: R114 - path from role defaults, not user input
+
+- name: Install Python dependencies # noqa: R113 - requirements target is the role's fixed application requirements file
+  ansible.builtin.pip:
+    requirements: "{{ fastapi_tutorial_app_dir }}/requirements.txt" # noqa: R114 - path from role defaults, not user input
+    virtualenv: "{{ fastapi_tutorial_venv_dir }}" # noqa: R114 - path from role defaults, not user input
+
+- name: Initialize PostgreSQL database on EL 7
+  ansible.builtin.command:
+    argv:
+      - postgresql-setup
+      - initdb
+    creates: /var/lib/pgsql/data/PG_VERSION
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - ansible_facts['distribution_major_version'] | int == 7
+
+- name: Initialize PostgreSQL database on EL 8+
+  ansible.builtin.command:
+    argv:
+      - postgresql-setup
+      - --initdb
+      - --unit
+      - postgresql
+    creates: /var/lib/pgsql/data/PG_VERSION
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - ansible_facts['distribution_major_version'] | int >= 8
+
+- name: Enable and start PostgreSQL
+  ansible.builtin.service:
+    name: "{{ fastapi_tutorial_postgresql_service }}"
+    enabled: true
+    state: started
+
+- name: Check whether PostgreSQL application user exists # noqa: R101 - required database query uses the validated credential
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -tAc
+      - SELECT 1 FROM pg_roles WHERE rolname = '{{ db_username }}'; # noqa: L039 - credential variable is validated by the prior task
+  changed_when: false
+  register: fastapi_tutorial_user_check
+  become: true # noqa: R108 - PostgreSQL role query must run as the postgres account
+  become_user: postgres
+  no_log: "{{ fastapi_tutorial_secure_logging }}"
+
+- name: Create PostgreSQL application user # noqa: R101 - required PostgreSQL statement uses validated credentials
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -c
+      - CREATE USER {{ db_username }} WITH PASSWORD '{{ db_password }}'; # noqa: L039 - credential variables are validated by the prior task
+  when: fastapi_tutorial_user_check.stdout | trim != '1' # noqa: L039 - registered by the preceding user-existence check
+  changed_when: true
+  become: true # noqa: R108 - PostgreSQL role creation must run as the postgres account
+  become_user: postgres
+  no_log: "{{ fastapi_tutorial_secure_logging }}"
+
+- name: Check whether application database exists # noqa: R101 - required database query uses the validated credential
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -tAc
+      - SELECT 1 FROM pg_database WHERE datname = '{{ database_name }}'; # noqa: L039 - credential variable is validated by the prior task
+  changed_when: false
+  register: fastapi_tutorial_database_check
+  become: true # noqa: R108 - PostgreSQL database query must run as the postgres account
+  become_user: postgres
+  no_log: "{{ fastapi_tutorial_secure_logging }}"
+
+- name: Create application database # noqa: R101 - required database command uses the validated credentials
+  ansible.builtin.command:
+    argv:
+      - createdb
+      - -O
+      - "{{ db_username }}" # noqa: L039 - credential variable is validated by the prior task
+      - "{{ database_name }}" # noqa: L039 - credential variable is validated by the prior task
+  when: fastapi_tutorial_database_check.stdout | trim != '1' # noqa: L039 - registered by the preceding database-existence check
+  changed_when: true
+  become: true # noqa: R108 - PostgreSQL database creation must run as the postgres account
+  become_user: postgres
+
+- name: Grant application database privileges # noqa: R101 - required PostgreSQL statement uses validated credentials
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -c
+      - GRANT ALL PRIVILEGES ON DATABASE {{ database_name }} TO {{ db_username }}; # noqa: L039 - credential variables are validated by the prior task
+  changed_when: false
+  become: true # noqa: R108 - PostgreSQL privilege grant must run as the postgres account
+  become_user: postgres
+
+- name: Write application environment file
+  ansible.builtin.copy:
+    dest: "{{ fastapi_tutorial_env_file }}" # noqa: R114 - path from role defaults, not user input
+    content: |
+      PROJECT_NAME="{{ fastapi_tutorial_project_name }}"
+      API_VERSION={{ fastapi_tutorial_api_version }}
+      DATABASE_URL={{ fastapi_tutorial_database_url }}
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  no_log: "{{ fastapi_tutorial_secure_logging }}"
+
+- name: Write systemd service unit
+  ansible.builtin.copy:
+    dest: "{{ fastapi_tutorial_service_file }}" # noqa: R114 - path from role defaults, not user input
+    content: |
+      [Unit]
+      Description=FastAPI Tutorial Service
+      After=network.target postgresql.service
+      [Service]
+      Type=simple
+      User=root
+      WorkingDirectory={{ fastapi_tutorial_app_dir }}
+      Environment="PATH={{ fastapi_tutorial_venv_dir }}/bin"
+      ExecStart={{ fastapi_tutorial_venv_dir }}/bin/uvicorn {{ fastapi_tutorial_app_module }} --host {{ fastapi_tutorial_bind_address }} --port {{ fastapi_tutorial_port }}
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload systemd
+
+- name: Apply systemd unit changes before starting FastAPI
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start FastAPI service
+  ansible.builtin.service:
+    name: "{{ fastapi_tutorial_service_name }}"
+    enabled: true
+    state: started
