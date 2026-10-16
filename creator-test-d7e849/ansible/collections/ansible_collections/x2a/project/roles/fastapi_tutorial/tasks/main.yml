@@ -1,0 +1,190 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Install FastAPI tutorial system packages
+  ansible.builtin.package:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+      - git
+      - postgresql
+      - postgresql-contrib
+      - libpq-dev
+    state: present
+
+- name: Create FastAPI tutorial application directory
+  ansible.builtin.file:
+    path: /opt/fastapi-tutorial
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Check out FastAPI tutorial application
+  ansible.builtin.git:
+    repo: https://github.com/dibanez/fastapi_tutorial.git
+    dest: /opt/fastapi-tutorial
+    version: main
+    update: true
+
+- name: Create FastAPI tutorial virtual environment
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -m
+      - venv
+      - /opt/fastapi-tutorial/venv
+    creates: /opt/fastapi-tutorial/venv/bin/python
+
+- name: Install FastAPI tutorial Python dependencies
+  ansible.builtin.pip:
+    requirements: /opt/fastapi-tutorial/requirements.txt
+    virtualenv: /opt/fastapi-tutorial/venv
+    virtualenv_command: python3 -m venv
+
+- name: Enable and start PostgreSQL
+  ansible.builtin.service:
+    name: postgresql
+    enabled: true
+    state: started
+
+- name: Check whether FastAPI database role exists
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -d
+      - postgres
+      - -tAc
+      - SELECT 1 FROM pg_roles WHERE rolname = 'fastapi'
+  changed_when: false
+  register: fastapi_tutorial_role_check
+  become: true # noqa: R108 - querying PostgreSQL as the postgres system account requires privilege escalation.
+  become_user: postgres
+
+- name: Create or update FastAPI database role # noqa: R101 - db_password is validated by validate_credentials.yml and intentionally SQL-escaped before use.
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -d
+      - postgres
+      - -c
+      - CREATE ROLE fastapi LOGIN PASSWORD '{{ db_password | replace("'", "''") }}'
+  when: fastapi_tutorial_role_check.stdout | trim != '1' # noqa: L039 - the role check is registered by the preceding task.
+  become: true # noqa: R108 - PostgreSQL role administration must run as the postgres system account.
+  become_user: postgres
+  no_log: "{{ fastapi_tutorial_secure_logging | default(true) }}"
+
+- name: Check whether FastAPI database exists
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -d
+      - postgres
+      - -tAc
+      - SELECT 1 FROM pg_database WHERE datname = 'fastapi_db'
+  changed_when: false
+  register: fastapi_tutorial_database_check
+  become: true # noqa: R108 - querying PostgreSQL as the postgres system account requires privilege escalation.
+  become_user: postgres
+
+- name: Create FastAPI database # noqa: L039 - the registered database check is set by the preceding task.
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -d
+      - postgres
+      - -c
+      - CREATE DATABASE fastapi_db OWNER fastapi
+  when: fastapi_tutorial_database_check.stdout | trim != '1'
+  become: true # noqa: R108 - PostgreSQL database creation must run as the postgres system account.
+  become_user: postgres
+
+- name: Check FastAPI database role credentials # noqa: L039 - db_password is validated by validate_credentials.yml before this task runs.
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -h
+      - localhost
+      - -U
+      - fastapi
+      - -d
+      - fastapi_db
+      - -tAc
+      - SELECT 1
+  environment: # noqa: L045 - PGPASSWORD is required by psql for this non-interactive credential verification.
+    PGPASSWORD: "{{ db_password }}"
+  changed_when: false
+  failed_when: false
+  register: fastapi_tutorial_credential_check
+  no_log: "{{ fastapi_tutorial_secure_logging | default(true) }}"
+
+- name: Update FastAPI database role password # noqa: R101 - db_password is validated by validate_credentials.yml and intentionally SQL-escaped before use.
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -d
+      - postgres
+      - -c
+      - ALTER ROLE fastapi PASSWORD '{{ db_password | replace("'", "''") }}'
+  when: fastapi_tutorial_credential_check.rc != 0 # noqa: L039 - the credential check is registered by the preceding task.
+  become: true # noqa: R108 - PostgreSQL role administration must run as the postgres system account.
+  become_user: postgres
+  no_log: "{{ fastapi_tutorial_secure_logging | default(true) }}"
+
+- name: Grant FastAPI role access to its database
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -d
+      - postgres
+      - -c
+      - GRANT ALL PRIVILEGES ON DATABASE fastapi_db TO fastapi
+  changed_when: false
+  become: true # noqa: R108 - PostgreSQL privilege grants must run as the postgres system account.
+  become_user: postgres
+
+- name: Write FastAPI tutorial environment configuration # noqa: L039 - db_password is validated by validate_credentials.yml before this task runs.
+  ansible.builtin.copy:
+    content: |
+      PROJECT_NAME="FastAPI Tutorial"
+      API_VERSION=1.0.0
+      DATABASE_URL=postgresql://fastapi:{{ db_password }}@localhost/fastapi_db
+    dest: /opt/fastapi-tutorial/.env
+    owner: root
+    group: root
+    mode: "0600"
+    backup: true
+  no_log: "{{ fastapi_tutorial_secure_logging | default(true) }}"
+
+- name: Write FastAPI tutorial systemd unit
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=FastAPI Tutorial Service
+      After=network.target postgresql.service
+      [Service]
+      Type=simple
+      User=root
+      WorkingDirectory=/opt/fastapi-tutorial
+      Environment="PATH=/opt/fastapi-tutorial/venv/bin"
+      ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/fastapi-tutorial.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload systemd
+
+- name: Apply systemd unit changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start FastAPI tutorial
+  ansible.builtin.service:
+    name: fastapi-tutorial
+    enabled: true
+    state: started

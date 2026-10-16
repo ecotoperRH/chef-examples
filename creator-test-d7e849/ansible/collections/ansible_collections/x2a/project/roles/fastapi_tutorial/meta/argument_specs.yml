@@ -1,0 +1,16 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure the FastAPI tutorial application
+    description:
+      - Deploys the FastAPI tutorial application with a local PostgreSQL database.
+    options:
+      fastapi_tutorial_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Controls whether tasks handling database credentials hide their output.
+      db_password:
+        type: str
+        required: true
+        description: PostgreSQL password injected by an AAP credential type.
