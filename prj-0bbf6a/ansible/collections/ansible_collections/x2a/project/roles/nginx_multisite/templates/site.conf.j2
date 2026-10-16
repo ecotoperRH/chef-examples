@@ -1,0 +1,37 @@
+server {
+    listen 80;
+    server_name {{ site_name }};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name {{ site_name }};
+    root {{ document_root }};
+    index index.html;
+
+    ssl_certificate {{ certificate_path }};
+    ssl_certificate_key {{ key_path }};
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options DENY;
+    add_header X-XSS-Protection "1; mode=block";
+
+    access_log /var/log/nginx/{{ site_name }}_access.log;
+    error_log /var/log/nginx/{{ site_name }}_error.log;
+    gzip on;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+
+    location ~ /\.(git|svn) {
+        deny all;
+    }
+}

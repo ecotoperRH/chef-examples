@@ -1,0 +1,18 @@
+---
+# defaults file for x2a.project.nginx_multisite
+nginx_multisite_my_variable: default_value
+
+# Virtual hosts managed by the role.
+nginx_multisite_sites:
+  test.cluster.local:
+    document_root: /var/www/test.cluster.local
+    source: test/index.html
+    ssl_enabled: true
+  ci.cluster.local:
+    document_root: /var/www/ci.cluster.local
+    source: ci/index.html
+    ssl_enabled: true
+  status.cluster.local:
+    document_root: /var/www/status.cluster.local
+    source: status/index.html
+    ssl_enabled: true

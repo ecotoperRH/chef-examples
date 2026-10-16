@@ -1,0 +1,84 @@
+---
+- name: Install TLS packages
+  ansible.builtin.package:
+    name:
+      - openssl
+      - ca-certificates
+    state: present
+
+- name: Create ssl-cert group
+  ansible.builtin.group:
+    name: ssl-cert
+    state: present
+
+- name: Create certificate directory
+  ansible.builtin.file:
+    path: /etc/ssl/certs
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create private key directory
+  ansible.builtin.file:
+    path: /etc/ssl/private
+    state: directory
+    owner: root
+    group: ssl-cert
+    mode: "0710"
+
+- name: Check site certificates
+  ansible.builtin.stat:
+    path: /etc/ssl/certs/{{ item_ssl_site['key'] }}.crt # noqa: R114 - filename comes from role-defined sites configuration
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_ssl_site
+  register: nginx_multisite_certificate_stats
+
+- name: Check site private keys
+  ansible.builtin.stat:
+    path: /etc/ssl/private/{{ item_ssl_key['key'] }}.key # noqa: R114 - filename comes from role-defined sites configuration
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_ssl_key
+  register: nginx_multisite_key_stats
+
+- name: Generate self-signed site certificates  # noqa: L039 - registered certificate and key stats are used to skip existing files
+  ansible.builtin.command:  # noqa: R101 - command paths are constructed from role-defined sites configuration
+    argv:
+      - openssl
+      - req
+      - -x509
+      - -nodes
+      - -days
+      - "365"
+      - -newkey
+      - rsa:2048
+      - -keyout
+      - /etc/ssl/private/{{ item_ssl_cert['key'] }}.key
+      - -out
+      - /etc/ssl/certs/{{ item_ssl_cert['key'] }}.crt
+      - -subj
+      - /C=US/ST=Example/L=Example/O=Example Org/OU=IT/CN={{ item_ssl_cert['key'] }}/emailAddress=admin@example.com
+  when:
+    - item_ssl_cert['value']['ssl_enabled'] | bool
+    - not (nginx_multisite_certificate_stats.results[ansible_loop.index0]['stat']['exists'] and
+      nginx_multisite_key_stats.results[ansible_loop.index0]['stat']['exists'])
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_ssl_cert
+  notify: Reload nginx
+
+- name: Set private key ownership and permissions  # noqa: L039 - variable is registered by the preceding private key stat task
+  ansible.builtin.file:
+    path: /etc/ssl/private/{{ item_ssl_permissions['key'] }}.key # noqa: R114 - filename comes from role-defined sites configuration
+    state: file
+    owner: root
+    group: ssl-cert
+    mode: "0640"
+  when:
+    - item_ssl_permissions['value']['ssl_enabled'] | bool
+    - nginx_multisite_key_stats.results[ansible_loop.index0]['stat']['exists']
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_ssl_permissions

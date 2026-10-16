@@ -1,0 +1,17 @@
+---
+nginx_multisite_sites:
+  - name: 'test.cluster.local'
+    document_root: '/opt/server/test'
+    certificate: '/etc/ssl/certs/test.cluster.local.crt'
+    private_key: '/etc/ssl/private/test.cluster.local.key'
+  - name: 'ci.cluster.local'
+    document_root: '/opt/server/ci'
+    certificate: '/etc/ssl/certs/ci.cluster.local.crt'
+    private_key: '/etc/ssl/private/ci.cluster.local.key'
+  - name: 'status.cluster.local'
+    document_root: '/opt/server/status'
+    certificate: '/etc/ssl/certs/status.cluster.local.crt'
+    private_key: '/etc/ssl/private/status.cluster.local.key'
+nginx_multisite_certificate_days: 365
+nginx_multisite_certificate_email: 'admin@example.com'
+nginx_multisite_secure_logging: true

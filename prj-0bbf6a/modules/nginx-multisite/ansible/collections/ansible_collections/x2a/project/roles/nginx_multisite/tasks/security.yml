@@ -1,0 +1,107 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+      - openssh-server
+      - "{{ 'procps' if ansible_facts.os_family == 'Debian' else 'procps-ng' }}"
+    state: present
+
+- name: Enable and start fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: Deploy fail2ban jail configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  notify: Restart fail2ban
+
+- name: Set UFW default incoming policy
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - --force
+      - default
+      - deny
+  changed_when: "'Default incoming policy changed to' in nginx_multisite_ufw_default.stdout"
+  register: nginx_multisite_ufw_default
+
+- name: Allow SSH through UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - allow
+      - ssh
+  changed_when: "'Skipping adding existing rule' not in nginx_multisite_ufw_ssh.stdout"
+  register: nginx_multisite_ufw_ssh
+
+- name: Allow HTTP through UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - allow
+      - http
+  changed_when: "'Skipping adding existing rule' not in nginx_multisite_ufw_http.stdout"
+  register: nginx_multisite_ufw_http
+
+- name: Allow HTTPS through UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - allow
+      - https
+  changed_when: "'Skipping adding existing rule' not in nginx_multisite_ufw_https.stdout"
+  register: nginx_multisite_ufw_https
+
+- name: Check UFW status
+  ansible.builtin.command:
+    cmd: ufw status
+  changed_when: false
+  register: nginx_multisite_ufw_status
+  check_mode: false
+
+- name: Enable UFW  # noqa: L039 - variable is registered by the preceding status check task
+  ansible.builtin.command:
+    cmd: ufw --force enable
+  when: "'Status: active' not in nginx_multisite_ufw_status.stdout"
+
+- name: Deploy kernel security configuration
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload nginx_multisite sysctl
+
+- name: Check SSH daemon configuration
+  ansible.builtin.stat:
+    path: /etc/ssh/sshd_config
+  register: nginx_multisite_sshd_config
+
+- name: Set SSH root login policy  # noqa: L039 - variable is registered by the preceding SSH configuration stat task
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin
+    line: PermitRootLogin no
+    state: present
+    backup: true
+    create: false
+  when: nginx_multisite_sshd_config.stat.exists
+  notify: Restart SSH
+
+- name: Set SSH password authentication policy  # noqa: L039 - variable is registered by the preceding SSH configuration stat task
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication
+    line: PasswordAuthentication no
+    state: present
+    backup: true
+    create: false
+  when: nginx_multisite_sshd_config.stat.exists
+  notify: Restart SSH
