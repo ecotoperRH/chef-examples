@@ -1,0 +1,22 @@
+---
+fastapi_tutorial_app_path: '/opt/fastapi-tutorial'
+fastapi_tutorial_venv_path: '/opt/fastapi-tutorial/venv'
+fastapi_tutorial_repository_url: ''
+fastapi_tutorial_repository_version: 'HEAD'
+fastapi_tutorial_repository_accept_hostkey: true
+fastapi_tutorial_app_user: 'root'
+fastapi_tutorial_app_group: 'root'
+fastapi_tutorial_app_service_name: 'fastapi-tutorial'
+fastapi_tutorial_app_service_file: '/etc/systemd/system/fastapi-tutorial.service'
+fastapi_tutorial_app_service_exec_start: '/opt/fastapi-tutorial/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000'
+fastapi_tutorial_app_service_working_directory: '/opt/fastapi-tutorial'
+fastapi_tutorial_app_service_environment_file: '/opt/fastapi-tutorial/.env'
+fastapi_tutorial_app_service_restart: 'always'
+fastapi_tutorial_app_env_content: 'DATABASE_USER={{ database_username }}
+DATABASE_PASSWORD={{ database_password }}
+DATABASE_NAME={{ database_name }}
+'
+fastapi_tutorial_database_host: '127.0.0.1'
+fastapi_tutorial_database_port: 5432
+fastapi_tutorial_database_os_user: 'postgres'
+fastapi_tutorial_secure_logging: true

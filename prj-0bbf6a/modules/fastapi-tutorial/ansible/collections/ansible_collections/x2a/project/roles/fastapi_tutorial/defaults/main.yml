@@ -1,0 +1,5 @@
+---
+# defaults file for x2a.project.fastapi_tutorial
+# Variable that will be displayed in debug output
+# This demonstrates proper role variable naming with the 'fastapi_tutorial_' prefix
+fastapi_tutorial_my_variable: default_value
