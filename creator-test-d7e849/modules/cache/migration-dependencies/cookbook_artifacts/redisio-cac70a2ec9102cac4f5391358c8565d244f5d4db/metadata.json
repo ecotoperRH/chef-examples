@@ -1,0 +1,63 @@
+{
+  "name": "redisio",
+  "description": "Installs and configures redis",
+  "long_description": "",
+  "maintainer": "Sous Chefs",
+  "maintainer_email": "help@sous-chefs.org",
+  "license": "Apache-2.0",
+  "platforms": {
+    "centos": ">= 0.0.0",
+    "debian": ">= 0.0.0",
+    "fedora": ">= 0.0.0",
+    "redhat": ">= 0.0.0",
+    "rocky": ">= 0.0.0",
+    "scientific": ">= 0.0.0",
+    "suse": ">= 0.0.0",
+    "ubuntu": ">= 0.0.0"
+  },
+  "dependencies": {
+    "selinux": ">= 0.0.0"
+  },
+  "providing": {
+    "redisio::_install_prereqs": ">= 0.0.0",
+    "redisio::configure": ">= 0.0.0",
+    "redisio": ">= 0.0.0",
+    "redisio::disable": ">= 0.0.0",
+    "redisio::disable_os_default": ">= 0.0.0",
+    "redisio::enable": ">= 0.0.0",
+    "redisio::install": ">= 0.0.0",
+    "redisio::redis_gem": ">= 0.0.0",
+    "redisio::sentinel": ">= 0.0.0",
+    "redisio::sentinel_enable": ">= 0.0.0",
+    "redisio::ulimit": ">= 0.0.0"
+  },
+  "recipes": {
+    "redisio::_install_prereqs": "",
+    "redisio::configure": "",
+    "redisio": "",
+    "redisio::disable": "",
+    "redisio::disable_os_default": "",
+    "redisio::enable": "",
+    "redisio::install": "",
+    "redisio::redis_gem": "",
+    "redisio::sentinel": "",
+    "redisio::sentinel_enable": "",
+    "redisio::ulimit": ""
+  },
+  "version": "7.2.4",
+  "source_url": "https://github.com/sous-chefs/redisio",
+  "issues_url": "https://github.com/sous-chefs/redisio/issues",
+  "privacy": false,
+  "chef_versions": [
+    [
+      ">= 16"
+    ]
+  ],
+  "ohai_versions": [
+
+  ],
+  "gems": [
+
+  ],
+  "eager_load_libraries": true
+}
