@@ -1,0 +1,83 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy and configure the FastAPI tutorial application.
+    description:
+      - Installs the application dependencies and PostgreSQL packages.
+      - Clones the FastAPI tutorial repository, configures its database, and manages its systemd service.
+    options:
+      fastapi_tutorial_app_dir:
+        type: str
+        required: false
+        default: /opt/fastapi-tutorial
+        description: Application installation directory.
+      fastapi_tutorial_repository:
+        type: str
+        required: false
+        default: https://github.com/dibanez/fastapi_tutorial.git
+        description: Git repository containing the application.
+      fastapi_tutorial_revision:
+        type: str
+        required: false
+        default: main
+        description: Git revision to deploy.
+      fastapi_tutorial_venv_dir:
+        type: str
+        required: false
+        default: /opt/fastapi-tutorial/venv
+        description: Python virtual environment directory.
+      fastapi_tutorial_service_name:
+        type: str
+        required: false
+        default: fastapi-tutorial
+        description: Systemd service name.
+      fastapi_tutorial_service_file:
+        type: str
+        required: false
+        default: /etc/systemd/system/fastapi-tutorial.service
+        description: Systemd unit file path.
+      fastapi_tutorial_bind_host:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: Address on which Uvicorn listens.
+      fastapi_tutorial_bind_port:
+        type: int
+        required: false
+        default: 8000
+        description: TCP port on which Uvicorn listens.
+      fastapi_tutorial_project_name:
+        type: str
+        required: false
+        default: FastAPI Tutorial
+        description: Application project name written to the environment file.
+      fastapi_tutorial_api_version:
+        type: str
+        required: false
+        default: 1.0.0
+        description: Application API version written to the environment file.
+      fastapi_tutorial_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Hide output from tasks that handle the database password.
+      db_username:
+        type: str
+        required: true
+        description: Database username injected by an AAP credential type.
+      db_password:
+        type: str
+        required: true
+        description: Database password injected by an AAP credential type.
+      database_name:
+        type: str
+        required: true
+        description: Database name injected by an AAP credential type.
+      database_host:
+        type: str
+        required: true
+        description: Database host injected by an AAP credential type.
+      database_port:
+        type: str
+        required: true
+        description: Database port injected by an AAP credential type.
