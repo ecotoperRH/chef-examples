@@ -1,0 +1,3 @@
+---
+# Internal platform values are supplied by defaults and may be overridden by operators.
+cache_redis_platform_service_name: redis

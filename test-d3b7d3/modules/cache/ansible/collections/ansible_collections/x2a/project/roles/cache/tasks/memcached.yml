@@ -1,0 +1,35 @@
+---
+- name: Create Memcached service account
+  ansible.builtin.user:
+    name: "{{ cache_memcached_user }}"
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+    state: present
+
+- name: Install Memcached
+  ansible.builtin.package:
+    name: "{{ cache_memcached_package }}"
+    state: present
+
+- name: Configure Memcached service arguments
+  ansible.builtin.copy:
+    dest: /etc/default/memcached
+    mode: "0644"
+    backup: true
+    content: |
+      PORT="{{ cache_memcached_port }}"
+      UDP_PORT="{{ cache_memcached_udp_port }}"
+      LISTEN="{{ cache_memcached_listen }}"
+      MAXCONN="{{ cache_memcached_maxconn }}"
+      CACHESIZE="{{ cache_memcached_memory }}"
+      USER="{{ cache_memcached_user }}"
+      MAXOBJECTSIZE="{{ cache_memcached_max_object_size }}"
+      OPTIONS="{{ cache_memcached_extra_cli_options | join(' ') }}"
+  notify: Restart Memcached
+
+- name: Start and enable Memcached
+  ansible.builtin.service:
+    name: "{{ cache_memcached_service }}"
+    state: started
+    enabled: true

@@ -1,0 +1,16 @@
+---
+- name: Check for installed Redis binary
+  ansible.builtin.stat:
+    path: "{{ cache_redis_bin_path }}/redis-server" # noqa: R114 - fixed role binary path
+  register: cache_redis_server_binary
+
+- name: Install Redis from source only when absent # noqa: L039 - cache_redis_server_binary is registered by the preceding stat task
+  ansible.builtin.command:
+    argv:
+      - make
+      - install
+    chdir: /usr/local/src/redis-{{ cache_redis_version }}
+  when:
+    - cache_redis_install_from_source | bool
+    - not cache_redis_server_binary.stat.exists
+  changed_when: true

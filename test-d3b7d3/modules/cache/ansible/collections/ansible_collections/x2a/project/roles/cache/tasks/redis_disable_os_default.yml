@@ -1,0 +1,18 @@
+---
+- name: Gather service facts before disabling distribution Redis
+  ansible.builtin.service_facts:
+
+- name: Stop distribution Redis service
+  ansible.builtin.service:
+    name: "{{ cache_redis_default_service_name }}"
+    state: stopped
+  when: cache_redis_default_service_name ~ '.service' in ansible_facts.services
+  failed_when: false
+
+- name: Disable distribution Redis service
+  ansible.builtin.service:
+    name: "{{ cache_redis_default_service_name }}"
+    enabled: false
+    state: stopped
+  when: cache_redis_default_service_name ~ '.service' in ansible_facts.services
+  failed_when: false

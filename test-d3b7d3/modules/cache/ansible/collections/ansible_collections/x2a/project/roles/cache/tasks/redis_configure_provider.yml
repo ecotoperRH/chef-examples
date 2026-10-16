@@ -1,0 +1,40 @@
+---
+- name: Create Redis group
+  ansible.builtin.group:
+    name: "{{ cache_redis_group }}"
+    system: true
+    state: present
+
+- name: Create Redis service account
+  ansible.builtin.user:
+    name: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    home: /var/lib/redis
+    shell: /bin/false
+    system: true
+    create_home: false
+    state: present
+
+- name: Ensure Redis configuration directory exists
+  ansible.builtin.file:
+    path: "{{ cache_redis_config_dir }}" # noqa: R114 - fixed role default configuration directory
+    state: directory
+    owner: root
+    group: "{{ cache_redis_group }}"
+    mode: "0775"
+
+- name: Ensure Redis PID parent directory exists
+  ansible.builtin.file:
+    path: "{{ cache_redis_pid_dir }}" # noqa: R114 - fixed role default PID directory
+    state: directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+
+- name: Ensure Redis instance PID directory exists
+  ansible.builtin.file:
+    path: "{{ cache_redis_pid_dir }}/{{ cache_redis_name }}" # noqa: R114 - fixed role default instance PID directory
+    state: directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"

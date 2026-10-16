@@ -1,0 +1,10 @@
+---
+- name: Install Redis source prerequisites
+  ansible.builtin.package:
+    name:
+      - tar
+      - make
+      - gcc
+      - libc6-dev
+    state: present
+  when: cache_redis_install_from_source | bool

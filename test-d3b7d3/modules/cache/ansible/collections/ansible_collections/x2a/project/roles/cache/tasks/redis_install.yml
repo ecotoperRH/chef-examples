@@ -1,0 +1,42 @@
+---
+- name: Install Redis package
+  ansible.builtin.package:
+    name: "{{ cache_redis_package_name }}"
+    state: present
+  when: cache_redis_package_install | bool
+
+- name: Ensure Redis source directory exists
+  ansible.builtin.file:
+    path: /usr/local/src
+    state: directory
+    mode: "0755"
+  when: cache_redis_install_from_source | bool
+
+- name: Download Redis source archive # noqa: R104 - source URL is intentionally operator-configurable; the role default uses HTTP for the upstream Redis release # noqa: R106 - source URL is intentionally operator-configurable by the role consumer
+  ansible.builtin.get_url:
+    url: "{{ cache_redis_source_url }}"
+    dest: /tmp/redis-{{ cache_redis_version }}.tar.gz # noqa: R114 - fixed temporary archive path built from role version
+    mode: "0644"
+  when: cache_redis_install_from_source | bool
+
+- name: Extract Redis source archive
+  ansible.builtin.unarchive: # noqa: R104 - source is the locally downloaded archive; no external transfer occurs # noqa: R106 - source is the locally downloaded archive and is not externally controlled
+    src: /tmp/redis-{{ cache_redis_version }}.tar.gz
+    dest: /usr/local/src
+    remote_src: true
+    creates: /usr/local/src/redis-{{ cache_redis_version }} # noqa: R114 - fixed source directory built from role version
+  when: cache_redis_install_from_source | bool
+
+- name: Build Redis from source
+  ansible.builtin.command:
+    cmd: make
+    chdir: /usr/local/src/redis-{{ cache_redis_version }}
+    creates: /usr/local/src/redis-{{ cache_redis_version }}/src/redis-server
+  when: cache_redis_install_from_source | bool
+
+- name: Install Redis binaries
+  ansible.builtin.command:
+    cmd: make install
+    chdir: /usr/local/src/redis-{{ cache_redis_version }}
+    creates: "{{ cache_redis_bin_path }}/redis-server"
+  when: cache_redis_install_from_source | bool

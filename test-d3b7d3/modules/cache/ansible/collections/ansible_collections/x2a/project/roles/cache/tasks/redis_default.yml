@@ -1,0 +1,17 @@
+---
+- name: Refresh package metadata
+  ansible.builtin.package:
+    name: "{{ cache_redis_package_name }}"
+    state: present
+  when: not cache_redis_install_from_source | bool
+
+- name: Ensure Redis data and runtime directories exist
+  ansible.builtin.file:
+    path: "{{ item_cache_redis_dir['value'] }}" # noqa: R114 - role-defined Redis directories
+    state: directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+  loop: "{{ {'data': cache_redis_data_dir, 'pid': cache_redis_pid_dir, 'config': cache_redis_config_dir} | dict2items }}"
+  loop_control:
+    loop_var: item_cache_redis_dir

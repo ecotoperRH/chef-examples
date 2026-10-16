@@ -1,0 +1,124 @@
+---
+cache_secure_logging: true
+cache_memcached_package: memcached
+cache_memcached_service: memcached
+cache_memcached_version:
+cache_memcached_memory: 64
+cache_memcached_port: 11211
+cache_memcached_udp_port: 11211
+cache_memcached_listen: 0.0.0.0
+cache_memcached_maxconn: 1024
+cache_memcached_max_object_size: 1m
+cache_memcached_threads: 4
+cache_memcached_user: service_user
+cache_memcached_ulimit: 1024
+cache_memcached_experimental_options: []
+cache_memcached_extra_cli_options: []
+cache_memcached_logfilepath: /var/log/memcached
+cache_redis_package_install: false
+cache_redis_package_name: redis-server
+cache_redis_version: 3.2.11
+cache_redis_source_url: http://download.redis.io/releases/redis-3.2.11.tar.gz
+cache_redis_install_from_source: true
+cache_redis_bypass_setup: false
+cache_redis_name: "6379"
+cache_redis_port: 6379
+cache_redis_requirepass: "{{ redis_password }}"
+cache_redis_pid_dir: /var/run/redis
+cache_redis_data_dir: /var/lib/redis
+cache_redis_config_dir: /etc/redis
+cache_redis_config_file: /etc/redis/6379.conf
+cache_redis_log_dir: /var/log/redis
+cache_redis_user: redis
+cache_redis_group: redis
+cache_redis_bin_path: /usr/local/bin
+cache_redis_databases: 16
+cache_redis_tcp_backlog: 511
+cache_redis_timeout: 0
+cache_redis_keepalive: 0
+cache_redis_loglevel: notice
+cache_redis_syslog_enabled: "yes"
+cache_redis_syslog_facility: local0
+cache_redis_maxclients: 10000
+cache_redis_appendfsync: everysec
+cache_redis_job_control: systemd
+cache_redis_service_name: redis@6379
+cache_redis_default_service_name: redis
+cache_redis_bind:
+cache_redis_protected_mode:
+cache_redis_unixsocket:
+cache_redis_unixsocketperm:
+cache_redis_logfile:
+cache_redis_backup_type: rdb
+cache_redis_save:
+cache_redis_stop_writes_on_bgsave_error: "yes"
+cache_redis_rdbcompression: "yes"
+cache_redis_rdbchecksum: "yes"
+cache_redis_dbfilename:
+cache_redis_replicaof:
+cache_redis_masterauth:
+cache_redis_replica_serve_stale_data:
+cache_redis_replica_read_only:
+cache_redis_repl_diskless_sync: "no"
+cache_redis_repl_diskless_sync_delay: 5
+cache_redis_repl_ping_replica_period:
+cache_redis_repl_timeout: 60
+cache_redis_repl_disable_tcp_nodelay: "no"
+cache_redis_repl_backlog_size: 1048576
+cache_redis_repl_backlog_ttl: 3600
+cache_redis_replica_priority:
+cache_redis_min_replicas_to_write:
+cache_redis_min_replicas_max_lag: 10
+cache_redis_rename_commands: {}
+cache_redis_maxmemory: ""
+cache_redis_maxmemory_policy:
+cache_redis_maxmemory_samples: 3
+cache_redis_appendfilename:
+cache_redis_no_appendfsync_on_rewrite: "no"
+cache_redis_aof_rewrite_percentage: 100
+cache_redis_aof_rewrite_min_size: 64
+cache_redis_aof_load_truncated: "yes"
+cache_redis_lua_time_limit: 5000
+cache_redis_slowlog_log_slower_than: 10000
+cache_redis_slowlog_max_len: 128
+cache_redis_notify_keyspace_events: ""
+cache_redis_hash_max_ziplist_entries: 512
+cache_redis_hash_max_ziplist_value: 64
+cache_redis_set_max_intset_entries: 512
+cache_redis_zset_max_ziplist_entries: 128
+cache_redis_zset_max_ziplist_value: 64
+cache_redis_hll_sparse_max_bytes: 3000
+cache_redis_active_rehashing: "yes"
+cache_redis_client_output_buffer_limit: []
+cache_redis_hz: 10
+cache_redis_aof_rewrite_incremental_fsync: "yes"
+cache_redis_cluster_enabled: "no"
+cache_redis_cluster_config_file:
+cache_redis_cluster_node_timeout: 15000
+cache_redis_cluster_port:
+cache_redis_acl_file:
+cache_redis_includes: []
+cache_redis_tls_port:
+cache_redis_tls_cert_file:
+cache_redis_tls_key_file:
+cache_redis_tls_key_file_pass:
+cache_redis_tls_client_cert_file:
+cache_redis_tls_client_key_file:
+cache_redis_tls_client_key_file_pass:
+cache_redis_tls_dh_params_file:
+cache_redis_tls_ca_cert_file:
+cache_redis_tls_ca_cert_dir:
+cache_redis_tls_auth_clients:
+cache_redis_tls_replication:
+cache_redis_tls_cluster:
+cache_redis_tls_protocols:
+cache_redis_tls_ciphers:
+cache_redis_tls_ciphersuites:
+cache_redis_tls_prefer_server_ciphers:
+cache_redis_tls_session_caching:
+cache_redis_tls_session_cache_size:
+cache_redis_tls_session_cache_timeout:
+cache_redis_required_start: $remote_fs $syslog
+cache_redis_required_stop: $remote_fs $syslog
+cache_redis_ulimit: 1024
+cache_redis_limit_nofile: 65536

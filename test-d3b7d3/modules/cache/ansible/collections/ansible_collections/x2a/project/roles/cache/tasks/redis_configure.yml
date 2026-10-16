@@ -1,0 +1,67 @@
+---
+- name: Create Redis data directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_data_dir }}" # noqa: R114 - fixed role default data directory
+    state: directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_log_dir }}" # noqa: R114 - fixed role default log directory
+    state: directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+
+- name: Render Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ cache_redis_config_file }}" # noqa: R114 - fixed role default configuration path
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0644"
+    backup: true
+  no_log: "{{ cache_secure_logging }}"
+  vars:
+    cache_redis_requirepass: "{{ redis_password }}"
+    cache_redis_name: "6379"
+    cache_redis_port: 6379
+
+- name: Install systemd Redis instance unit
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /etc/systemd/system/redis@.service
+    mode: "0644"
+    backup: true
+  when: cache_redis_job_control == 'systemd'
+  notify: Reload systemd
+
+- name: Apply systemd unit changes before starting Redis
+  ansible.builtin.meta: flush_handlers
+  when: cache_redis_job_control == 'systemd'
+
+- name: Install init.d Redis instance unit
+  ansible.builtin.template:
+    src: redis.init.j2
+    dest: /etc/init.d/redis{{ cache_redis_name }} # noqa: R114 - fixed instance service path
+    mode: "0755"
+    backup: true
+  when: cache_redis_job_control == 'initd'
+
+- name: Install Upstart Redis instance unit
+  ansible.builtin.template:
+    src: redis.upstart.conf.j2
+    dest: /etc/init/redis{{ cache_redis_name }}.conf # noqa: R114 - fixed instance service path
+    mode: "0644"
+    backup: true
+  when: cache_redis_job_control == 'upstart'
+
+- name: Install FreeBSD Redis instance unit
+  ansible.builtin.template:
+    src: redis.rcinit.j2
+    dest: /etc/rc.d/redis{{ cache_redis_name }} # noqa: R114 - fixed instance service path
+    mode: "0755"
+    backup: true
+  when: cache_redis_job_control == 'rcinit'

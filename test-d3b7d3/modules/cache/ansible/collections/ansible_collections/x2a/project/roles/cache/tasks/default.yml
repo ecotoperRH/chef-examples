@@ -1,0 +1,14 @@
+---
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_log_dir }}" # noqa: R114 - fixed role default log directory
+    state: directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+
+- name: Configure and enable Memcached
+  ansible.builtin.include_tasks: memcached.yml
+
+- name: Configure Redis defaults
+  ansible.builtin.include_tasks: redis_default.yml

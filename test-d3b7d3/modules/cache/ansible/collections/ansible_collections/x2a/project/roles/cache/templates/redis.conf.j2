@@ -1,0 +1,96 @@
+# Redis configuration generated for the cache role.
+{% if cache_redis_job_control in ['initd', 'rcinit'] %}
+daemonize yes
+{% endif %}
+pidfile {{ cache_redis_pid_dir }}/redis_{{ cache_redis_name }}.pid
+port {{ cache_redis_port }}
+tcp-backlog {{ cache_redis_tcp_backlog }}
+{% if cache_redis_bind is not none %}bind {{ cache_redis_bind | join(' ') if cache_redis_bind is iterable and cache_redis_bind is not string else cache_redis_bind }}
+{% endif %}{% if cache_redis_protected_mode is not none %}protected-mode {{ cache_redis_protected_mode }}
+{% endif %}{% if cache_redis_unixsocket is not none %}unixsocket {{ cache_redis_unixsocket }}
+unixsocketperm {{ cache_redis_unixsocketperm }}
+{% endif %}timeout {{ cache_redis_timeout }}
+tcp-keepalive {{ cache_redis_keepalive }}
+loglevel {{ cache_redis_loglevel }}
+{% if cache_redis_logfile is not none %}logfile {{ cache_redis_logfile }}
+{% endif %}syslog-enabled {{ cache_redis_syslog_enabled }}
+syslog-ident redis-{{ cache_redis_name }}
+syslog-facility {{ cache_redis_syslog_facility }}
+databases {{ cache_redis_databases }}
+{% if cache_redis_tls_port is not none %}tls-port {{ cache_redis_tls_port }}
+{% endif %}{% if cache_redis_tls_cert_file is not none %}tls-cert-file {{ cache_redis_tls_cert_file }}
+{% endif %}{% if cache_redis_tls_key_file is not none %}tls-key-file {{ cache_redis_tls_key_file }}
+{% endif %}{% if cache_redis_tls_key_file_pass is not none %}tls-key-file-pass {{ cache_redis_tls_key_file_pass }}
+{% endif %}{% if cache_redis_tls_client_cert_file is not none %}tls-client-cert-file {{ cache_redis_tls_client_cert_file }}
+{% endif %}{% if cache_redis_tls_client_key_file is not none %}tls-client-key-file {{ cache_redis_tls_client_key_file }}
+{% endif %}{% if cache_redis_tls_client_key_file_pass is not none %}tls-client-key-file-pass {{ cache_redis_tls_client_key_file_pass }}
+{% endif %}{% if cache_redis_tls_dh_params_file is not none %}tls-dh-params-file {{ cache_redis_tls_dh_params_file }}
+{% endif %}{% if cache_redis_tls_ca_cert_file is not none %}tls-ca-cert-file {{ cache_redis_tls_ca_cert_file }}
+{% endif %}{% if cache_redis_tls_ca_cert_dir is not none %}tls-ca-cert-dir {{ cache_redis_tls_ca_cert_dir }}
+{% endif %}{% if cache_redis_tls_auth_clients is not none %}tls-auth-clients {{ cache_redis_tls_auth_clients }}
+{% endif %}{% if cache_redis_tls_replication is not none %}tls-replication {{ cache_redis_tls_replication }}
+{% endif %}{% if cache_redis_tls_cluster is not none %}tls-cluster {{ cache_redis_tls_cluster }}
+{% endif %}{% if cache_redis_tls_protocols is not none %}tls-protocols {{ cache_redis_tls_protocols }}
+{% endif %}{% if cache_redis_tls_ciphers is not none %}tls-ciphers {{ cache_redis_tls_ciphers }}
+{% endif %}{% if cache_redis_tls_ciphersuites is not none %}tls-ciphersuites {{ cache_redis_tls_ciphersuites }}
+{% endif %}{% if cache_redis_tls_prefer_server_ciphers is not none %}tls-prefer-server-ciphers {{ cache_redis_tls_prefer_server_ciphers }}
+{% endif %}{% if cache_redis_tls_session_caching is not none %}tls-session-caching {{ cache_redis_tls_session_caching }}
+{% endif %}{% if cache_redis_tls_session_cache_size is not none %}tls-session-cache-size {{ cache_redis_tls_session_cache_size }}
+{% endif %}{% if cache_redis_tls_session_cache_timeout is not none %}tls-session-cache-timeout {{ cache_redis_tls_session_cache_timeout }}
+{% endif %}{% if cache_redis_backup_type in ['rdb', 'both'] %}{% if cache_redis_save is none %}save 900 1
+save 300 10
+save 60 10000
+{% else %}{% for item_cache_save in cache_redis_save %}save {{ item_cache_save }}
+{% endfor %}{% endif %}stop-writes-on-bgsave-error {{ cache_redis_stop_writes_on_bgsave_error }}
+rdbcompression {{ cache_redis_rdbcompression }}
+rdbchecksum {{ cache_redis_rdbchecksum }}
+{% if cache_redis_dbfilename %}dbfilename {{ cache_redis_dbfilename }}{% else %}dbfilename dump-{{ cache_redis_name }}.rdb{% endif %}
+{% endif %}dir {{ cache_redis_data_dir }}
+{% if cache_redis_replicaof is not none %}replicaof {{ cache_redis_replicaof['address'] }} {{ cache_redis_replicaof['port'] }}
+{% endif %}{% if cache_redis_masterauth is not none %}masterauth {{ cache_redis_masterauth }}
+{% endif %}{% if cache_redis_replica_serve_stale_data is not none %}replica-serve-stale-data {{ cache_redis_replica_serve_stale_data }}
+{% endif %}{% if cache_redis_replica_read_only is not none %}replica-read-only {{ cache_redis_replica_read_only }}
+{% endif %}{% if cache_redis_repl_diskless_sync is not none %}repl-diskless-sync {{ cache_redis_repl_diskless_sync }}
+{% endif %}{% if cache_redis_repl_diskless_sync_delay is not none %}repl-diskless-sync-delay {{ cache_redis_repl_diskless_sync_delay }}
+{% endif %}{% if cache_redis_repl_ping_replica_period is not none %}repl-ping-replica-period {{ cache_redis_repl_ping_replica_period }}
+{% endif %}{% if cache_redis_repl_timeout is not none %}repl-timeout {{ cache_redis_repl_timeout }}
+{% endif %}{% if cache_redis_repl_disable_tcp_nodelay is not none %}repl-disable-tcp-nodelay {{ cache_redis_repl_disable_tcp_nodelay }}
+{% endif %}{% if cache_redis_repl_backlog_size is not none %}repl-backlog-size {{ cache_redis_repl_backlog_size }}
+{% endif %}{% if cache_redis_repl_backlog_ttl is not none %}repl-backlog-ttl {{ cache_redis_repl_backlog_ttl }}
+{% endif %}{% if cache_redis_replica_priority is not none %}replica-priority {{ cache_redis_replica_priority }}
+{% endif %}{% if cache_redis_min_replicas_to_write is not none %}min-replicas-to-write {{ cache_redis_min_replicas_to_write }}
+{% endif %}{% if cache_redis_min_replicas_max_lag is not none %}min-replicas-max-lag {{ cache_redis_min_replicas_max_lag }}
+{% endif %}{% if cache_redis_requirepass is not none %}requirepass {{ cache_redis_requirepass }}
+{% endif %}{% for item_cache_rename in cache_redis_rename_commands | dict2items %}rename-command {{ item_cache_rename['key'] }} {{ item_cache_rename['value'] if item_cache_rename['value'] else '""' }}
+{% endfor %}maxclients {{ cache_redis_maxclients }}
+{% if cache_redis_maxmemory %}maxmemory {{ cache_redis_maxmemory }}
+{% endif %}{% if cache_redis_maxmemory_policy is not none %}maxmemory-policy {{ cache_redis_maxmemory_policy }}
+{% endif %}{% if cache_redis_maxmemory_samples is not none %}maxmemory-samples {{ cache_redis_maxmemory_samples }}
+{% endif %}{% if cache_redis_backup_type in ['aof', 'both'] %}appendonly yes{% else %}appendonly no{% endif %}
+{% if cache_redis_appendfilename %}appendfilename {{ cache_redis_appendfilename }}{% else %}appendfilename appendonly-{{ cache_redis_name }}.aof{% endif %}
+appendfsync {{ cache_redis_appendfsync }}
+no-appendfsync-on-rewrite {{ cache_redis_no_appendfsync_on_rewrite }}
+auto-aof-rewrite-percentage {{ cache_redis_aof_rewrite_percentage }}
+auto-aof-rewrite-min-size {{ cache_redis_aof_rewrite_min_size }}
+aof-load-truncated {{ cache_redis_aof_load_truncated }}
+lua-time-limit {{ cache_redis_lua_time_limit }}
+slowlog-log-slower-than {{ cache_redis_slowlog_log_slower_than }}
+slowlog-max-len {{ cache_redis_slowlog_max_len }}
+notify-keyspace-events "{{ cache_redis_notify_keyspace_events }}"
+hash-max-ziplist-entries {{ cache_redis_hash_max_ziplist_entries }}
+hash-max-ziplist-value {{ cache_redis_hash_max_ziplist_value }}
+set-max-intset-entries {{ cache_redis_set_max_intset_entries }}
+zset-max-ziplist-entries {{ cache_redis_zset_max_ziplist_entries }}
+zset-max-ziplist-value {{ cache_redis_zset_max_ziplist_value }}
+hll-sparse-max-bytes {{ cache_redis_hll_sparse_max_bytes }}
+activerehashing {{ cache_redis_active_rehashing }}
+{% for item_cache_buffer in cache_redis_client_output_buffer_limit %}client-output-buffer-limit {{ item_cache_buffer | join(' ') }}
+{% endfor %}hz {{ cache_redis_hz }}
+aof-rewrite-incremental-fsync {{ cache_redis_aof_rewrite_incremental_fsync }}
+{% if cache_redis_cluster_enabled == 'yes' %}cluster-enabled yes
+cluster-config-file {{ cache_redis_cluster_config_file | default('nodes-' ~ cache_redis_name ~ '.conf') }}
+cluster-node-timeout {{ cache_redis_cluster_node_timeout }}
+{% if cache_redis_cluster_port is not none %}cluster-port {{ cache_redis_cluster_port }}{% endif %}
+{% endif %}{% if cache_redis_acl_file is not none %}aclfile {{ cache_redis_acl_file }}
+{% endif %}{% for item_cache_include in cache_redis_includes %}include {{ item_cache_include }}
+{% endfor %}

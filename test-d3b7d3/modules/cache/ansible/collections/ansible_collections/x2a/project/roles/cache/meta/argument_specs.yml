@@ -1,0 +1,78 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Memcached and Redis cache services
+    description:
+      - Installs and configures one Memcached service and one Redis instance.
+      - Supports package or source Redis installation and platform-specific service management.
+    options:
+      cache_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Hide task output when handling the Redis password.
+      cache_memcached_memory:
+        type: int
+        required: false
+        default: 64
+        description: Memcached memory allocation in megabytes.
+      cache_memcached_port:
+        type: int
+        required: false
+        default: 11211
+        description: Memcached TCP port.
+      cache_memcached_udp_port:
+        type: int
+        required: false
+        default: 11211
+        description: Memcached UDP port.
+      cache_memcached_listen:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: Memcached listen address.
+      cache_memcached_maxconn:
+        type: int
+        required: false
+        default: 1024
+        description: Maximum Memcached connections.
+      cache_redis_package_install:
+        type: bool
+        required: false
+        default: false
+        description: Install Redis from the operating system package manager.
+      cache_redis_install_from_source:
+        type: bool
+        required: false
+        default: true
+        description: Install Redis from the configured source tarball.
+      cache_redis_version:
+        type: str
+        required: false
+        default: 3.2.11
+        description: Redis version to install from source.
+      cache_redis_port:
+        type: int
+        required: false
+        default: 6379
+        description: Redis TCP port.
+      cache_redis_requirepass:
+        type: str
+        required: false
+        default: "{{ redis_password }}"
+        description: Redis authentication password supplied by the AAP credential.
+      cache_redis_data_dir:
+        type: str
+        required: false
+        default: /var/lib/redis
+        description: Redis data directory.
+      cache_redis_config_file:
+        type: str
+        required: false
+        default: /etc/redis/6379.conf
+        description: Redis instance configuration path.
+      cache_redis_job_control:
+        type: str
+        required: false
+        default: systemd
+        description: Redis service implementation selector.
