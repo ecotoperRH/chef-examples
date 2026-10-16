@@ -1,0 +1,10 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart Redis instance
+  ansible.builtin.service:
+    name: "{{ cache_redis_service_name }}"
+    state: restarted
+  when: ansible_facts['service_mgr'] == 'systemd'

@@ -1,0 +1,14 @@
+---
+- name: Enable and start Redis systemd instance
+  ansible.builtin.service:
+    name: "{{ cache_redis_service_name }}"
+    state: started
+    enabled: true
+  when: ansible_facts['service_mgr'] == 'systemd'
+
+- name: Enable and start Redis non-systemd instance
+  ansible.builtin.service:
+    name: redis{{ cache_redis_instance_name }}
+    state: started
+    enabled: true
+  when: ansible_facts['service_mgr'] != 'systemd'

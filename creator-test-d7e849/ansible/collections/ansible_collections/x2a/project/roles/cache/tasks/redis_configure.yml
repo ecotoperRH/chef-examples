@@ -1,0 +1,100 @@
+---
+- name: Create Redis group
+  ansible.builtin.group:
+    name: "{{ cache_redis_group }}"
+    state: present
+    system: true
+
+- name: Create Redis user
+  ansible.builtin.user:
+    name: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    home: "{{ cache_redis_data_dir }}" # noqa: R114 - home comes from role defaults
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+    state: present
+
+- name: Create Redis directories
+  ansible.builtin.file:
+    path: "{{ item_cache_redis_directory['path'] }}" # noqa: R114 - path from role-defined directory list
+    state: directory
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0755"
+  loop:
+    - path: "{{ cache_redis_config_dir }}"
+    - path: "{{ cache_redis_data_dir }}"
+    - path: "{{ cache_redis_pid_dir }}"
+    - path: "{{ cache_redis_log_dir }}"
+  loop_control:
+    loop_var: item_cache_redis_directory
+
+- name: Render Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ cache_redis_config_file }}" # noqa: R114 - config path comes from role defaults
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0640"
+    backup: true
+  notify: Restart Redis instance
+  no_log: "{{ cache_secure_logging }}"
+
+- name: Create Redis configuration breadcrumb
+  ansible.builtin.file:
+    path: "{{ cache_redis_config_file }}.breadcrumb" # noqa: R114 - config path comes from role defaults
+    state: touch
+    owner: "{{ cache_redis_user }}"
+    group: "{{ cache_redis_group }}"
+    mode: "0640"
+    modification_time: preserve
+    access_time: preserve
+
+- name: Render Redis systemd unit
+  ansible.builtin.template:
+    src: redis@.service.j2
+    dest: /etc/systemd/system/redis@{{ cache_redis_instance_name }}.service # noqa: R114 - instance is role-defined
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: ansible_facts['service_mgr'] == 'systemd'
+  notify:
+    - Reload systemd
+    - Restart Redis instance
+
+- name: Reload systemd before managing Redis instance
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: ansible_facts['service_mgr'] == 'systemd'
+
+- name: Render Redis SysV init script
+  ansible.builtin.template:
+    src: redis.init.j2
+    dest: /etc/init.d/redis{{ cache_redis_instance_name }} # noqa: R114 - instance is role-defined
+    owner: root
+    group: root
+    mode: "0755"
+    backup: true
+  when: ansible_facts['service_mgr'] == 'sysvinit'
+
+- name: Render Redis Upstart job
+  ansible.builtin.template:
+    src: redis.upstart.conf.j2
+    dest: /etc/init/redis{{ cache_redis_instance_name }}.conf # noqa: R114 - instance is role-defined
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: ansible_facts['service_mgr'] == 'upstart'
+
+- name: Render Redis rc.d script
+  ansible.builtin.template:
+    src: redis.rcinit.j2
+    dest: /usr/local/etc/rc.d/redis{{ cache_redis_instance_name }} # noqa: R114 - instance is role-defined
+    owner: root
+    group: wheel
+    mode: "0755"
+    backup: true
+  when: ansible_facts['os_family'] == 'FreeBSD'

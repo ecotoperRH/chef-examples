@@ -1,0 +1,174 @@
+---
+# Unsupported pre-flight diagnostics without stated outcomes: directory ownership/modes,
+# systemctl cat/show output, journal review, filesystem capacity, and authenticated Redis CLI output.
+- name: Verify cache services
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Gather service facts for pre-flight service status checks
+      ansible.builtin.service_facts:
+
+    - name: Assert memcached service is running
+      ansible.builtin.assert:
+        that:
+          - "'memcached.service' in ansible_facts['services']"
+          - "ansible_facts['services']['memcached.service']['state'] == 'running'"
+        fail_msg: Memcached service is not running.
+
+    - name: Assert Redis systemd service is running
+      ansible.builtin.assert:
+        that:
+          - "'redis@6379.service' in ansible_facts['services']"
+          - "ansible_facts['services']['redis@6379.service']['state'] == 'running'"
+        fail_msg: Redis instance 6379 is not running under systemd.
+      when: ansible_facts['service_mgr'] == 'systemd'
+
+    - name: Assert Redis non-systemd service is running
+      ansible.builtin.assert:
+        that:
+          - "'redis6379' in ansible_facts['services']"
+          - "ansible_facts['services']['redis6379']['state'] == 'running'"
+        fail_msg: Redis instance 6379 is not running.
+      when: ansible_facts['service_mgr'] != 'systemd'
+
+    - name: Check memcached process pre-flight diagnostic
+      ansible.builtin.command:
+        argv:
+          - ps
+          - -ef
+      register: memcached_processes
+      changed_when: false
+
+    - name: Assert memcached process is present
+      ansible.builtin.assert:
+        that:
+          - "memcached_processes['stdout'] is regex('(?m)^.*[m]emcached.*$')"
+        fail_msg: Memcached process is not present.
+
+    - name: Check Redis process pre-flight diagnostic
+      ansible.builtin.command:
+        argv:
+          - ps
+          - -ef
+      register: redis_processes
+      changed_when: false
+
+    - name: Assert Redis process uses the 6379 configuration
+      ansible.builtin.assert:
+        that:
+          - "redis_processes['stdout'] is regex('(?m)^.*[r]edis-server.*6379\\.conf.*$')"
+        fail_msg: Redis server process for configuration 6379.conf is not present.
+
+    - name: Verify memcached TCP listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        state: started
+        timeout: 3
+
+    - name: Check memcached UDP listener pre-flight diagnostic
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -lunp
+      register: memcached_udp_listeners
+      changed_when: false
+
+    - name: Assert memcached UDP listener is present
+      ansible.builtin.assert:
+        that:
+          - "memcached_udp_listeners['stdout'] is regex('(?m)^.*:11211.*$')"
+        fail_msg: Memcached UDP listener on port 11211 is not present.
+
+    - name: Verify memcached version protocol health
+      ansible.builtin.command:
+        argv:
+          - nc
+          - -w
+          - '3'
+          - 127.0.0.1
+          - '11211'
+        stdin: "version\r\n"
+      register: memcached_version
+      changed_when: false
+
+    - name: Assert memcached reports its version
+      ansible.builtin.assert:
+        that:
+          - "memcached_version['stdout'] is regex('^VERSION .+')"
+        fail_msg: Memcached did not return a version response.
+
+    - name: Verify memcached statistics protocol health
+      ansible.builtin.command:
+        argv:
+          - nc
+          - -w
+          - '3'
+          - 127.0.0.1
+          - '11211'
+        stdin: "stats\r\n"
+      register: memcached_stats
+      changed_when: false
+
+    - name: Assert memcached returns statistics
+      ansible.builtin.assert:
+        that:
+          - "memcached_stats['stdout'] is regex('(?m)^STAT .+$')"
+        fail_msg: Memcached did not return statistics.
+
+    - name: Verify Redis TCP listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        state: started
+        timeout: 3
+
+    - name: Check Redis non-secret configuration directives
+      ansible.builtin.command:
+        argv:
+          - grep
+          - -E
+          - '^(port|tcp-backlog|databases|syslog-enabled|maxclients|appendonly) '
+          - /etc/redis/6379.conf
+      register: redis_configuration_directives
+      changed_when: false
+
+    - name: Assert Redis non-secret configuration directives are present
+      ansible.builtin.assert:
+        that:
+          - redis_configuration_directives['rc'] == 0
+        fail_msg: Redis non-secret configuration directives are not present.
+
+    - name: Check for removed Redis legacy directives
+      ansible.builtin.command:
+        argv:
+          - grep
+          - -E
+          - '^(slave-serve-stale-data|slave-read-only|repl-ping-slave-period|client-output-buffer-limit|slave-priority)'
+          - /etc/redis/6379.conf
+      register: redis_legacy_directives
+      changed_when: false
+      failed_when: false
+
+    - name: Assert Redis legacy directives were removed
+      ansible.builtin.assert:
+        that:
+          - redis_legacy_directives['rc'] != 0
+        fail_msg: Redis legacy directives remain in the configuration.
+
+    - name: Check Redis systemd service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - redis@6379
+      register: redis_service_enabled
+      changed_when: false
+      when: ansible_facts['service_mgr'] == 'systemd'
+
+    - name: Assert Redis systemd service is enabled
+      ansible.builtin.assert:
+        that:
+          - redis_service_enabled['rc'] == 0
+        fail_msg: Redis systemd service is not enabled.
+      when: ansible_facts['service_mgr'] == 'systemd'

@@ -1,0 +1,16 @@
+---
+- name: Gather service facts before disabling distribution Redis service # noqa: L039 - optional role parameter is guarded by defined condition
+  ansible.builtin.service_facts:
+  when:
+    - cache_redis_os_service_name is defined
+    - cache_redis_os_service_name | length > 0
+
+- name: Stop and disable distribution Redis service # noqa: L039 - optional role parameter is guarded by defined condition
+  ansible.builtin.service:
+    name: "{{ cache_redis_os_service_name }}"
+    state: stopped
+    enabled: false
+  when:
+    - cache_redis_os_service_name is defined
+    - cache_redis_os_service_name | length > 0
+    - cache_redis_os_service_name in ansible_facts.services

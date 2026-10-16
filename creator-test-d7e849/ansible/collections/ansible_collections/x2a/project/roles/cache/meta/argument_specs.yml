@@ -1,0 +1,94 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure Memcached and Redis cache services
+    description:
+      - Installs Memcached and a password-protected Redis instance.
+      - Redis credentials are supplied by an AAP credential type at runtime.
+    options:
+      cache_secure_logging: {type: bool, default: true, description: Hide secret-bearing task output.}
+      cache_memcached_package: {type: str, default: memcached, description: Memcached package name.}
+      cache_memcached_service: {type: str, default: memcached, description: Memcached service name.}
+      cache_memcached_memory_mb: {type: int, default: 64, description: Memcached memory limit.}
+      cache_memcached_port: {type: int, default: 11211, description: Memcached TCP port.}
+      cache_memcached_udp_port: {type: int, default: 11211, description: Memcached UDP port.}
+      cache_memcached_listen: {type: str, default: 0.0.0.0, description: Memcached listen address.}
+      cache_memcached_max_connections: {type: int, default: 1024, description: Memcached connection limit.}
+      cache_memcached_max_object_size: {type: str, default: 1m, description: Memcached maximum object size.}
+      cache_memcached_ulimit: {type: int, default: 1024, description: Memcached file descriptor limit.}
+      cache_memcached_log_dir: {type: path, default: /var/log/memcached, description: Memcached log directory.}
+      cache_memcached_run_dir: {type: path, default: /var/run/memcached, description: Memcached runtime directory.}
+      cache_redis_version: {type: str, default: 3.2.11, description: Redis version.}
+      cache_redis_package_install: {type: bool, default: false, description: Install Redis from an OS package.}
+      cache_redis_package_name: {type: str, default: redis-server, description: Redis package name.}
+      cache_redis_source_url: {type: str, default: 'http://download.redis.io/releases/redis-{{ cache_redis_version }}.tar.gz', description: Redis source archive URL.}
+      cache_redis_source_checksum: {type: str, default: '', description: Optional Redis source checksum.}
+      cache_redis_source_dir: {type: path, default: '/usr/local/src/redis-{{ cache_redis_version }}', description: Redis source directory.}
+      cache_redis_bin_path: {type: path, default: /usr/local/bin, description: Redis binary directory.}
+      cache_redis_user: {type: str, default: redis, description: Redis service user.}
+      cache_redis_group: {type: str, default: redis, description: Redis service group.}
+      cache_redis_instance_name: {type: str, default: '6379', description: Redis instance name.}
+      cache_redis_port: {type: int, default: 6379, description: Redis TCP port.}
+      cache_redis_config_dir: {type: path, default: /etc/redis, description: Redis configuration directory.}
+      cache_redis_config_file: {type: path, default: /etc/redis/6379.conf, description: Redis configuration file.}
+      cache_redis_data_dir: {type: path, default: /var/lib/redis, description: Redis data directory.}
+      cache_redis_pid_dir: {type: path, default: /var/run/redis/6379, description: Redis PID directory.}
+      cache_redis_log_dir: {type: path, default: /var/log/redis, description: Redis log directory.}
+      cache_redis_log_file: {type: path, default: '{{ cache_redis_log_dir }}/redis-{{ cache_redis_instance_name }}.log', description: Redis log file.}
+      cache_redis_service_name: {type: str, default: 'redis@{{ cache_redis_instance_name }}', description: Redis systemd instance service.}
+      cache_redis_service_manager: {type: str, default: systemd, description: Expected Redis service manager.}
+      cache_redis_limit_nofile: {type: int, default: 10032, description: Redis file descriptor limit.}
+      cache_redis_tcp_backlog: {type: int, default: 511, description: Redis TCP backlog.}
+      cache_redis_bind_address: {type: str, required: false, description: Optional Redis bind address.}
+      cache_redis_protected_mode: {type: str, default: 'no', description: Redis protected-mode setting.}
+      cache_redis_timeout: {type: int, default: 0, description: Redis idle timeout.}
+      cache_redis_keepalive: {type: int, default: 0, description: Redis TCP keepalive.}
+      cache_redis_loglevel: {type: str, default: notice, description: Redis log level.}
+      cache_redis_syslog_enabled: {type: str, default: 'yes', description: Enable Redis syslog.}
+      cache_redis_syslog_facility: {type: str, default: local0, description: Redis syslog facility.}
+      cache_redis_databases: {type: int, default: 16, description: Redis database count.}
+      cache_redis_save: {type: list, elements: str, default: ['900 1', '300 10', '60 10000'], description: Redis RDB snapshot schedules.}
+      cache_redis_stop_writes_on_bgsave_error: {type: str, default: 'yes', description: Redis bgsave write behavior.}
+      cache_redis_rdb_compression: {type: str, default: 'yes', description: Redis RDB compression.}
+      cache_redis_rdb_checksum: {type: str, default: 'yes', description: Redis RDB checksums.}
+      cache_redis_db_filename: {type: str, default: 'dump-{{ cache_redis_instance_name }}.rdb', description: Redis RDB filename.}
+      cache_redis_replicaof: {type: str, required: false, description: Optional Redis replication source.}
+      cache_redis_replica_serve_stale_data: {type: str, default: 'yes', description: Serve stale replica data.}
+      cache_redis_replica_read_only: {type: str, default: 'yes', description: Make replica read-only.}
+      cache_redis_repl_diskless_sync: {type: str, default: 'no', description: Enable diskless replication sync.}
+      cache_redis_repl_diskless_sync_delay: {type: int, default: 5, description: Diskless sync delay.}
+      cache_redis_repl_ping_replica_period: {type: int, default: 10, description: Replica ping period.}
+      cache_redis_repl_timeout: {type: int, default: 60, description: Replication timeout.}
+      cache_redis_repl_disable_tcp_nodelay: {type: str, default: 'no', description: Replication TCP_NODELAY behavior.}
+      cache_redis_repl_backlog_size: {type: str, default: 1mb, description: Replication backlog size.}
+      cache_redis_repl_backlog_ttl: {type: int, default: 3600, description: Replication backlog lifetime.}
+      cache_redis_replica_priority: {type: int, default: 100, description: Replica priority.}
+      cache_redis_max_clients: {type: int, default: 10000, description: Redis client limit.}
+      cache_redis_max_memory: {type: str, default: '', description: Optional Redis max memory.}
+      cache_redis_max_memory_policy: {type: str, default: volatile-lru, description: Redis eviction policy.}
+      cache_redis_max_memory_samples: {type: int, default: 5, description: Redis eviction sample count.}
+      cache_redis_appendonly: {type: str, default: 'no', description: Enable AOF persistence.}
+      cache_redis_append_filename: {type: str, default: 'appendonly-{{ cache_redis_instance_name }}.aof', description: Redis AOF filename.}
+      cache_redis_append_fsync: {type: str, default: everysec, description: Redis AOF fsync policy.}
+      cache_redis_no_appendfsync_on_rewrite: {type: str, default: 'no', description: AOF rewrite fsync behavior.}
+      cache_redis_aof_rewrite_percentage: {type: int, default: 100, description: AOF rewrite growth percentage.}
+      cache_redis_aof_rewrite_min_size: {type: str, default: 64mb, description: Minimum AOF rewrite size.}
+      cache_redis_aof_load_truncated: {type: str, default: 'yes', description: Allow truncated AOF loading.}
+      cache_redis_lua_time_limit: {type: int, default: 1000, description: Redis Lua execution limit.}
+      cache_redis_slowlog_log_slower_than: {type: int, default: 10000, description: Slowlog threshold.}
+      cache_redis_slowlog_max_len: {type: int, default: 128, description: Slowlog length.}
+      cache_redis_notify_keyspace_events: {type: str, default: '', description: Keyspace notification configuration.}
+      cache_redis_hash_max_ziplist_entries: {type: int, default: 512, description: Hash compact encoding entry limit.}
+      cache_redis_hash_max_ziplist_value: {type: int, default: 64, description: Hash compact encoding value limit.}
+      cache_redis_set_max_intset_entries: {type: int, default: 512, description: Set compact encoding entry limit.}
+      cache_redis_zset_max_ziplist_entries: {type: int, default: 128, description: Sorted-set compact encoding entry limit.}
+      cache_redis_zset_max_ziplist_value: {type: int, default: 64, description: Sorted-set compact encoding value limit.}
+      cache_redis_hll_sparse_max_bytes: {type: int, default: 3000, description: HLL sparse encoding limit.}
+      cache_redis_active_rehashing: {type: str, default: 'yes', description: Enable active rehashing.}
+      cache_redis_client_output_buffer_limits: {type: list, elements: str, default: ['normal 0 0 0', 'replica 256mb 64mb 60', 'pubsub 32mb 8mb 60'], description: Client output buffer limits.}
+      cache_redis_hz: {type: int, default: 10, description: Redis background task frequency.}
+      cache_redis_aof_rewrite_incremental_fsync: {type: str, default: 'yes', description: Incremental AOF rewrite fsync.}
+      cache_redis_required_start: {type: str, default: '$network $local_fs $remote_fs', description: SysV required-start facilities.}
+      cache_redis_required_stop: {type: str, default: '$network $local_fs $remote_fs', description: SysV required-stop facilities.}
+      cache_redis_shutdown_save: {type: bool, default: false, description: Save Redis data on shutdown.}
+      redis_password: {type: str, required: true, description: Redis authentication password injected by AAP.}

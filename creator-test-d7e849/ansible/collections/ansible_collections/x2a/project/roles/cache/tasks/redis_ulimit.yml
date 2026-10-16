@@ -1,0 +1,36 @@
+---
+- name: Check for PAM su configuration on Debian systems
+  ansible.builtin.stat:
+    path: /etc/pam.d/su
+  register: cache_pam_su
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Configure PAM su limits support on Debian systems # noqa: L039 - registered by the preceding conditional stat task
+  ansible.builtin.template:
+    src: su.j2
+    dest: /etc/pam.d/su
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - cache_pam_su.stat.exists
+
+- name: Check for PAM sudo configuration on Debian systems
+  ansible.builtin.stat:
+    path: /etc/pam.d/sudo
+  register: cache_pam_sudo
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Configure PAM sudo limits support on Debian systems # noqa: L039 - registered by the preceding conditional stat task
+  ansible.builtin.copy:
+    src: sudo
+    dest: /etc/pam.d/sudo
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - cache_pam_sudo.stat.exists

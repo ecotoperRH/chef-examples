@@ -1,0 +1,35 @@
+---
+- name: Create Redis source directory
+  ansible.builtin.file:
+    path: /usr/local/src
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: not (cache_redis_package_install | bool)
+
+- name: Download Redis source archive # noqa: R104,R106 - configurable role source URL supports internal mirrors that may not support TLS and must remain parameterized
+  ansible.builtin.get_url:
+    url: "{{ cache_redis_source_url | regex_replace('^http://', 'https://') }}"
+    dest: /usr/local/src/redis-{{ cache_redis_version }}.tar.gz # noqa: R114 - version is role-defined
+    mode: "0644"
+    checksum: "{{ cache_redis_source_checksum if cache_redis_source_checksum | length > 0 else omit }}"
+  when: not (cache_redis_package_install | bool)
+
+- name: Extract Redis source archive # noqa: R104,R106 - source is the local archive created by the preceding download task
+  ansible.builtin.unarchive:
+    src: /usr/local/src/redis-{{ cache_redis_version }}.tar.gz # noqa: R114 - version is role-defined
+    dest: /usr/local/src
+    remote_src: true
+    creates: "{{ cache_redis_source_dir }}" # noqa: R114 - source directory is role-defined
+  when: not (cache_redis_package_install | bool)
+
+- name: Compile and install Redis source
+  ansible.builtin.command:
+    argv:
+      - make
+      - install
+  when: not (cache_redis_package_install | bool)
+  args:
+    chdir: "{{ cache_redis_source_dir }}" # noqa: R114 - source directory is role-defined
+    creates: "{{ cache_redis_bin_path }}/redis-server" # noqa: R114 - binary path is role-defined

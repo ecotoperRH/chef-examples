@@ -1,0 +1,21 @@
+#
+# The PAM configuration file for the Shadow `su' service
+#
+# This file is managed by Ansible to enable ulimit switching with `su`.
+
+# This allows root to su without passwords (normal operation)
+auth       sufficient pam_rootok.so
+
+# This module parses environment configuration file(s).
+session       required   pam_env.so readenv=1
+session       required   pam_env.so readenv=1 envfile=/etc/default/locale
+
+# Defines the MAIL environment variable.
+session    optional   pam_mail.so nopen
+
+# Enables configured user limits.
+session    required   pam_limits.so
+
+@include common-auth
+@include common-account
+@include common-session
