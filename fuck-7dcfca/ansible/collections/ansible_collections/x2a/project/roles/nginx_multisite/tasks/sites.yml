@@ -1,0 +1,34 @@
+---
+- name: Render virtual host configurations
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item_site['key'] }} # noqa: R114 - filename from role-defined sites dictionary
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_site
+  notify: Validate and reload nginx
+  vars:
+    server_name: "{{ item_site['key'] }}"
+    document_root: "{{ item_site['value']['document_root'] }}"
+    ssl_enabled: "{{ item_site['value']['ssl_enabled'] }}"
+    cert_file: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_site['key'] }}.crt"
+    key_file: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_site['key'] }}.key"
+
+- name: Enable virtual host configurations
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item_enabled['key'] }} # noqa: R114 - source from role-defined sites dictionary
+    dest: /etc/nginx/sites-enabled/{{ item_enabled['key'] }} # noqa: R114 - link name from role-defined sites dictionary
+    state: link
+    force: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_enabled
+  notify: Validate and reload nginx
+
+- name: Remove the default Nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Validate and reload nginx
