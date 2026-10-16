@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  role_name: nginx_multisite
+  namespace: x2a
+  author: Migration Tool
+  description: Install and configure Nginx with multiple HTTPS virtual hosts and security hardening.
+  license: Apache-2.0
+  min_ansible_version: 2.14.0
+  platforms:
+    - name: Ubuntu
+      versions:
+        - bionic
+        - focal
+        - jammy
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+  galaxy_tags:
+    - nginx
+    - webserver
+    - https
+    - tls
+    - security
+    - fail2ban
+    - firewall

@@ -1,0 +1,242 @@
+---
+# Unsupported diagnostics with no stated expected outcome: grep/readlink output, nginx and service
+# status output, ownership/permission output, UFW output, sysctl output, and raw listener output.
+# The curl endpoint checks are also omitted because no successful response was specified.
+- name: Verify nginx-multisite pre-flight checks
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Confirm required packages are installed
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert required packages are present
+      ansible.builtin.assert:
+        that:
+          - item_package in ansible_facts['packages']
+        loop:
+          - nginx
+          - fail2ban
+          - ufw
+          - openssl
+          - ca-certificates
+        loop_control:
+          loop_var: item_package
+
+    - name: Gather service states
+      ansible.builtin.service_facts:
+
+    - name: Assert Nginx and Fail2ban are enabled and active
+      ansible.builtin.assert:
+        that:
+          - item_service['name'] in ansible_facts['services']
+          - ansible_facts['services'][item_service['name']]['state'] == 'running'
+          - ansible_facts['services'][item_service['name']]['status'] == 'enabled'
+        loop:
+          - name: nginx.service
+          - name: fail2ban.service
+        loop_control:
+          loop_var: item_service
+
+    - name: Assert SSH is active
+      ansible.builtin.assert:
+        that:
+          - "'ssh.service' in ansible_facts['services']"
+          - ansible_facts['services']['ssh.service']['state'] == 'running'
+
+    - name: Validate Nginx configuration
+      ansible.builtin.command:
+        argv:
+          - nginx
+          - -t
+      register: nginx_config_test
+      changed_when: false
+
+    - name: Assert Nginx configuration is valid
+      ansible.builtin.assert:
+        that:
+          - nginx_config_test['rc'] == 0
+
+    - name: Check required files and directories
+      ansible.builtin.stat:
+        path: "{{ item_path_check['path'] }}"
+        follow: false
+      register: required_paths
+      loop:
+        - path: /etc/nginx/nginx.conf
+          kind: file
+        - path: /etc/nginx/conf.d/security.conf
+          kind: file
+        - path: /etc/nginx/sites-available/test.cluster.local
+          kind: file
+        - path: /etc/nginx/sites-available/ci.cluster.local
+          kind: file
+        - path: /etc/nginx/sites-available/status.cluster.local
+          kind: file
+        - path: /opt/server/test
+          kind: directory
+        - path: /opt/server/test/index.html
+          kind: file
+        - path: /opt/server/ci
+          kind: directory
+        - path: /opt/server/ci/index.html
+          kind: file
+        - path: /opt/server/status
+          kind: directory
+        - path: /opt/server/status/index.html
+          kind: file
+        - path: /etc/ssl/certs/test.cluster.local.crt
+          kind: file
+        - path: /etc/ssl/certs/ci.cluster.local.crt
+          kind: file
+        - path: /etc/ssl/certs/status.cluster.local.crt
+          kind: file
+        - path: /etc/ssl/private/test.cluster.local.key
+          kind: file
+        - path: /etc/ssl/private/ci.cluster.local.key
+          kind: file
+        - path: /etc/ssl/private/status.cluster.local.key
+          kind: file
+        - path: /etc/fail2ban/jail.local
+          kind: file
+        - path: /etc/sysctl.d/99-security.conf
+          kind: file
+        - path: /etc/ssh/sshd_config
+          kind: file
+      loop_control:
+        loop_var: item_path_check
+
+    - name: Assert required files and directories have the expected type
+      ansible.builtin.assert:
+        that:
+          - item_required_path['stat']['exists']
+          - (item_required_path['stat']['isdir'] if item_required_path['item']['kind'] == 'directory'
+            else item_required_path['stat']['isreg'])
+        loop: "{{ required_paths['results'] }}"
+        loop_control:
+          loop_var: item_required_path
+
+    - name: Check enabled site links
+      ansible.builtin.stat:
+        path: "{{ item_site_link }}"
+        follow: false
+      register: site_links
+      loop:
+        - /etc/nginx/sites-enabled/test.cluster.local
+        - /etc/nginx/sites-enabled/ci.cluster.local
+        - /etc/nginx/sites-enabled/status.cluster.local
+      loop_control:
+        loop_var: item_site_link
+
+    - name: Assert enabled site links are symbolic links
+      ansible.builtin.assert:
+        that:
+          - item_link['stat']['islnk'] | default(false)
+        loop: "{{ site_links['results'] }}"
+        loop_control:
+          loop_var: item_link
+
+    - name: Validate certificates are not expired
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -in
+          - "{{ item_certificate }}"
+          - -noout
+          - -subject
+          - -dates
+          - -checkend
+          - '0'
+      register: certificate_checks
+      changed_when: false
+      loop:
+        - /etc/ssl/certs/test.cluster.local.crt
+        - /etc/ssl/certs/ci.cluster.local.crt
+        - /etc/ssl/certs/status.cluster.local.crt
+      loop_control:
+        loop_var: item_certificate
+
+    - name: Assert certificates are currently valid
+      ansible.builtin.assert:
+        that:
+          - item_certificate_check['rc'] == 0
+        loop: "{{ certificate_checks['results'] }}"
+        loop_control:
+          loop_var: item_certificate_check
+
+    - name: Read certificate and key moduli
+      ansible.builtin.command:
+        argv: "{{ item_modulus['argv'] }}"
+      register: modulus_checks
+      changed_when: false
+      loop:
+        - name: test certificate
+          argv: [openssl, x509, -noout, -modulus, -in, /etc/ssl/certs/test.cluster.local.crt]
+        - name: test key
+          argv: [openssl, rsa, -noout, -modulus, -in, /etc/ssl/private/test.cluster.local.key]
+        - name: ci certificate
+          argv: [openssl, x509, -noout, -modulus, -in, /etc/ssl/certs/ci.cluster.local.crt]
+        - name: ci key
+          argv: [openssl, rsa, -noout, -modulus, -in, /etc/ssl/private/ci.cluster.local.key]
+        - name: status certificate
+          argv: [openssl, x509, -noout, -modulus, -in, /etc/ssl/certs/status.cluster.local.crt]
+        - name: status key
+          argv: [openssl, rsa, -noout, -modulus, -in, /etc/ssl/private/status.cluster.local.key]
+      loop_control:
+        loop_var: item_modulus
+
+    - name: Assert certificate and key moduli match
+      ansible.builtin.assert:
+        that:
+          - modulus_checks['results'][0]['stdout'] == modulus_checks['results'][1]['stdout']
+          - modulus_checks['results'][2]['stdout'] == modulus_checks['results'][3]['stdout']
+          - modulus_checks['results'][4]['stdout'] == modulus_checks['results'][5]['stdout']
+
+    - name: Validate SSH hardening configuration
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: ssh_config
+
+    - name: Assert SSH hardening settings are disabled
+      ansible.builtin.assert:
+        that:
+          - ssh_config['content'] | b64decode is search('(?m)^PermitRootLogin[[:space:]]+no')
+          - ssh_config['content'] | b64decode is search('(?m)^PasswordAuthentication[[:space:]]+no')
+
+    - name: Validate SSH configuration syntax
+      ansible.builtin.command:
+        argv:
+          - sshd
+          - -t
+      register: ssh_config_test
+      changed_when: false
+
+    - name: Assert SSH configuration is valid
+      ansible.builtin.assert:
+        that:
+          - ssh_config_test['rc'] == 0
+
+    - name: Validate Fail2ban responds
+      ansible.builtin.command:
+        argv:
+          - fail2ban-client
+          - ping
+      register: fail2ban_ping
+      changed_when: false
+
+    - name: Assert Fail2ban responds to ping
+      ansible.builtin.assert:
+        that:
+          - fail2ban_ping['rc'] == 0
+          - fail2ban_ping['stdout'] is search('pong')
+
+    - name: Check default Nginx site is absent
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: default_site
+
+    - name: Assert default Nginx site is removed
+      ansible.builtin.assert:
+        that:
+          - not default_site['stat']['exists']
