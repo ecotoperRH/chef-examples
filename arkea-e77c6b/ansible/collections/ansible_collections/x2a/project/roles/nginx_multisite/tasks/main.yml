@@ -1,0 +1,12 @@
+---
+- name: Configure security baseline
+  ansible.builtin.import_tasks: security.yml
+
+- name: Install and configure NGINX
+  ansible.builtin.import_tasks: nginx.yml
+
+- name: Generate TLS certificates
+  ansible.builtin.import_tasks: ssl.yml
+
+- name: Configure NGINX virtual hosts
+  ansible.builtin.import_tasks: sites.yml
