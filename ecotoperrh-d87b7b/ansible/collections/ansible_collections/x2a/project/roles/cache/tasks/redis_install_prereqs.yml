@@ -1,0 +1,6 @@
+---
+- name: Install Redis source prerequisites
+  ansible.builtin.package:
+    name: "{{ (cache_redis_build_packages + ['tar']) | unique }}"
+    state: present
+  when: ansible_facts['os_family'] in ['Debian', 'RedHat']

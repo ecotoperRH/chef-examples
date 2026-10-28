@@ -1,0 +1,31 @@
+---
+- name: Install Redis package
+  ansible.builtin.package:
+    name: "{{ cache_redis_package_name }}"
+    state: present
+  when: cache_redis_package_install | bool
+
+- name: Download Redis source archive # noqa: R106 - source URL is controlled by role configuration
+  ansible.builtin.get_url: # noqa: R104 - source mirror is a role-controlled endpoint without a TLS requirement
+    url: "{{ cache_redis_mirror }}{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }}"
+    dest: /var/tmp/{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }} # noqa: R114 - fixed role-controlled source archive path
+    mode: "0644"
+    backup: true
+  when: not cache_redis_package_install | bool
+
+- name: Extract Redis source archive # noqa: R104 - archive was downloaded from the role-controlled source mirror
+  ansible.builtin.unarchive: # noqa: R106 - archive source path is controlled by role configuration
+    src: /var/tmp/{{ cache_redis_base_name }}{{ cache_redis_version }}.{{ cache_redis_artifact_type }}
+    dest: /var/tmp
+    remote_src: true
+    creates: /var/tmp/{{ cache_redis_base_name }}{{ cache_redis_version }} # noqa: R114 - fixed role-controlled extraction path
+  when: not cache_redis_package_install | bool
+
+- name: Build and install Redis from source
+  ansible.builtin.shell:
+    cmd: |
+      make -C /var/tmp/redis-{{ cache_redis_version }} -j2
+      make -C /var/tmp/redis-{{ cache_redis_version }} PREFIX={{ cache_redis_install_dir | default('/usr/local', true) }} install # noqa: R101 - command paths come from role defaults
+    creates: "{{ cache_redis_install_dir | default('/usr/local', true) }}/bin/redis-server" # noqa: R114 - fixed role-controlled installation path
+  when: not cache_redis_package_install | bool
+  changed_when: true

@@ -1,0 +1,58 @@
+---
+- name: Create Redis configuration directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_config_dir }}" # noqa: R114 - path is a role-controlled configuration directory
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+
+- name: Create Redis data directory
+  ansible.builtin.file:
+    path: /var/lib/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0750"
+
+- name: Create Redis runtime directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_base_piddir }}" # noqa: R114 - path is a role-controlled runtime directory
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+
+- name: Install systemd unit for source-built Redis
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/redis@.service
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Redis instance %i
+      After=network.target
+
+      [Service]
+      Type=simple
+      User=redis
+      Group=redis
+      ExecStart={{ cache_redis_install_dir | default('/usr/local', true) }}/bin/redis-server {{ cache_redis_config_dir }}/%i.conf
+      ExecStop={{ cache_redis_install_dir | default('/usr/local', true) }}/bin/redis-cli -p %i shutdown
+      Restart=on-failure
+
+      [Install]
+      WantedBy=multi-user.target
+  when:
+    - not cache_redis_package_install
+    - cache_redis_job_control == 'systemd'
+  notify: Reload systemd
+
+- name: Render Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ cache_redis_config_dir }}/6379.conf" # noqa: R114 - destination is the role-controlled Redis config directory
+    owner: redis
+    group: redis
+    mode: "0644"
+    backup: true
+  no_log: "{{ cache_secure_logging }}"

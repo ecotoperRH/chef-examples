@@ -1,0 +1,14 @@
+---
+- name: Enable and start Redis instance on systemd
+  ansible.builtin.service:
+    name: redis@6379
+    state: started
+    enabled: true
+  when: cache_redis_job_control == 'systemd'
+
+- name: Enable and start Redis instance on non-systemd init systems
+  ansible.builtin.service:
+    name: redis6379
+    state: started
+    enabled: true
+  when: cache_redis_job_control != 'systemd'

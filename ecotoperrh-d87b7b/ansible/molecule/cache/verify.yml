@@ -1,0 +1,148 @@
+---
+# Unsupported pre-flight checks: Redis authenticated PING requires a secure secret;
+# configuration-content, journal, directory, process-status, and conditional PAM-file
+# checks do not state an expected outcome that can be asserted safely here.
+- name: Verify cache services and endpoints
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Gather service facts for the cache instances
+      ansible.builtin.service_facts:
+
+    - name: Assert Memcached is active
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['memcached.service']['state'] == 'running'
+        fail_msg: Memcached is not running.
+
+    - name: Check the Memcached TCP listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        state: started
+        timeout: 5
+
+    - name: Verify the Memcached UDP listener diagnostic
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -lunp
+      changed_when: false
+      failed_when: false
+      register: memcached_udp_listener
+
+    - name: Assert Memcached listens on UDP port 11211
+      ansible.builtin.assert:
+        that:
+          - memcached_udp_listener.stdout is search('[:.]11211\\b')
+        fail_msg: Memcached is not listening on UDP port 11211.
+
+    - name: Verify the Memcached text protocol
+      ansible.builtin.command:
+        argv:
+          - nc
+          - -w
+          - '2'
+          - 127.0.0.1
+          - '11211'
+        stdin: "version\r\nquit\r\n"
+      changed_when: false
+      failed_when: false
+      register: memcached_protocol
+
+    - name: Assert Memcached responds to the version request
+      ansible.builtin.assert:
+        that:
+          - memcached_protocol.stdout is search('VERSION')
+        fail_msg: Memcached did not respond to the version request.
+
+    - name: Verify the effective Memcached command
+      ansible.builtin.command:
+        argv:
+          - ps
+          - -eo
+          - args
+      changed_when: false
+      failed_when: false
+      register: memcached_process
+
+    - name: Assert the required Memcached options are effective
+      ansible.builtin.assert:
+        that:
+          - memcached_process.stdout is search('memcached')
+          - memcached_process.stdout is search('(?:^|\\s)-m[= ]64(?:\\s|$)')
+          - memcached_process.stdout is search('(?:^|\\s)-p[= ]11211(?:\\s|$)')
+          - memcached_process.stdout is search('(?:^|\\s)-U[= ]11211(?:\\s|$)')
+          - memcached_process.stdout is search('(?:^|\\s)-l[= ]0\\.0\\.0\\.0(?:\\s|$)')
+          - memcached_process.stdout is search('(?:^|\\s)-c[= ]1024(?:\\s|$)')
+          - memcached_process.stdout is search('(?:^|\\s)-I[= ]1m(?:\\s|$)')
+        fail_msg: The effective Memcached command is missing one or more required options.
+
+    - name: Assert the systemd Redis instance is active and enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['redis@6379.service']['state'] == 'running'
+          - ansible_facts.services['redis@6379.service']['status'] == 'enabled'
+        fail_msg: Redis instance 6379 is not active and enabled.
+      when: ansible_service_mgr == 'systemd'
+
+    - name: Assert the non-systemd Redis instance is active and enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['redis6379.service']['state'] == 'running'
+          - ansible_facts.services['redis6379.service']['status'] == 'enabled'
+        fail_msg: Redis instance 6379 is not active and enabled.
+      when: ansible_service_mgr != 'systemd'
+
+    - name: Check the Redis TCP listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        state: started
+        timeout: 5
+
+    - name: Verify the operating-system Redis service is not competing
+      ansible.builtin.assert:
+        that:
+          - >-
+            ansible_facts.services['redis-server.service']['state'] != 'running' or
+            ansible_facts.services['redis-server.service']['status'] != 'enabled'
+        fail_msg: The operating-system Redis service is both running and enabled.
+      when: "'redis-server.service' in ansible_facts.services"
+
+    - name: Verify unauthenticated Redis access is rejected
+      ansible.builtin.command:
+        argv:
+          - redis-cli
+          - -h
+          - 127.0.0.1
+          - -p
+          - '6379'
+          - PING
+      changed_when: false
+      failed_when: false
+      register: redis_unauthenticated_ping
+
+    - name: Assert unauthenticated Redis access is rejected
+      ansible.builtin.assert:
+        that:
+          - redis_unauthenticated_ping.rc != 0
+        fail_msg: Redis accepted an unauthenticated PING.
+
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert the Debian Redis package is installed
+      ansible.builtin.assert:
+        that:
+          - "'redis-server' in ansible_facts.packages"
+        fail_msg: The redis-server package is not installed.
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Assert the RHEL-family Redis package is installed
+      ansible.builtin.assert:
+        that:
+          - "'redis' in ansible_facts.packages"
+        fail_msg: The redis package is not installed.
+      when: ansible_facts.os_family == 'RedHat'

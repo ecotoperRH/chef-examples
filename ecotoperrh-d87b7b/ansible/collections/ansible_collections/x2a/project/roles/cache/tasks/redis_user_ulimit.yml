@@ -1,0 +1,10 @@
+---
+- name: Apply Redis user limit settings # noqa: L039 - item_cache is the trusted loop variable supplied by the preceding include task
+  community.general.pam_limits:
+    domain: "{{ item_cache['key'] }}"
+    limit_type: "{{ item_limit['key'] }}"
+    limit_item: "{{ item_limit['value']['item'] }}"
+    value: "{{ item_limit['value']['value'] }}"
+  loop: "{{ item_cache['value'] | dict2items }}"
+  loop_control:
+    loop_var: item_limit

@@ -1,0 +1,9 @@
+---
+- name: Restart Redis instance
+  ansible.builtin.service:
+    name: "{{ 'redis@6379' if cache_redis_job_control == 'systemd' else 'redis6379' }}"
+    state: restarted
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true

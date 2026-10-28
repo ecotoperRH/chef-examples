@@ -1,0 +1,19 @@
+bind 0.0.0.0
+port 6379
+tcp-backlog 511
+timeout 0
+databases 16
+loglevel notice
+logfile /var/log/redis/6379.log
+syslog-enabled yes
+save 900 1
+save 300 10
+save 60 10000
+dbfilename dump.rdb
+dir /var/lib/redis
+maxclients 10000
+requirepass {{ redis_requirepass }}
+stop-writes-on-bgsave-error yes
+rdbcompression yes
+rdbchecksum yes
+appendonly no

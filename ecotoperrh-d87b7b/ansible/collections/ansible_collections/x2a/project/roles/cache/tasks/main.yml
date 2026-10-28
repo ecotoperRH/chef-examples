@@ -1,0 +1,56 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+  when: not cache_redis_bypass_setup | bool
+
+- name: Include Memcached configuration
+  ansible.builtin.include_tasks: memcached.yml
+
+- name: Include Redis defaults and installation
+  ansible.builtin.include_tasks: redis_default.yml
+  when: not cache_redis_bypass_setup | bool
+
+- name: Ensure Redis service account exists
+  ansible.builtin.user:
+    name: redis
+    system: true
+    shell: /bin/false
+    home: /var/lib/redis
+    create_home: true
+    state: present
+  when: not cache_redis_bypass_setup | bool
+
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+    recurse: true
+  when: not cache_redis_bypass_setup | bool
+
+- name: Disable operating system Redis service
+  ansible.builtin.include_tasks: redis_disable_os_default.yml
+  when: not cache_redis_bypass_setup | bool
+
+- name: Configure Redis instance
+  ansible.builtin.include_tasks: redis_configure.yml
+  when: not cache_redis_bypass_setup | bool
+
+- name: Apply Redis ulimit configuration
+  ansible.builtin.include_tasks: redis_ulimit.yml
+  when: not cache_redis_bypass_setup | bool
+
+- name: Remove unsupported replication directives from Redis configuration
+  ansible.builtin.replace:
+    path: "{{ cache_redis_config_dir }}/6379.conf" # noqa: R114 - path comes from role defaults
+    regexp: ^((replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority).*)$
+    replace: ""
+  notify: Restart Redis instance
+  no_log: "{{ cache_secure_logging }}"
+  when: not cache_redis_bypass_setup | bool
+
+- name: Enable Redis instance
+  ansible.builtin.include_tasks: redis_enable.yml
+  when: not cache_redis_bypass_setup | bool

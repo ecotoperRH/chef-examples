@@ -1,0 +1,178 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure Memcached and Redis cache services
+    description:
+      - Installs and configures a Memcached instance and a Redis instance.
+    options:
+      cache_secure_logging:
+        type: bool
+        default: true
+        description: Hide task output for operations that render or handle Redis credentials.
+      cache_memcached_version:
+        type: str
+        default: null
+        description: Optional Memcached package version.
+      cache_memcached_memory:
+        type: int
+        default: 64
+        description: Memcached memory allocation in megabytes.
+      cache_memcached_port:
+        type: int
+        default: 11211
+        description: Memcached TCP port.
+      cache_memcached_udp_port:
+        type: int
+        default: 11211
+        description: Memcached UDP port.
+      cache_memcached_listen:
+        type: str
+        default: 0.0.0.0
+        description: Memcached listen address.
+      cache_memcached_maxconn:
+        type: int
+        default: 1024
+        description: Maximum Memcached connections.
+      cache_memcached_max_object_size:
+        type: str
+        default: 1m
+        description: Maximum Memcached object size.
+      cache_memcached_experimental_options:
+        type: list
+        elements: str
+        default: []
+        description: Additional Memcached experimental options.
+      cache_memcached_extra_cli_options:
+        type: list
+        elements: str
+        default: []
+        description: Additional Memcached command-line options.
+      cache_memcached_ulimit:
+        type: int
+        default: 1024
+        description: Memcached file descriptor limit.
+      cache_memcached_logfilepath:
+        type: str
+        default: /var/log/memcached
+        description: Memcached log path.
+      cache_memcached_threads:
+        type: int
+        default: 4
+        description: Number of Memcached worker threads.
+      cache_memcached_user:
+        type: str
+        default: service_user
+        description: User running Memcached.
+      cache_redis_package_install:
+        type: bool
+        default: false
+        description: Install Redis from the operating-system package instead of source.
+      cache_redis_version:
+        type: str
+        default: 3.2.11
+        description: Redis version used for source installation.
+      cache_redis_safe_install:
+        type: bool
+        default: true
+        description: Enable safe Redis installation behavior.
+      cache_redis_bypass_setup:
+        type: bool
+        default: false
+        description: Skip Redis installation and configuration setup.
+      cache_redis_mirror:
+        type: str
+        default: http://download.redis.io/releases/
+        description: Redis source archive mirror.
+      cache_redis_base_name:
+        type: str
+        default: redis-
+        description: Redis source archive base name.
+      cache_redis_artifact_type:
+        type: str
+        default: tar.gz
+        description: Redis source archive type.
+      cache_redis_base_piddir:
+        type: str
+        default: /var/run/redis
+        description: Redis runtime directory.
+      cache_redis_install_dir:
+        type: str
+        default: null
+        description: Optional Redis source installation prefix.
+      cache_redis_config_dir:
+        type: str
+        default: /etc/redis
+        description: Redis configuration directory.
+      cache_redis_package_name:
+        type: str
+        default: redis-server
+        description: Redis operating-system package name.
+      cache_redis_service_name:
+        type: str
+        default: redis-server
+        description: Operating-system Redis service name.
+      cache_redis_job_control:
+        type: str
+        default: systemd
+        description: Service manager mode used for Redis.
+      cache_redis_servers:
+        type: list
+        elements: dict
+        default:
+          - port: 6379
+            requirepass: "{{ redis_requirepass }}"
+            name: "6379"
+            user: redis
+            group: redis
+            homedir: /var/lib/redis
+            datadir: /var/lib/redis
+            configdir: /etc/redis
+            tcpbacklog: "511"
+            databases: "16"
+            loglevel: notice
+            syslogenabled: "yes"
+            maxclients: 10000
+            logfile: /var/log/redis/6379.log
+            unixsocket: null
+            replicaservestaledata: null
+        description: Redis instance definitions.
+      cache_redis_default_settings:
+        type: dict
+        default:
+          user: redis
+          group: redis
+          homedir: /var/lib/redis
+          shell: /bin/false
+          systemuser: true
+          configdir: /etc/redis
+          datadir: /var/lib/redis
+          tcpbacklog: "511"
+          databases: "16"
+          loglevel: notice
+          syslogenabled: "yes"
+          maxclients: 10000
+          requirepass: null
+        description: Default Redis instance settings.
+      cache_redis_build_packages:
+        type: list
+        elements: str
+        default:
+          - build-essential
+          - tcl
+        description: Packages needed for Redis source builds.
+      cache_redis_ulimit_users:
+        type: dict
+        default: {}
+        description: Per-user Redis PAM limits.
+      cache_redis_ulimit_security_limits_directory:
+        type: str
+        default: /etc/security/limits.d
+        description: Security limits directory.
+      cache_redis_ulimit_pam_su_template:
+        type: str
+        default: null
+        description: Optional PAM su template selector.
+      cache_redis_ulimit_sudo_file_name:
+        type: str
+        default: sudo
+        description: Optional PAM sudo limits file name.

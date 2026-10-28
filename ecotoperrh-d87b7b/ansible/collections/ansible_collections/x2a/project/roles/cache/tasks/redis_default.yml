@@ -1,0 +1,8 @@
+---
+- name: Include Redis build prerequisites when using source installation
+  ansible.builtin.include_tasks: redis_install_prereqs.yml
+  when: not cache_redis_package_install | bool
+
+- name: Include Redis installation
+  ansible.builtin.include_tasks: redis_install.yml
+  when: not cache_redis_bypass_setup | bool

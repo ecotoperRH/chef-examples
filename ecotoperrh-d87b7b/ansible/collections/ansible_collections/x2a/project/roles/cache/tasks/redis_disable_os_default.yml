@@ -1,0 +1,8 @@
+---
+- name: Stop and disable the operating system Redis service
+  ansible.builtin.service:
+    name: "{{ cache_redis_service_name }}"
+    state: stopped
+    enabled: false
+  when: cache_redis_service_name is not none
+  failed_when: false
