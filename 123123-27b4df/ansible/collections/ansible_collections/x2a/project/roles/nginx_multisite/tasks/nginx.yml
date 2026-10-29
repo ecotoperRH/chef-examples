@@ -1,0 +1,66 @@
+---
+- name: Ensure web group exists
+  ansible.builtin.group:
+    name: "{{ nginx_multisite_web_group }}"
+    state: present
+
+- name: Ensure web user exists
+  ansible.builtin.user:
+    name: "{{ nginx_multisite_web_user }}"
+    group: "{{ nginx_multisite_web_group }}"
+    system: true
+    state: present
+
+- name: Install nginx package
+  ansible.builtin.package:
+    name: nginx
+    state: present
+
+- name: Deploy core nginx configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+
+- name: Deploy nginx security configuration
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: /etc/nginx/conf.d/security.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload nginx
+
+- name: Enable and start nginx service
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Create site document root directories
+  ansible.builtin.file:
+    path: "{{ item_nginx_multisite['value']['document_root'] }}" # noqa: R114 - path from role-defined sites dict, not user input
+    state: directory
+    owner: "{{ nginx_multisite_web_user }}"
+    group: "{{ nginx_multisite_web_group }}"
+    mode: "0755"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_multisite
+
+- name: Deploy site index.html files
+  ansible.builtin.copy:
+    src: "files/{{ item_nginx_multisite['key'].split('.')[0] }}/index.html"
+    dest: "{{ item_nginx_multisite['value']['document_root'] }}/index.html" # noqa: R114 - path from role-defined sites dict, not user input
+    owner: "{{ nginx_multisite_web_user }}"
+    group: "{{ nginx_multisite_web_group }}"
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_multisite

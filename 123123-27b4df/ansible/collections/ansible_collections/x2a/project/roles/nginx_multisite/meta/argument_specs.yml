@@ -1,0 +1,111 @@
+---
+argument_specs:
+  main:
+    short_description: Configures nginx with multiple SSL-enabled subdomains
+    description:
+      - Configures an Nginx web server hosting SSL-enabled virtual host sites with static content deployment and system security hardening.
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+        description: Dictionary of virtual host sites and their configurations.
+      nginx_multisite_ssl_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Directory path for storing SSL certificates.
+      nginx_multisite_ssl_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Directory path for storing SSL private keys.
+      nginx_multisite_security_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to enable and start Fail2ban.
+      nginx_multisite_security_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether to configure and enable UFW firewall.
+      nginx_multisite_security_ssh_disable_root:
+        type: bool
+        required: false
+        default: true
+        description: Whether to disable root login in SSH daemon.
+      nginx_multisite_security_ssh_password_auth:
+        type: bool
+        required: false
+        default: false
+        description: Whether to allow password authentication in SSH daemon.
+      nginx_multisite_ssl_cert_days:
+        type: int
+        required: false
+        default: 365
+        description: Number of days self-signed SSL certificates are valid.
+      nginx_multisite_ssl_key_size:
+        type: int
+        required: false
+        default: 2048
+        description: RSA key size in bits for generated SSL private keys.
+      nginx_multisite_ssl_country:
+        type: str
+        required: false
+        default: US
+        description: Country code for SSL certificate subject.
+      nginx_multisite_ssl_state:
+        type: str
+        required: false
+        default: Example
+        description: State or province for SSL certificate subject.
+      nginx_multisite_ssl_locality:
+        type: str
+        required: false
+        default: Example
+        description: Locality or city for SSL certificate subject.
+      nginx_multisite_ssl_organization:
+        type: str
+        required: false
+        default: Example Org
+        description: Organization name for SSL certificate subject.
+      nginx_multisite_ssl_organizational_unit:
+        type: str
+        required: false
+        default: IT
+        description: Organizational unit for SSL certificate subject.
+      nginx_multisite_ssl_email:
+        type: str
+        required: false
+        default: admin@example.com
+        description: Email address for SSL certificate subject.
+      nginx_multisite_web_user:
+        type: str
+        required: false
+        default: www-data
+        description: User owner for web content files.
+      nginx_multisite_web_group:
+        type: str
+        required: false
+        default: www-data
+        description: Group owner for web content files.
+      nginx_multisite_ssl_group:
+        type: str
+        required: false
+        default: ssl-cert
+        description: Group owner for SSL private key directory and keys.
+      nginx_multisite_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Whether to censor sensitive task output in logs.

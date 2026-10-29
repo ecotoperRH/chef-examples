@@ -1,0 +1,229 @@
+{
+  "module_name": "nginx_multisite",
+  "items": [
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/run_nginx_multisite.yml",
+      "status": "complete",
+      "description": "Deployment entry point for the migrated role",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/requirements.yml",
+      "status": "complete",
+      "description": "Test-only Podman collection dependency",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/README.md",
+      "status": "complete",
+      "description": "Developer instructions for running Molecule",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/nginx_multisite/molecule.yml",
+      "status": "complete",
+      "description": "Ansible-native Molecule scenario configuration",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/nginx_multisite/inventory/hosts.yml",
+      "status": "complete",
+      "description": "Disposable Podman target inventory",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/nginx_multisite/create.yml",
+      "status": "complete",
+      "description": "Create and inspect disposable Podman targets",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/nginx_multisite/destroy.yml",
+      "status": "complete",
+      "description": "Remove disposable Podman targets",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/nginx_multisite/prepare.yml",
+      "status": "complete",
+      "description": "Bootstrap Python on the disposable Linux target",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/nginx_multisite/converge.yml",
+      "status": "complete",
+      "description": "Run the deployment playbook under test",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/nginx_multisite/verify.yml",
+      "status": "complete",
+      "description": "Verify migrated behavior against the source plan",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "structure",
+      "source_path": "metadata.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "defaults/main.yml",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Role argument specs for parameter validation",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/handlers/main.yml",
+      "status": "complete",
+      "description": "Role handlers for service restarts and reloads",
+      "notes": ""
+    },
+    {
+      "category": "attributes",
+      "source_path": "attributes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/defaults/main.yml",
+      "status": "complete",
+      "description": "Default role variables",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/tasks/main.yml",
+      "status": "complete",
+      "description": "Main task entrypoint orchestrating subtasks",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "recipes/security.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/tasks/security.yml",
+      "status": "complete",
+      "description": "System security hardening tasks (ufw, fail2ban, sysctl, ssh)",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "recipes/nginx.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/tasks/nginx.yml",
+      "status": "complete",
+      "description": "Nginx package installation and base configuration tasks",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "recipes/ssl.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/tasks/ssl.yml",
+      "status": "complete",
+      "description": "SSL certificate and key generation tasks",
+      "notes": ""
+    },
+    {
+      "category": "recipes",
+      "source_path": "recipes/sites.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/tasks/sites.yml",
+      "status": "complete",
+      "description": "Virtual host sites and document root configuration tasks",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "templates/default/fail2ban.jail.local.erb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/templates/fail2ban.jail.local.j2",
+      "status": "complete",
+      "description": "Fail2ban jail configuration template",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "templates/default/nginx.conf.erb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/templates/nginx.conf.j2",
+      "status": "complete",
+      "description": "Main Nginx configuration template",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "templates/default/security.conf.erb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/templates/security.conf.j2",
+      "status": "complete",
+      "description": "Nginx HTTP security and rate-limiting configuration template",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "templates/default/site.conf.erb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/templates/site.conf.j2",
+      "status": "complete",
+      "description": "Nginx virtual host site configuration template",
+      "notes": ""
+    },
+    {
+      "category": "templates",
+      "source_path": "templates/default/sysctl-security.conf.erb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/templates/sysctl-security.conf.j2",
+      "status": "complete",
+      "description": "Sysctl kernel security parameters template",
+      "notes": ""
+    },
+    {
+      "category": "files",
+      "source_path": "files/default/test/index.html",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/files/test/index.html",
+      "status": "complete",
+      "description": "Static index file for test.cluster.local site",
+      "notes": ""
+    },
+    {
+      "category": "files",
+      "source_path": "files/default/ci/index.html",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/files/ci/index.html",
+      "status": "complete",
+      "description": "Static index file for ci.cluster.local site",
+      "notes": ""
+    },
+    {
+      "category": "files",
+      "source_path": "files/default/status/index.html",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/files/status/index.html",
+      "status": "complete",
+      "description": "Static index file for status.cluster.local site",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/nginx_multisite/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}

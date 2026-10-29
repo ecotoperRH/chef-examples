@@ -1,0 +1,67 @@
+---
+- name: Install SSL utilities
+  ansible.builtin.package:
+    name:
+      - openssl
+      - ca-certificates
+    state: present
+
+- name: Ensure ssl-cert group exists
+  ansible.builtin.group:
+    name: "{{ nginx_multisite_ssl_group }}"
+    state: present
+
+- name: Create SSL certificate directory
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_certificate_path }}" # noqa: R114 - path from role defaults, not user input
+    owner: root
+    group: root
+    mode: "0755"
+    state: directory
+
+- name: Create SSL private key directory
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_private_key_path }}" # noqa: R114 - path from role defaults, not user input
+    owner: root
+    group: "{{ nginx_multisite_ssl_group }}"
+    mode: "0710"
+    state: directory
+
+- name: Generate self-signed SSL certificates # noqa: R101 - command arguments come from role defaults, not user input
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - req
+      - -x509
+      - -nodes
+      - -days
+      - "{{ nginx_multisite_ssl_cert_days | string }}"
+      - -newkey
+      - rsa:{{ nginx_multisite_ssl_key_size }}
+      - -keyout
+      - "{{ nginx_multisite_ssl_private_key_path }}/{{ item_nginx_multisite['key'] }}.key"
+      - -out
+      - "{{ nginx_multisite_ssl_certificate_path }}/{{ item_nginx_multisite['key'] }}.crt"
+      - -subj
+      - "{{ ssl_subj }}"
+    creates: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_nginx_multisite['key'] }}.crt"
+  when: item_nginx_multisite['value']['ssl_enabled'] | default(false)
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_multisite
+  notify: Reload nginx
+  vars:
+    ssl_subj: >-
+      /C={{ nginx_multisite_ssl_country }}/ST={{ nginx_multisite_ssl_state }}/L={{ nginx_multisite_ssl_locality }}/O={{ nginx_multisite_ssl_organization }}/OU={{ nginx_multisite_ssl_organizational_unit }}/CN={{ item_nginx_multisite['key'] }}/emailAddress={{ nginx_multisite_ssl_email }}
+
+- name: Set permissions on SSL private keys
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_nginx_multisite['key'] }}.key" # noqa: R114 - path from role-defined sites dict, not user input
+    owner: root
+    group: "{{ nginx_multisite_ssl_group }}"
+    mode: "0640"
+    state: file
+  when: item_nginx_multisite['value']['ssl_enabled'] | default(false)
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_multisite
