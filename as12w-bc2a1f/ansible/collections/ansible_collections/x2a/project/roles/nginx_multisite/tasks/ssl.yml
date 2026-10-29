@@ -1,0 +1,65 @@
+---
+- name: Install SSL packages
+  ansible.builtin.package:
+    name:
+      - openssl
+      - ca-certificates
+    state: present
+
+- name: Create ssl-cert group
+  ansible.builtin.group:
+    name: ssl-cert
+    state: present
+
+- name: Create certificate directory
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_certificate_path }}" # noqa: R114 - path from role default
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create private key directory
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_private_key_path }}" # noqa: R114 - path from role default
+    state: directory
+    owner: root
+    group: ssl-cert
+    mode: "0710"
+
+- name: Generate self-signed SSL certificates  # noqa: R101 - command uses role defaults and role-defined sites, not untrusted input
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - req
+      - -x509
+      - -nodes
+      - -days
+      - "{{ nginx_multisite_ssl_validity_days }}"
+      - -newkey
+      - rsa:2048
+      - -keyout
+      - "{{ nginx_multisite_ssl_private_key_path }}/{{ item_ssl_site['key'] }}.key" # noqa: R114 - path from role-defined sites
+      - -out
+      - "{{ nginx_multisite_ssl_certificate_path }}/{{ item_ssl_site['key'] }}.crt" # noqa: R114 - path from role-defined sites
+      - -subj
+      - /C=US/ST=Example/L=Example/O=Example Org/OU=IT/CN={{ item_ssl_site['key'] }}/emailAddress={{ nginx_multisite_ssl_subject_email }}
+  when: item_ssl_site['value']['ssl_enabled']
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_ssl_site
+  notify: Reload nginx
+  args:
+    creates: "{{ nginx_multisite_ssl_certificate_path }}/{{ item_ssl_site['key'] }}.crt" # noqa: R114 - path from role-defined sites
+
+- name: Set private key permissions
+  ansible.builtin.file:
+    path: "{{ nginx_multisite_ssl_private_key_path }}/{{ item_ssl_site['key'] }}.key" # noqa: R114 - path from role-defined sites
+    state: file
+    owner: root
+    group: ssl-cert
+    mode: "0640"
+  when: item_ssl_site['value']['ssl_enabled']
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_ssl_site
