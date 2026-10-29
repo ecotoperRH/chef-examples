@@ -1,0 +1,282 @@
+---
+# Unsupported pre-flight diagnostics with no stated expected value: package version output,
+# sysctl values, certificate dates, key stat output, symlink targets, logs, and service journals.
+- name: Verify nginx_multisite deployment
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert Nginx and Fail2ban are enabled and running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['nginx.service']['status'] == 'enabled'
+          - ansible_facts.services['nginx.service']['state'] == 'running'
+          - ansible_facts.services['fail2ban.service']['status'] == 'enabled'
+          - ansible_facts.services['fail2ban.service']['state'] == 'running'
+        fail_msg: Required Nginx or Fail2ban service state is not satisfied.
+
+    - name: Assert SSH service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['ssh.service']['state'] == 'running'
+        fail_msg: SSH service is not running.
+
+    - name: Validate Nginx configuration
+      ansible.builtin.command:
+        argv:
+          - nginx
+          - -t
+      changed_when: false
+
+    - name: Validate SSH configuration
+      ansible.builtin.command:
+        argv:
+          - sshd
+          - -t
+      changed_when: false
+
+    - name: Read UFW verbose status
+      ansible.builtin.command:
+        argv:
+          - ufw
+          - status
+          - verbose
+      changed_when: false
+      failed_when: false
+      register: ufw_status
+
+    - name: Assert UFW defaults and permitted inbound TCP ports
+      ansible.builtin.assert:
+        that:
+          - ufw_status.rc == 0
+          - ufw_status.stdout is search('Default: deny')
+          - ufw_status.stdout is search('(?m)^22/tcp\s+ALLOW IN')
+          - ufw_status.stdout is search('(?m)^80/tcp\s+ALLOW IN')
+          - ufw_status.stdout is search('(?m)^443/tcp\s+ALLOW IN')
+          - >-
+            ufw_status.stdout_lines
+            | select('match', '^\\S+\\s+ALLOW IN\\s+')
+            | reject('match', '^(22|80|443)/tcp\\s+ALLOW IN\\s+')
+            | list
+            | length == 0
+        fail_msg: UFW does not default to deny with only SSH, HTTP, and HTTPS allowed inbound.
+
+    - name: Read SSH daemon configuration
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: sshd_config
+
+    - name: Assert SSH hardening directives
+      ansible.builtin.assert:
+        that:
+          - (sshd_config.content | b64decode) is search('(?m)^PermitRootLogin no$')
+          - (sshd_config.content | b64decode) is search('(?m)^PasswordAuthentication no$')
+        fail_msg: SSH hardening directives are not configured as required.
+
+    - name: Validate Fail2ban configuration
+      ansible.builtin.command:
+        argv:
+          - fail2ban-client
+          - -t
+      changed_when: false
+
+    - name: Verify configured Fail2ban jails report status
+      ansible.builtin.command:
+        argv:
+          - fail2ban-client
+          - status
+          - "{{ item_fail2ban_jail }}"
+      changed_when: false
+      loop:
+        - sshd
+        - nginx-http-auth
+        - nginx-limit-req
+        - nginx-botsearch
+      loop_control:
+        loop_var: item_fail2ban_jail
+
+    - name: Read Nginx global configuration
+      ansible.builtin.slurp:
+        src: /etc/nginx/nginx.conf
+      register: nginx_config
+
+    - name: Read Nginx security configuration
+      ansible.builtin.slurp:
+        src: /etc/nginx/conf.d/security.conf
+      register: nginx_security_config
+
+    - name: Assert Nginx global and TLS configuration directives
+      ansible.builtin.assert:
+        that:
+          - (nginx_config.content | b64decode) is search('(?m)^worker_processes auto;$')
+          - (nginx_config.content | b64decode) is search('(?m)^worker_connections 768;$')
+          - (nginx_security_config.content | b64decode) is search('(?m)^server_tokens off;$')
+          - (nginx_security_config.content | b64decode) is search('(?m)^ssl_protocols TLSv1.2 TLSv1.3;$')
+        fail_msg: Required Nginx global or TLS directives are missing.
+
+    - name: Check required site files and directories
+      ansible.builtin.stat:
+        path: "{{ item_site_file['path'] }}"
+      register: site_file_stats
+      loop:
+        - path: /opt/server/test
+          kind: directory
+        - path: /opt/server/test/index.html
+          kind: file
+        - path: /etc/nginx/sites-enabled/test.cluster.local
+          kind: link
+        - path: /etc/ssl/certs/test.cluster.local.crt
+          kind: file
+        - path: /etc/ssl/private/test.cluster.local.key
+          kind: file
+        - path: /opt/server/ci
+          kind: directory
+        - path: /opt/server/ci/index.html
+          kind: file
+        - path: /etc/nginx/sites-enabled/ci.cluster.local
+          kind: link
+        - path: /etc/ssl/certs/ci.cluster.local.crt
+          kind: file
+        - path: /etc/ssl/private/ci.cluster.local.key
+          kind: file
+        - path: /opt/server/status
+          kind: directory
+        - path: /opt/server/status/index.html
+          kind: file
+        - path: /etc/nginx/sites-enabled/status.cluster.local
+          kind: link
+        - path: /etc/ssl/certs/status.cluster.local.crt
+          kind: file
+        - path: /etc/ssl/private/status.cluster.local.key
+          kind: file
+      loop_control:
+        loop_var: item_site_file
+
+    - name: Assert required site files and directories exist with expected type
+      ansible.builtin.assert:
+        that:
+          - item_site_stat['stat']['exists']
+          - >-
+            (item_site_stat['item']['kind'] == 'directory' and item_site_stat['stat']['isdir'])
+            or (item_site_stat['item']['kind'] == 'file' and item_site_stat['stat']['isreg'])
+            or (item_site_stat['item']['kind'] == 'link' and item_site_stat['stat']['islnk'])
+        fail_msg: A required site path is absent or has the wrong file type.
+      loop: "{{ site_file_stats['results'] }}"
+      loop_control:
+        loop_var: item_site_stat
+
+    - name: Check default Nginx site is absent
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: default_site
+
+    - name: Assert default Nginx site is absent
+      ansible.builtin.assert:
+        that:
+          - not default_site.stat.exists
+        fail_msg: Default Nginx site is present.
+
+    - name: Read certificate subjects for configured sites
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -in
+          - "{{ item_certificate['path'] }}"
+          - -noout
+          - -subject
+      changed_when: false
+      register: certificate_subjects
+      loop:
+        - hostname: test.cluster.local
+          path: /etc/ssl/certs/test.cluster.local.crt
+        - hostname: ci.cluster.local
+          path: /etc/ssl/certs/ci.cluster.local.crt
+        - hostname: status.cluster.local
+          path: /etc/ssl/certs/status.cluster.local.crt
+      loop_control:
+        loop_var: item_certificate
+
+    - name: Assert certificate subjects match site hostnames
+      ansible.builtin.assert:
+        that:
+          - item_certificate_subject['stdout'] is search('CN = ' ~ item_certificate_subject['item']['hostname'])
+        fail_msg: A site certificate subject does not match its configured hostname.
+      loop: "{{ certificate_subjects['results'] }}"
+      loop_control:
+        loop_var: item_certificate_subject
+
+    - name: Check HTTP redirects for configured sites
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -sSI
+          - --resolve
+          - "{{ item_http_site }}:80:127.0.0.1"
+          - "http://{{ item_http_site }}/"
+      changed_when: false
+      failed_when: false
+      register: http_redirects
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_http_site
+
+    - name: Assert HTTP redirects return 301
+      ansible.builtin.assert:
+        that:
+          - item_http_redirect['rc'] == 0
+          - item_http_redirect['stdout'] is search('HTTP/.* 301')
+        fail_msg: A configured HTTP virtual host does not return a 301 redirect.
+      loop: "{{ http_redirects['results'] }}"
+      loop_control:
+        loop_var: item_http_redirect
+
+    - name: Check HTTPS responses for configured sites
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -skSI
+          - --resolve
+          - "{{ item_https_site }}:443:127.0.0.1"
+          - "https://{{ item_https_site }}/"
+      changed_when: false
+      failed_when: false
+      register: https_responses
+      loop:
+        - test.cluster.local
+        - ci.cluster.local
+        - status.cluster.local
+      loop_control:
+        loop_var: item_https_site
+
+    - name: Assert HTTPS returns an allowed response status
+      ansible.builtin.assert:
+        that:
+          - item_https_response['rc'] == 0
+          - item_https_response['stdout'] is search('HTTP/.* (200|403)')
+        fail_msg: A configured HTTPS virtual host does not return 200 or 403.
+      loop: "{{ https_responses['results'] }}"
+      loop_control:
+        loop_var: item_https_response
+
+    - name: Inspect Nginx TCP listeners
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -tlnp
+      changed_when: false
+      failed_when: false
+      register: nginx_listeners
+
+    - name: Assert an HTTP or HTTPS listener is present
+      ansible.builtin.assert:
+        that:
+          - nginx_listeners.rc == 0
+          - nginx_listeners.stdout is search(':(80|443)\\b')
+        fail_msg: No Nginx HTTP or HTTPS listener is present.

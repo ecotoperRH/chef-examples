@@ -1,0 +1,13 @@
+---
+name: nginx_multisite
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  migration-marker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Migration marker
+        run: echo "asdasd"

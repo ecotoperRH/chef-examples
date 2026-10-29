@@ -1,0 +1,45 @@
+---
+- name: Configure Nginx virtual hosts
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ item_nginx_multisite['key'] }} # noqa: R114 - path from role-defined sites dict, not user input
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_multisite
+  notify: Reload Nginx
+  no_log: "{{ nginx_multisite_secure_logging }}"
+  vars:
+    server_name: "{{ item_nginx_multisite['key'] }}"
+    document_root: "{{ item_nginx_multisite['value']['document_root'] }}"
+    ssl_enabled: "{{ item_nginx_multisite['value']['ssl_enabled'] }}"
+    cert_file: "{{ nginx_multisite_certificate_path }}/{{ item_nginx_multisite['key'] }}.crt"
+    key_file: "{{ nginx_multisite_private_key_path }}/{{ item_nginx_multisite['key'] }}.key"
+
+- name: Enable Nginx virtual hosts
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item_nginx_multisite['key'] }} # noqa: R114 - path from role-defined sites dict, not user input
+    path: /etc/nginx/sites-enabled/{{ item_nginx_multisite['key'] }} # noqa: R114 - path from role-defined sites dict, not user input
+    state: link
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ nginx_multisite_sites | dict2items }}"
+  loop_control:
+    loop_var: item_nginx_multisite
+  notify: Reload Nginx
+
+- name: Remove default Nginx virtual host
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload Nginx
+
+- name: Enable and start Nginx
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
