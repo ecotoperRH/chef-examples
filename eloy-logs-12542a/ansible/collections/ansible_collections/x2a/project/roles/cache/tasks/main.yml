@@ -1,0 +1,32 @@
+---
+- name: Validate credential variables
+  ansible.builtin.include_tasks: validate_credentials.yml
+
+- name: Configure Memcached instance
+  ansible.builtin.include_tasks: memcached.yml
+
+- name: Configure PAM limits support
+  ansible.builtin.include_tasks: ulimit.yml
+
+- name: Configure Redis cache instance # noqa: L038 - eloy.redis.redis is an external dependency supplied by the consuming project's configured roles
+  ansible.builtin.include_role:
+    name: eloy.redis.redis
+  no_log: "{{ cache_secure_logging }}"
+  vars:
+    redis_port: "{{ cache_redis_port }}"
+    redis_install_method: "{{ cache_redis_install_method }}"
+    redis_version: "{{ cache_redis_version }}"
+    redis_requirepass: "{{ redis_password }}"
+    redis_rdb_enabled: "{{ cache_redis_rdb_enabled }}"
+    redis_aof_enabled: "{{ cache_redis_aof_enabled }}"
+    redis_cluster_enabled: "{{ cache_redis_cluster_enabled }}"
+    redis_sentinel_enabled: "{{ cache_redis_sentinel_enabled }}"
+    redis_replication_enabled: "{{ cache_redis_replication_enabled }}"
+
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: "{{ cache_redis_log_directory }}" # noqa: R114 - path is a role default, not user input
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"

@@ -1,0 +1,112 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Memcached and authenticated Redis cache services
+    description:
+      - Installs and configures a Memcached instance and a standalone Redis cache instance.
+      - Redis is installed and managed by the supported eloy.redis collection.
+    options:
+      cache_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Hide tasks that process sensitive Redis credential data.
+      cache_memcached_memory:
+        type: int
+        required: false
+        default: 64
+        description: Memory allocated to Memcached in megabytes.
+      cache_memcached_port:
+        type: int
+        required: false
+        default: 11211
+        description: TCP port on which Memcached listens.
+      cache_memcached_udp_port:
+        type: int
+        required: false
+        default: 11211
+        description: UDP port on which Memcached listens.
+      cache_memcached_listen:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: Address on which Memcached listens.
+      cache_memcached_maxconn:
+        type: int
+        required: false
+        default: 1024
+        description: Maximum number of concurrent Memcached connections.
+      cache_memcached_max_object_size:
+        type: str
+        required: false
+        default: 1m
+        description: Largest object Memcached accepts.
+      cache_memcached_threads:
+        type: int
+        required: false
+        default: 4
+        description: Number of Memcached worker threads.
+      cache_memcached_ulimit:
+        type: int
+        required: false
+        default: 1024
+        description: Memcached file descriptor limit.
+      cache_memcached_log_directory:
+        type: str
+        required: false
+        default: /var/log/memcached
+        description: Directory used for Memcached logs.
+      cache_memcached_environment_file:
+        type: str
+        required: false
+        default: /etc/memcached.conf
+        description: Memcached configuration file managed by this role.
+      cache_redis_port:
+        type: int
+        required: false
+        default: 6379
+        description: TCP port for the standalone Redis instance.
+      cache_redis_install_method:
+        type: str
+        required: false
+        default: package
+        description: Redis installation method passed to the eloy.redis role.
+      cache_redis_version:
+        type: str
+        required: false
+        default: "7.2"
+        description: Redis version requested from the eloy.redis role.
+      cache_redis_rdb_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Enable Redis RDB persistence.
+      cache_redis_aof_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Enable Redis append-only file persistence.
+      cache_redis_cluster_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Enable Redis cluster mode.
+      cache_redis_sentinel_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Enable Redis Sentinel mode.
+      cache_redis_replication_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Enable Redis replication.
+      cache_redis_log_directory:
+        type: str
+        required: false
+        default: /var/log/redis
+        description: Directory used for Redis logs.
+      redis_password:
+        type: str
+        required: true
+        description: Redis authentication password injected by an AAP credential type.

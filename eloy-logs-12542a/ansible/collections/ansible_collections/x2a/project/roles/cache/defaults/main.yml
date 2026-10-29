@@ -1,0 +1,23 @@
+---
+cache_secure_logging: true
+cache_memcached_memory: 64
+cache_memcached_port: 11211
+cache_memcached_udp_port: 11211
+cache_memcached_listen: 0.0.0.0
+cache_memcached_maxconn: 1024
+cache_memcached_max_object_size: 1m
+cache_memcached_threads: 4
+cache_memcached_ulimit: 1024
+cache_memcached_log_directory: /var/log/memcached
+cache_memcached_environment_file: /etc/memcached.conf
+# Redis is managed by the supported eloy.redis collection. Package installation
+# and Redis 7.2 intentionally replace the legacy Redis 3.2.11 source build.
+cache_redis_port: 6379
+cache_redis_install_method: package
+cache_redis_version: "7.2"
+cache_redis_rdb_enabled: true
+cache_redis_aof_enabled: false
+cache_redis_cluster_enabled: false
+cache_redis_sentinel_enabled: false
+cache_redis_replication_enabled: false
+cache_redis_log_directory: /var/log/redis

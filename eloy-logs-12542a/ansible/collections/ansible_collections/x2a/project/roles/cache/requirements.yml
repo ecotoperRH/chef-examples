@@ -1,0 +1,4 @@
+---
+collections:
+  - name: eloy.redis
+    version: 1.0.0

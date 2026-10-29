@@ -1,0 +1,50 @@
+---
+- name: Install Memcached package
+  ansible.builtin.package:
+    name:
+      - memcached
+    state: present
+
+- name: Configure Memcached service options
+  ansible.builtin.lineinfile:
+    path: "{{ cache_memcached_environment_file }}" # noqa: R114 - path is a role default, not user input
+    regexp: ^OPTIONS=
+    line: >-
+      OPTIONS="-m {{ cache_memcached_memory }} -p {{ cache_memcached_port }}
+      -U {{ cache_memcached_udp_port }} -l {{ cache_memcached_listen }}
+      -c {{ cache_memcached_maxconn }} -I {{ cache_memcached_max_object_size }}
+      -t {{ cache_memcached_threads }}"
+    create: false
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'
+  notify: Restart Memcached
+
+- name: Configure Memcached service options on Red Hat systems
+  ansible.builtin.lineinfile:
+    path: /etc/sysconfig/memcached
+    regexp: ^OPTIONS=
+    line: >-
+      OPTIONS="-m {{ cache_memcached_memory }} -p {{ cache_memcached_port }}
+      -U {{ cache_memcached_udp_port }} -l {{ cache_memcached_listen }}
+      -c {{ cache_memcached_maxconn }} -I {{ cache_memcached_max_object_size }}
+      -t {{ cache_memcached_threads }}"
+    create: false
+    backup: true
+  when: ansible_facts['os_family'] == 'RedHat'
+  notify: Restart Memcached
+
+- name: Configure Memcached file descriptor limit
+  ansible.builtin.lineinfile:
+    path: /etc/default/memcached
+    regexp: ^ULIMIT=
+    line: ULIMIT={{ cache_memcached_ulimit }}
+    create: false
+    backup: true
+  when: ansible_facts['os_family'] == 'Debian'
+  notify: Restart Memcached
+
+- name: Ensure Memcached service is enabled and started
+  ansible.builtin.service:
+    name: memcached
+    enabled: true
+    state: started
