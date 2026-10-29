@@ -1,0 +1,63 @@
+---
+- name: Install Memcached package
+  ansible.builtin.package:
+    name:
+      - memcached
+    state: present
+
+- name: Create Memcached systemd override directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/memcached.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: ansible_facts['service_mgr'] == 'systemd'
+
+- name: Configure Memcached file descriptor limit
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/memcached.service.d/limits.conf
+    content: |
+      [Service]
+      LimitNOFILE={{ cache_memcached_ulimit }}
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: ansible_facts['service_mgr'] == 'systemd'
+  notify: Restart Memcached
+
+- name: Configure Memcached service options
+  ansible.builtin.lineinfile:
+    path: /etc/memcached.conf
+    regexp: ^{{ item_cache_memcached['regexp'] }}
+    line: "{{ item_cache_memcached['line'] }}"
+    create: false
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  loop:
+    - regexp: -m\\s+
+      line: -m {{ cache_memcached_memory }}
+    - regexp: -p\\s+
+      line: -p {{ cache_memcached_port }}
+    - regexp: -U\\s+
+      line: -U {{ cache_memcached_udp_port }}
+    - regexp: -l\\s+
+      line: -l {{ cache_memcached_listen }}
+    - regexp: -c\\s+
+      line: -c {{ cache_memcached_maxconn }}
+    - regexp: -I\\s+
+      line: -I {{ cache_memcached_max_object_size }}
+    - regexp: -t\\s+
+      line: -t {{ cache_memcached_threads }}
+  loop_control:
+    loop_var: item_cache_memcached
+  notify: Restart Memcached
+
+- name: Enable and start Memcached service
+  ansible.builtin.service:
+    name: memcached
+    enabled: true
+    state: started

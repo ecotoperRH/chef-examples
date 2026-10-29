@@ -1,0 +1,25 @@
+---
+- name: Configure Memcached
+  ansible.builtin.include_tasks: memcached.yml
+
+- name: Deploy Redis instance # noqa: L038 - role is provided by the declared eloy.redis collection requirement
+  ansible.builtin.include_role:
+    name: eloy.redis.redis
+  no_log: "{{ cache_secure_logging }}"
+  vars:
+    redis_port: "{{ cache_redis_port }}"
+    redis_install_method: "{{ cache_redis_install_method }}"
+    redis_rdb_enabled: "{{ cache_redis_rdb_enabled }}"
+    redis_aof_enabled: "{{ cache_redis_aof_enabled }}"
+    redis_requirepass: "{{ cache_redis_requirepass }}"
+
+- name: Create Redis log directory
+  ansible.builtin.file:
+    path: /var/log/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+
+- name: Configure Redis ulimits
+  ansible.builtin.include_tasks: ulimit.yml

@@ -1,0 +1,231 @@
+---
+# Unsupported pre-flight diagnostics: log review; redisio conditional inspection;
+# unspecified file ownership/modes and limit values; Redis authentication (no secure
+# credential is provided, and SET changes state); directory listings/filesystem usage;
+# systemctl daemon-reload/systemctl cat; and systemd LimitNOFILE output.
+- name: Verify cache services
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check Memcached service is active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - memcached
+      register: memcached_active
+      changed_when: false
+      failed_when: false
+
+    - name: Assert Memcached service is active
+      ansible.builtin.assert:
+        that:
+          - memcached_active.rc == 0
+
+    - name: Check Memcached service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - memcached
+      register: memcached_enabled
+      changed_when: false
+      failed_when: false
+
+    - name: Assert Memcached service is enabled
+      ansible.builtin.assert:
+        that:
+          - memcached_enabled.rc == 0
+
+    - name: Inspect Memcached TCP listeners
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -ltnp
+      register: memcached_tcp_listeners
+      changed_when: false
+
+    - name: Assert Memcached listens on TCP port 11211 at all addresses
+      ansible.builtin.assert:
+        that:
+          - "'0.0.0.0:11211' in memcached_tcp_listeners.stdout"
+
+    - name: Inspect Memcached UDP listeners
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -lunp
+      register: memcached_udp_listeners
+      changed_when: false
+
+    - name: Assert Memcached listens on UDP port 11211
+      ansible.builtin.assert:
+        that:
+          - "':11211' in memcached_udp_listeners.stdout"
+
+    - name: Query Memcached statistics over TCP
+      ansible.builtin.command:
+        argv:
+          - nc
+          - -w
+          - '3'
+          - 127.0.0.1
+          - '11211'
+        stdin: "stats\r\nquit\r\n"
+      register: memcached_stats
+      changed_when: false
+      failed_when: false
+
+    - name: Assert Memcached responds to the stats query
+      ansible.builtin.assert:
+        that:
+          - memcached_stats.rc == 0
+          - "'STAT' in memcached_stats.stdout"
+
+    - name: Find the Memcached process
+      ansible.builtin.command:
+        argv:
+          - pgrep
+          - -o
+          - memcached
+      register: memcached_pid
+      changed_when: false
+      failed_when: false
+
+    - name: Assert a Memcached process exists
+      ansible.builtin.assert:
+        that:
+          - memcached_pid.rc == 0
+          - memcached_pid.stdout | length > 0
+
+    - name: Check Redis systemd service is active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - redis@6379
+      register: redis_active
+      changed_when: false
+      failed_when: false
+
+    - name: Assert Redis systemd service is active
+      ansible.builtin.assert:
+        that:
+          - redis_active.rc == 0
+
+    - name: Check Redis systemd service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - redis@6379
+      register: redis_enabled
+      changed_when: false
+      failed_when: false
+
+    - name: Assert Redis systemd service is enabled
+      ansible.builtin.assert:
+        that:
+          - redis_enabled.rc == 0
+
+    - name: Check Redis TCP port 6379 is listening
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        state: started
+        timeout: 3
+
+    - name: Check Redis configuration file exists
+      ansible.builtin.stat:
+        path: /etc/redis/6379.conf
+      register: redis_config_file
+
+    - name: Assert Redis configuration file exists
+      ansible.builtin.assert:
+        that:
+          - redis_config_file.stat.exists
+          - redis_config_file.stat.isreg
+
+    - name: Search Redis configuration for removed replica directives
+      ansible.builtin.command:
+        argv:
+          - grep
+          - -E
+          - ^(replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority)
+          - /etc/redis/6379.conf
+      register: redis_replica_directives
+      changed_when: false
+      failed_when: false
+
+    - name: Assert removed Redis replica directives are absent
+      ansible.builtin.assert:
+        that:
+          - redis_replica_directives.rc == 1
+
+    - name: Check required Redis directories exist
+      ansible.builtin.stat:
+        path: "{{ item_cache['path'] }}"
+      loop:
+        - path: /var/lib/redis
+        - path: /var/run/redis/6379
+        - path: /var/log/redis
+      loop_control:
+        loop_var: item_cache
+      register: redis_directories
+
+    - name: Assert required Redis directories exist
+      ansible.builtin.assert:
+        that:
+          - item_cache['stat']['exists']
+          - item_cache['stat']['isdir']
+      loop: "{{ redis_directories.results }}"
+      loop_control:
+        loop_var: item_cache
+
+    - name: Check Redis systemd artifacts exist
+      ansible.builtin.stat:
+        path: "{{ item_cache['path'] }}"
+      loop:
+        - path: /etc/tmpfiles.d/redis@6379.conf
+        - path: /lib/systemd/system/redis@6379.service
+      loop_control:
+        loop_var: item_cache
+      register: redis_systemd_artifacts
+
+    - name: Assert Redis systemd artifacts exist
+      ansible.builtin.assert:
+        that:
+          - item_cache['stat']['exists']
+          - item_cache['stat']['isreg']
+      loop: "{{ redis_systemd_artifacts.results }}"
+      loop_control:
+        loop_var: item_cache
+
+    - name: Check OS Redis services are not active or enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - "{{ item_cache['action'] }}"
+          - "{{ item_cache['service'] }}"
+      loop:
+        - action: is-active
+          service: redis-server
+        - action: is-enabled
+          service: redis-server
+        - action: is-active
+          service: redis
+        - action: is-enabled
+          service: redis
+      loop_control:
+        loop_var: item_cache
+      register: os_redis_service_checks
+      changed_when: false
+      failed_when: false
+
+    - name: Assert OS Redis services are not active or enabled
+      ansible.builtin.assert:
+        that:
+          - item_cache['rc'] != 0
+      loop: "{{ os_redis_service_checks.results }}"
+      loop_control:
+        loop_var: item_cache

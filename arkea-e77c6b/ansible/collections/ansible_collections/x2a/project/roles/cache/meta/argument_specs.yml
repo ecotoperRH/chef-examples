@@ -1,0 +1,93 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Memcached and Redis caching services
+    description:
+      - Installs and configures a Memcached instance and a standalone Redis instance.
+    options:
+      cache_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Hide task output that could expose Redis authentication credentials.
+      cache_memcached_memory:
+        type: int
+        required: false
+        default: 64
+        description: Memory available to the Memcached daemon in megabytes.
+      cache_memcached_port:
+        type: int
+        required: false
+        default: 11211
+        description: TCP port on which Memcached listens.
+      cache_memcached_udp_port:
+        type: int
+        required: false
+        default: 11211
+        description: UDP port on which Memcached listens.
+      cache_memcached_listen:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: Network address on which Memcached listens.
+      cache_memcached_maxconn:
+        type: int
+        required: false
+        default: 1024
+        description: Maximum simultaneous Memcached connections.
+      cache_memcached_max_object_size:
+        type: str
+        required: false
+        default: 1m
+        description: Maximum size of an individual Memcached object.
+      cache_memcached_threads:
+        type: int
+        required: false
+        default: 4
+        description: Number of Memcached worker threads.
+      cache_memcached_ulimit:
+        type: int
+        required: false
+        default: 1024
+        description: File descriptor limit for Memcached.
+      cache_memcached_log_path:
+        type: str
+        required: false
+        default: /var/log/memcached
+        description: Expected Memcached log path where supported by the target service.
+      cache_memcached_experimental_options:
+        type: list
+        elements: str
+        required: false
+        default: []
+        description: Reserved Memcached experimental command-line options.
+      cache_memcached_extra_cli_options:
+        type: list
+        elements: str
+        required: false
+        default: []
+        description: Reserved additional Memcached command-line options.
+      cache_redis_port:
+        type: int
+        required: false
+        default: 6379
+        description: TCP port for the standalone Redis instance.
+      cache_redis_install_method:
+        type: str
+        required: false
+        default: package
+        description: Redis installation method supplied to the Redis collection role.
+      cache_redis_rdb_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Enable Redis RDB persistence.
+      cache_redis_aof_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Disable Redis append-only-file persistence.
+      cache_redis_requirepass:
+        type: str
+        required: true
+        description: Redis password injected by an approved AAP credential type.
