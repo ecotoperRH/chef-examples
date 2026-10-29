@@ -1,0 +1,20 @@
+[
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Provisions an Nginx frontend for three named sites with static content, virtual-host configuration, and development self-signed TLS certificates. It also applies host hardening controls including Fail2ban, UFW, sysctl, and SSH restrictions.",
+    "technology": "Chef"
+  },
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Configures local Memcached and Redis services, including Redis authentication and post-processing of generated Redis configuration.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Deploys the dibanez/fastapi_tutorial application with a Python virtual environment, dependencies, systemd service, and local PostgreSQL backing database.",
+    "technology": "Chef"
+  }
+]
