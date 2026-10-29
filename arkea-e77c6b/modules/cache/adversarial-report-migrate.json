@@ -1,0 +1,14 @@
+{
+  "phase": "migrate",
+  "agents_run": 1,
+  "total_findings": 1,
+  "total_critical_findings": 1,
+  "agents": [
+    {
+      "name": "No sshd config",
+      "findings": 1,
+      "critical_findings": 1,
+      "summary": "The role delegates Redis deployment to an external role that is documented as ensuring the redis user exists, violating the requirement not to add or delete users. No SSH daemon configuration changes were detected."
+    }
+  ]
+}
