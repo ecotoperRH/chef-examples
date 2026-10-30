@@ -1,0 +1,71 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure a secure nginx multisite deployment
+    description:
+      - Installs nginx and supporting security packages.
+      - Configures SSL-enabled virtual hosts, self-signed certificates, UFW, fail2ban, kernel networking hardening, and SSH hardening.
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+        description: Mapping of virtual host names to document roots and SSL settings.
+        options:
+          document_root:
+            type: str
+            required: true
+            description: Filesystem document root for the virtual host.
+          ssl_enabled:
+            type: bool
+            required: true
+            description: Whether the virtual host uses HTTPS.
+      nginx_multisite_ssl_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Directory in which site certificates are stored.
+      nginx_multisite_ssl_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Directory in which site private keys are stored.
+      nginx_multisite_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether fail2ban protection is enabled.
+      nginx_multisite_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether UFW firewall configuration is enabled.
+      nginx_multisite_ssh_disable_root:
+        type: bool
+        required: false
+        default: true
+        description: Whether SSH root login is disabled.
+      nginx_multisite_ssh_password_auth:
+        type: bool
+        required: false
+        default: false
+        description: Whether SSH password authentication is permitted.
+      nginx_multisite_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Toggle for suppressing output from tasks handling sensitive material.
+      nginx_multisite_ssh_service_name:
+        type: str
+        required: false
+        default: ssh
+        description: Service name used to restart the SSH daemon.
