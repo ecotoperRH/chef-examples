@@ -1,0 +1,189 @@
+# Unsupported pre-flight checks: package-list output, nginx -T output, TLS subject/date and
+# key ownership/mode diagnostics, fail2ban-client status/ping, sysctl application, conditional
+# SSH-hardening grep checks, SSH port 22, and nginx journal output have no unambiguous expected
+# outcome in the pre-flight section (or depend on unavailable execution-tree conditions).
+---
+- name: Verify nginx-multisite deployment
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Collect service facts for nginx and fail2ban status checks
+      ansible.builtin.service_facts:
+
+    - name: Assert nginx is enabled and active
+      ansible.builtin.assert:
+        that:
+          - "'nginx.service' in ansible_facts['services']"
+          - ansible_facts['services']['nginx.service']['state'] == 'running'
+          - ansible_facts['services']['nginx.service']['status'] == 'enabled'
+        fail_msg: Nginx must be enabled and active.
+
+    - name: Assert fail2ban is enabled and active
+      ansible.builtin.assert:
+        that:
+          - "'fail2ban.service' in ansible_facts['services']"
+          - ansible_facts['services']['fail2ban.service']['state'] == 'running'
+          - ansible_facts['services']['fail2ban.service']['status'] == 'enabled'
+        fail_msg: Fail2ban must be enabled and active.
+
+    - name: Validate nginx configuration
+      ansible.builtin.command:
+        argv:
+          - nginx
+          - -t
+      register: verify_nginx_test
+      changed_when: false
+      failed_when: verify_nginx_test.rc != 0
+
+    - name: Check required nginx and site files exist
+      ansible.builtin.stat:
+        path: "{{ item_nginx_file['path'] }}"
+        follow: false
+      loop:
+        - path: /etc/nginx/nginx.conf
+        - path: /etc/nginx/conf.d/security.conf
+        - path: /etc/nginx/sites-available/test.cluster.local
+        - path: /etc/nginx/sites-available/ci.cluster.local
+        - path: /etc/nginx/sites-available/status.cluster.local
+        - path: /opt/server/test/index.html
+        - path: /opt/server/ci/index.html
+        - path: /opt/server/status/index.html
+        - path: /etc/ssl/certs/test.cluster.local.crt
+        - path: /etc/ssl/private/test.cluster.local.key
+        - path: /etc/ssl/certs/ci.cluster.local.crt
+        - path: /etc/ssl/private/ci.cluster.local.key
+        - path: /etc/ssl/certs/status.cluster.local.crt
+        - path: /etc/ssl/private/status.cluster.local.key
+        - path: /etc/fail2ban/jail.local
+        - path: /etc/sysctl.d/99-security.conf
+      loop_control:
+        loop_var: item_nginx_file
+      register: verify_nginx_files
+
+    - name: Assert required nginx, site, TLS, and security files exist
+      ansible.builtin.assert:
+        that: item_nginx_result['stat']['exists']
+        fail_msg: A required deployment file is missing.
+      loop: "{{ verify_nginx_files['results'] }}"
+      loop_control:
+        loop_var: item_nginx_result
+
+    - name: Check site document roots exist
+      ansible.builtin.stat:
+        path: "{{ item_site_root['path'] }}"
+        follow: false
+      loop:
+        - path: /opt/server/test
+        - path: /opt/server/ci
+        - path: /opt/server/status
+      loop_control:
+        loop_var: item_site_root
+      register: verify_site_roots
+
+    - name: Assert site document roots exist
+      ansible.builtin.assert:
+        that:
+          - item_site_root_result['stat']['exists']
+          - item_site_root_result['stat']['isdir']
+        fail_msg: A required site document root is missing.
+      loop: "{{ verify_site_roots['results'] }}"
+      loop_control:
+        loop_var: item_site_root_result
+
+    - name: Check enabled site links
+      ansible.builtin.stat:
+        path: "{{ item_site_link['path'] }}"
+        follow: false
+      loop:
+        - path: /etc/nginx/sites-enabled/test.cluster.local
+        - path: /etc/nginx/sites-enabled/ci.cluster.local
+        - path: /etc/nginx/sites-enabled/status.cluster.local
+      loop_control:
+        loop_var: item_site_link
+      register: verify_site_links
+
+    - name: Assert enabled site links exist
+      ansible.builtin.assert:
+        that:
+          - item_site_link_result['stat']['exists']
+          - item_site_link_result['stat']['islnk']
+        fail_msg: A required enabled site link is missing.
+      loop: "{{ verify_site_links['results'] }}"
+      loop_control:
+        loop_var: item_site_link_result
+
+    - name: Assert the default nginx site is absent
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+        follow: false
+      register: verify_default_site
+
+    - name: Verify the default nginx site does not exist
+      ansible.builtin.assert:
+        that: not verify_default_site['stat']['exists']
+        fail_msg: The default nginx site must be absent.
+
+    - name: Verify HTTP and HTTPS listeners
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ item_listener['port'] }}"
+        state: started
+        timeout: 10
+      loop:
+        - port: 80
+        - port: 443
+      loop_control:
+        loop_var: item_listener
+
+    - name: Verify HTTP reaches each configured site
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -I
+          - -H
+          - "Host: {{ item_http_site['host'] }}"
+          - http://127.0.0.1
+      loop:
+        - host: test.cluster.local
+        - host: ci.cluster.local
+        - host: status.cluster.local
+      loop_control:
+        loop_var: item_http_site
+      changed_when: false
+      failed_when: false
+      register: verify_http_sites
+
+    - name: Assert HTTP reaches each configured site
+      ansible.builtin.assert:
+        that: item_http_result['rc'] == 0
+        fail_msg: An HTTP request to a configured site did not complete.
+      loop: "{{ verify_http_sites['results'] }}"
+      loop_control:
+        loop_var: item_http_result
+
+    - name: Verify HTTPS reaches each configured site
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -k
+          - -I
+          - --resolve
+          - "{{ item_https_site['host'] }}:443:127.0.0.1"
+          - "https://{{ item_https_site['host'] }}"
+      loop:
+        - host: test.cluster.local
+        - host: ci.cluster.local
+        - host: status.cluster.local
+      loop_control:
+        loop_var: item_https_site
+      changed_when: false
+      failed_when: false
+      register: verify_https_sites
+
+    - name: Assert HTTPS reaches each configured site
+      ansible.builtin.assert:
+        that: item_https_result['rc'] == 0
+        fail_msg: An HTTPS request to a configured site did not complete.
+      loop: "{{ verify_https_sites['results'] }}"
+      loop_control:
+        loop_var: item_https_result

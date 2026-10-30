@@ -1,0 +1,23 @@
+---
+nginx_multisite_sites:
+  test.cluster.local:
+    document_root: /opt/server/test
+    ssl_enabled: true
+    cert_file: /etc/ssl/certs/test.cluster.local.crt
+    key_file: /etc/ssl/private/test.cluster.local.key
+  ci.cluster.local:
+    document_root: /opt/server/ci
+    ssl_enabled: true
+    cert_file: /etc/ssl/certs/ci.cluster.local.crt
+    key_file: /etc/ssl/private/ci.cluster.local.key
+  status.cluster.local:
+    document_root: /opt/server/status
+    ssl_enabled: true
+    cert_file: /etc/ssl/certs/status.cluster.local.crt
+    key_file: /etc/ssl/private/status.cluster.local.key
+nginx_multisite_ssl_certificate_path: /etc/ssl/certs
+nginx_multisite_ssl_private_key_path: /etc/ssl/private
+nginx_multisite_security_fail2ban_enabled: true
+nginx_multisite_security_ufw_enabled: true
+nginx_multisite_security_ssh_disable_root: true
+nginx_multisite_security_ssh_password_auth: false

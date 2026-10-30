@@ -1,0 +1,57 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Nginx with multiple SSL-enabled sites
+    description:
+      - Installs and configures Nginx, Fail2ban, UFW, TLS certificates, and security settings.
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+            cert_file: /etc/ssl/certs/test.cluster.local.crt
+            key_file: /etc/ssl/private/test.cluster.local.key
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+            cert_file: /etc/ssl/certs/ci.cluster.local.crt
+            key_file: /etc/ssl/private/ci.cluster.local.key
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+            cert_file: /etc/ssl/certs/status.cluster.local.crt
+            key_file: /etc/ssl/private/status.cluster.local.key
+        description: Nginx sites and their document roots and TLS settings.
+      nginx_multisite_ssl_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Directory containing site certificates.
+      nginx_multisite_ssl_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Directory containing site private keys.
+      nginx_multisite_security_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether Fail2ban security configuration is enabled.
+      nginx_multisite_security_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether UFW firewall configuration is enabled.
+      nginx_multisite_security_ssh_disable_root:
+        type: bool
+        required: false
+        default: true
+        description: Whether to disable SSH root login.
+      nginx_multisite_security_ssh_password_auth:
+        type: bool
+        required: false
+        default: false
+        description: Whether SSH password authentication is allowed.
