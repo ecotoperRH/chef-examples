@@ -1,0 +1,30 @@
+---
+- name: Reload nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+
+- name: Restart fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted
+
+- name: Reload security sysctl  # noqa: L039 - item_sysctl is declared by this task's loop_var
+  ansible.posix.sysctl:
+    name: "{{ item_sysctl['key'] }}"
+    value: "{{ item_sysctl['value'] }}"
+    sysctl_file: /etc/sysctl.d/99-security.conf
+    state: present
+    reload: true
+  loop:
+    - key: net.ipv4.conf.default.rp_filter
+      value: "1"
+    - key: net.ipv4.conf.all.rp_filter
+      value: "1"
+  loop_control:
+    loop_var: item_sysctl
+
+- name: Restart ssh
+  ansible.builtin.service:
+    name: ssh
+    state: restarted

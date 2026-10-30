@@ -1,0 +1,198 @@
+---
+# Unsupported pre-flight checks: resolved-link target comparisons, key permissions and
+# certificate/key modulus comparison, HTTP response checks, sysctl output, UFW rules,
+# Fail2ban status, listener ownership, and service-log review have no stated expected
+# outcome in the migration plan.
+- name: Verify nginx multisite pre-flight expectations
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert required packages are installed
+      ansible.builtin.assert:
+        that:
+          - "'nginx' in ansible_facts['packages']"
+          - "'fail2ban' in ansible_facts['packages']"
+          - "'ufw' in ansible_facts['packages']"
+          - "'openssl' in ansible_facts['packages']"
+          - "'ca-certificates' in ansible_facts['packages']"
+
+    - name: Gather managed service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert nginx and fail2ban are running and enabled
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts['services']['nginx.service']['state'] == 'running'"
+          - "ansible_facts['services']['nginx.service']['status'] == 'enabled'"
+          - "ansible_facts['services']['fail2ban.service']['state'] == 'running'"
+          - "ansible_facts['services']['fail2ban.service']['status'] == 'enabled'"
+
+    - name: Validate Nginx configuration
+      ansible.builtin.command:
+        argv:
+          - nginx
+          - -t
+      changed_when: false
+      register: nginx_config_test
+
+    - name: Assert Nginx configuration is valid
+      ansible.builtin.assert:
+        that:
+          - nginx_config_test['rc'] == 0
+
+    - name: Verify required Nginx configuration files
+      ansible.builtin.stat:
+        path: "{{ item_nginx_config }}"
+      loop:
+        - /etc/nginx/nginx.conf
+        - /etc/nginx/conf.d/security.conf
+        - /etc/nginx/sites-available/test.cluster.local
+        - /etc/nginx/sites-available/ci.cluster.local
+        - /etc/nginx/sites-available/status.cluster.local
+      loop_control:
+        loop_var: item_nginx_config
+      register: nginx_config_files
+
+    - name: Assert required Nginx configuration files exist
+      ansible.builtin.assert:
+        that:
+          - item_nginx_config_file['stat']['exists']
+          - item_nginx_config_file['stat']['isreg']
+      loop: "{{ nginx_config_files['results'] }}"
+      loop_control:
+        loop_var: item_nginx_config_file
+
+    - name: Verify the default enabled site is absent
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: default_site
+
+    - name: Assert the default enabled site is absent
+      ansible.builtin.assert:
+        that:
+          - not default_site['stat']['exists']
+
+    - name: Verify site directories and documents
+      ansible.builtin.stat:
+        path: "{{ item_site_path }}"
+      loop:
+        - /opt/server/test
+        - /opt/server/test/index.html
+        - /opt/server/ci
+        - /opt/server/ci/index.html
+        - /opt/server/status
+        - /opt/server/status/index.html
+      loop_control:
+        loop_var: item_site_path
+      register: site_paths
+
+    - name: Assert site directories and documents exist
+      ansible.builtin.assert:
+        that:
+          - item_site_file['stat']['exists']
+      loop: "{{ site_paths['results'] }}"
+      loop_control:
+        loop_var: item_site_file
+
+    - name: Verify security and TLS artifact files
+      ansible.builtin.stat:
+        path: "{{ item_security_path }}"
+      loop:
+        - /etc/fail2ban/jail.local
+        - /etc/sysctl.d/99-security.conf
+        - /etc/ssl/certs/test.cluster.local.crt
+        - /etc/ssl/private/test.cluster.local.key
+        - /etc/ssl/certs/ci.cluster.local.crt
+        - /etc/ssl/private/ci.cluster.local.key
+        - /etc/ssl/certs/status.cluster.local.crt
+        - /etc/ssl/private/status.cluster.local.key
+      loop_control:
+        loop_var: item_security_path
+      register: security_paths
+
+    - name: Assert security and TLS artifact files exist
+      ansible.builtin.assert:
+        that:
+          - item_security_file['stat']['exists']
+          - item_security_file['stat']['isreg']
+      loop: "{{ security_paths['results'] }}"
+      loop_control:
+        loop_var: item_security_file
+
+    - name: Read SSH hardening configuration
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: sshd_config
+
+    - name: Assert SSH root login is disabled
+      ansible.builtin.assert:
+        that:
+          - "(sshd_config['content'] | b64decode) is regex('(?m)^\\s*PermitRootLogin\\s+no\\s*$')"
+
+    - name: Assert SSH password authentication is disabled
+      ansible.builtin.assert:
+        that:
+          - "(sshd_config['content'] | b64decode) is regex('(?m)^\\s*PasswordAuthentication\\s+no\\s*$')"
+
+    - name: Inspect certificate subject and validity dates
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -in
+          - "{{ item_certificate['path'] }}"
+          - -noout
+          - -subject
+          - -dates
+      changed_when: false
+      loop:
+        - path: /etc/ssl/certs/test.cluster.local.crt
+          common_name: test.cluster.local
+        - path: /etc/ssl/certs/ci.cluster.local.crt
+          common_name: ci.cluster.local
+        - path: /etc/ssl/certs/status.cluster.local.crt
+          common_name: status.cluster.local
+      loop_control:
+        loop_var: item_certificate
+      register: certificate_info
+
+    - name: Assert certificates can be inspected
+      ansible.builtin.assert:
+        that:
+          - item_certificate_info['rc'] == 0
+      loop: "{{ certificate_info['results'] }}"
+      loop_control:
+        loop_var: item_certificate_info
+
+    - name: Verify certificate common names
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -in
+          - "{{ item_certificate_name['path'] }}"
+          - -noout
+          - -subject
+      changed_when: false
+      loop:
+        - path: /etc/ssl/certs/test.cluster.local.crt
+          common_name: test.cluster.local
+        - path: /etc/ssl/certs/ci.cluster.local.crt
+          common_name: ci.cluster.local
+        - path: /etc/ssl/certs/status.cluster.local.crt
+          common_name: status.cluster.local
+      loop_control:
+        loop_var: item_certificate_name
+      register: certificate_subjects
+
+    - name: Assert certificate common names
+      ansible.builtin.assert:
+        that:
+          - "item_certificate_subject['stdout'] is search('CN\\s*=\\s*' ~ item_certificate_subject['item']['common_name'] | replace('.', '\\.') )"
+      loop: "{{ certificate_subjects['results'] }}"
+      loop_control:
+        loop_var: item_certificate_subject
