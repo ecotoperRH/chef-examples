@@ -1,0 +1,9 @@
+---
+controller_templates_x2a:
+- name: cac2-0a702f_nginx_multisite
+  organization: Default
+  project: cac2-0a702f
+  job_type: run
+  playbook: cac2-0a702f/ansible/run_nginx_multisite.yml
+  inventory: __X2A_REQUIRED_INVENTORY__
+  prevent_instance_group_fallback: false

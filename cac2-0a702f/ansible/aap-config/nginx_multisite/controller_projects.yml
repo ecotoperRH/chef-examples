@@ -1,0 +1,12 @@
+---
+controller_projects_x2a:
+- name: cac2-0a702f
+  organization: Default
+  scm_type: git
+  scm_url: https://github.com/ecotoperRH/chef-examples.git
+  scm_branch: eloy-test
+  scm_update_on_launch: true
+  scm_clean: true
+  scm_delete_on_update: true
+  update_project: true
+  wait: true
