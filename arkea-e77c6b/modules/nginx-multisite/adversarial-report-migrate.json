@@ -1,0 +1,14 @@
+{
+  "phase": "migrate",
+  "agents_run": 1,
+  "total_findings": 5,
+  "total_critical_findings": 5,
+  "agents": [
+    {
+      "name": "Dangerous Operations",
+      "findings": 5,
+      "critical_findings": 5,
+      "summary": "The analysis identifies five critical findings involving unsafe, host-wide, and potentially service- or access-disrupting configuration changes without opt-in controls, preflight validation, backups, or reliable rollback paths."
+    }
+  ]
+}
