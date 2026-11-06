@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  role_name: fastapi_tutorial
+  namespace: x2a
+  author: Chef Example
+  description: Configures FastAPI tutorial application with PostgreSQL
+  license: Apache-2.0
+  min_ansible_version: 2.14.0
+  platforms:
+    - name: Ubuntu
+      versions:
+        - bionic
+        - focal
+        - jammy
+    - name: EL
+      versions:
+        - "7"
+        - "8"
+        - "9"
+  galaxy_tags:
+    - fastapi
+    - python
+    - postgresql
+    - webserver
+    - api
+dependencies: []
