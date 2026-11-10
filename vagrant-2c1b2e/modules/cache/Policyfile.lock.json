@@ -1,0 +1,171 @@
+{
+  "revision_id": "d3925b122b6df7f9404fceebc6ab00bb755ce76612bd7df324c7e7a398bde299",
+  "name": "chef-examples",
+  "run_list": [
+    "recipe[nginx-multisite::default]",
+    "recipe[cache::default]",
+    "recipe[fastapi-tutorial::default]"
+  ],
+  "included_policy_locks": [
+
+  ],
+  "cookbook_locks": {
+    "cache": {
+      "version": "1.0.0",
+      "identifier": "28db65e747f15be0aaa641a4f01c3fc43fcb0eb6",
+      "dotted_decimal_identifier": "11500229786857819.63238025825808412.70112116412086",
+      "source": "cookbooks/cache",
+      "cache_key": null,
+      "scm_info": {
+        "scm": "git",
+        "remote": "https://github.com/x2ansible/chef-examples.git",
+        "revision": "fe4bb08f2e63069d44bb740c691ac67132a9f16c",
+        "working_tree_clean": false,
+        "published": true,
+        "synchronized_remote_branches": [
+          "origin/main"
+        ]
+      },
+      "source_options": {
+        "path": "cookbooks/cache"
+      }
+    },
+    "fastapi-tutorial": {
+      "version": "1.0.0",
+      "identifier": "dc5015b032a387147b31a184d77d279fa40fc175",
+      "dotted_decimal_identifier": "62012548956988295.5764952627664765.43566605779317",
+      "source": "cookbooks/fastapi-tutorial",
+      "cache_key": null,
+      "scm_info": {
+        "scm": "git",
+        "remote": "https://github.com/x2ansible/chef-examples.git",
+        "revision": "fe4bb08f2e63069d44bb740c691ac67132a9f16c",
+        "working_tree_clean": false,
+        "published": true,
+        "synchronized_remote_branches": [
+          "origin/main"
+        ]
+      },
+      "source_options": {
+        "path": "cookbooks/fastapi-tutorial"
+      }
+    },
+    "memcached": {
+      "version": "6.1.0",
+      "identifier": "7992788f1a376defb902059063f5295e37d281cb",
+      "dotted_decimal_identifier": "34219518676580205.67475937768268789.45484640207307",
+      "cache_key": "memcached-6.1.0-supermarket.chef.io",
+      "origin": "https://supermarket.chef.io:443/api/v1/cookbooks/memcached/versions/6.1.0/download",
+      "source_options": {
+        "artifactserver": "https://supermarket.chef.io:443/api/v1/cookbooks/memcached/versions/6.1.0/download",
+        "version": "6.1.0"
+      }
+    },
+    "nginx-multisite": {
+      "version": "1.0.0",
+      "identifier": "d6fee05fbe14fba45dc37ddea7d07a4f5305ced7",
+      "dotted_decimal_identifier": "60515884648502523.46264990392297424.134481113894615",
+      "source": "cookbooks/nginx-multisite",
+      "cache_key": null,
+      "scm_info": {
+        "scm": "git",
+        "remote": "https://github.com/x2ansible/chef-examples.git",
+        "revision": "fe4bb08f2e63069d44bb740c691ac67132a9f16c",
+        "working_tree_clean": false,
+        "published": true,
+        "synchronized_remote_branches": [
+          "origin/main"
+        ]
+      },
+      "source_options": {
+        "path": "cookbooks/nginx-multisite"
+      }
+    },
+    "redisio": {
+      "version": "8.0.0",
+      "identifier": "05af811a10202c4b16258be2a7ed14d79e00d89e",
+      "dotted_decimal_identifier": "1600343906459692.21134973769787373.22916301379742",
+      "cache_key": "redisio-8.0.0-supermarket.chef.io",
+      "origin": "https://supermarket.chef.io:443/api/v1/cookbooks/redisio/versions/8.0.0/download",
+      "source_options": {
+        "artifactserver": "https://supermarket.chef.io:443/api/v1/cookbooks/redisio/versions/8.0.0/download",
+        "version": "8.0.0"
+      }
+    },
+    "selinux": {
+      "version": "6.2.4",
+      "identifier": "c414582aa5688ac843992facf3b65811abf43d2f",
+      "dotted_decimal_identifier": "55191464340449418.56369320551052214.96832922598703",
+      "cache_key": "selinux-6.2.4-supermarket.chef.io",
+      "origin": "https://supermarket.chef.io:443/api/v1/cookbooks/selinux/versions/6.2.4/download",
+      "source_options": {
+        "artifactserver": "https://supermarket.chef.io:443/api/v1/cookbooks/selinux/versions/6.2.4/download",
+        "version": "6.2.4"
+      }
+    }
+  },
+  "default_attributes": {
+
+  },
+  "override_attributes": {
+
+  },
+  "solution_dependencies": {
+    "Policyfile": [
+      [
+        "cache",
+        ">= 0.0.0"
+      ],
+      [
+        "fastapi-tutorial",
+        ">= 0.0.0"
+      ],
+      [
+        "memcached",
+        "= 6.1.0"
+      ],
+      [
+        "nginx-multisite",
+        ">= 0.0.0"
+      ],
+      [
+        "redisio",
+        "= 8.0.0"
+      ],
+      [
+        "selinux",
+        "= 6.2.4"
+      ]
+    ],
+    "dependencies": {
+      "cache (1.0.0)": [
+        [
+          "memcached",
+          "~> 6.0"
+        ],
+        [
+          "redisio",
+          ">= 0.0.0"
+        ]
+      ],
+      "fastapi-tutorial (1.0.0)": [
+
+      ],
+      "memcached (6.1.0)": [
+
+      ],
+      "nginx-multisite (1.0.0)": [
+
+      ],
+      "redisio (8.0.0)": [
+        [
+          "selinux",
+          ">= 0.0.0"
+        ]
+      ],
+      "selinux (6.2.4)": [
+
+      ]
+    }
+  }
+}
