@@ -1,0 +1,20 @@
+[
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Installs and configures Memcached and Redis caching services, including Redis authentication, Fedora runtime-path handling, logging, and service enablement.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Deploys the FastAPI tutorial application with Python, a virtual environment, PostgreSQL database and role provisioning, environment configuration, and a systemd Uvicorn service.",
+    "technology": "Chef"
+  },
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Provisions Nginx static virtual hosts with self-signed TLS, redirects, security headers, and sample content, plus Fail2ban, firewall, sysctl, and SSH hardening.",
+    "technology": "Chef"
+  }
+]
