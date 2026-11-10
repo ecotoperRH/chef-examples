@@ -1,0 +1,205 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/run_cache.yml",
+      "status": "complete",
+      "description": "Deployment entry point for the migrated role",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/requirements.yml",
+      "status": "complete",
+      "description": "Test-only Podman collection dependency",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/README.md",
+      "status": "complete",
+      "description": "Developer instructions for running Molecule",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/molecule.yml",
+      "status": "complete",
+      "description": "Ansible-native Molecule scenario configuration",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/inventory/hosts.yml",
+      "status": "complete",
+      "description": "Disposable Podman target inventory",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/create.yml",
+      "status": "complete",
+      "description": "Create and inspect disposable Podman targets",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/destroy.yml",
+      "status": "complete",
+      "description": "Remove disposable Podman targets",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/prepare.yml",
+      "status": "complete",
+      "description": "Bootstrap Python on the disposable Linux target",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/converge.yml",
+      "status": "complete",
+      "description": "Run the deployment playbook under test",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/verify.yml",
+      "status": "complete",
+      "description": "Verify migrated behavior against the source plan",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/metadata.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata derived from the cache cookbook metadata.",
+      "notes": "Metadata source reviewed; target meta/main.yml is already marked complete in the checklist and was not overwritten."
+    },
+    {
+      "category": "attributes",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/attributes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Memcached instance default variables.",
+      "notes": "Converted Memcached defaults into role-scoped user-facing configuration values."
+    },
+    {
+      "category": "attributes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/attributes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Redis role input defaults, mapped to the supported eloy.redis role; keep the password secret-sourced.",
+      "notes": "Merged Redis installation, service, RDB, and Redis instance defaults; Redis lifecycle is delegated to eloy.redis.redis."
+    },
+    {
+      "category": "structure",
+      "source_path": "defaults/main.yml",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Role argument specifications; generate after defaults/main.yml.",
+      "notes": "Generated argument specifications for role defaults and the required AAP Redis credential."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Orchestrate Memcached configuration and include the supported Redis collection role.",
+      "notes": "Migrated Memcached orchestration, Redis collection role inclusion, log directory, and obsolete directive cleanup."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/memcached-7992788f1a376defb902059063f5295e37d281cb/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/memcached.yml",
+      "status": "complete",
+      "description": "Install and configure the memcached instance with the specified service options.",
+      "notes": "Migrated package installation, systemd command-line override, log directory, and enabled service state."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Handlers for cache service configuration changes.",
+      "notes": "Created handlers for Memcached override changes and Redis configuration cleanup."
+    },
+    {
+      "category": "dependencies",
+      "source_path": "collection:eloy.redis",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/requirements.yml",
+      "status": "complete",
+      "description": "AAP Private Hub collection providing the standalone Redis installation and configuration.",
+      "notes": "Wrote the supplied, Private Hub-pinned Redis collection requirement."
+    },
+    {
+      "category": "recipes",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/recipes/ulimit.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/ulimit.yml",
+      "status": "complete",
+      "description": "Conditional Debian PAM integration retained only when equivalent Redis ulimit behavior is required.",
+      "notes": "Migrated Debian PAM su template and sudo static file deployment; no source users are configured for per-user limits."
+    },
+    {
+      "category": "templates",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/templates/default/su.erb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/templates/su.j2",
+      "status": "complete",
+      "description": "Conditional Debian PAM su configuration template for ulimit support.",
+      "notes": "Converted static PAM su template to Jinja2."
+    },
+    {
+      "category": "files",
+      "source_path": "migration-dependencies/cookbook_artifacts/redisio-cac70a2ec9102cac4f5391358c8565d244f5d4db/files/sudo",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/files/sudo",
+      "status": "complete",
+      "description": "Conditional Debian PAM sudo configuration file for ulimit support.",
+      "notes": "Copied static Debian PAM sudo configuration."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}

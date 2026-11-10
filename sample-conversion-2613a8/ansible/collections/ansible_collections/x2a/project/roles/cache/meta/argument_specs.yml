@@ -1,0 +1,147 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Memcached and Redis cache services
+    description:
+      - Configures a Memcached daemon and delegates standalone Redis configuration to the approved Redis role.
+    options:
+      cache_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Hide task output that handles sensitive Redis credentials.
+      cache_memcached_package:
+        type: str
+        required: false
+        default: memcached
+        description: Package name used to install Memcached.
+      cache_memcached_service:
+        type: str
+        required: false
+        default: memcached
+        description: Memcached service name.
+      cache_memcached_binary:
+        type: str
+        required: false
+        default: /usr/bin/memcached
+        description: Absolute path to the Memcached executable.
+      cache_memcached_user:
+        type: str
+        required: false
+        default: memcache
+        description: Operating-system account used by Memcached.
+      cache_memcached_group:
+        type: str
+        required: false
+        default: memcache
+        description: Operating-system group used by Memcached.
+      cache_memcached_log_directory:
+        type: str
+        required: false
+        default: /var/log/memcached
+        description: Directory for Memcached logs.
+      cache_memcached_memory:
+        type: int
+        required: false
+        default: 64
+        description: Memory allocation for Memcached in megabytes.
+      cache_memcached_port:
+        type: int
+        required: false
+        default: 11211
+        description: TCP port used by Memcached.
+      cache_memcached_udp_port:
+        type: int
+        required: false
+        default: 11211
+        description: UDP port used by Memcached.
+      cache_memcached_listen:
+        type: str
+        required: false
+        default: 0.0.0.0
+        description: Address on which Memcached listens.
+      cache_memcached_maxconn:
+        type: int
+        required: false
+        default: 1024
+        description: Maximum number of Memcached connections.
+      cache_memcached_max_object_size:
+        type: str
+        required: false
+        default: 1m
+        description: Largest item accepted by Memcached.
+      cache_memcached_threads:
+        type: int
+        required: false
+        default: 4
+        description: Number of Memcached worker threads.
+      cache_memcached_extra_cli_options:
+        type: list
+        elements: str
+        required: false
+        default: []
+        description: Additional Memcached command-line options.
+      cache_memcached_ulimit:
+        type: int
+        required: false
+        default: 1024
+        description: Memcached file descriptor limit.
+      cache_redis_install_method:
+        type: str
+        required: false
+        default: package
+        description: Redis installation method passed to eloy.redis.redis.
+      cache_redis_port:
+        type: int
+        required: false
+        default: 6379
+        description: TCP port for the standalone Redis instance.
+      cache_redis_user:
+        type: str
+        required: false
+        default: redis
+        description: Operating-system account used by Redis.
+      cache_redis_group:
+        type: str
+        required: false
+        default: redis
+        description: Operating-system group used by Redis.
+      cache_redis_log_directory:
+        type: str
+        required: false
+        default: /var/log/redis
+        description: Directory for Redis logs.
+      cache_redis_config_file:
+        type: str
+        required: false
+        default: /etc/redis/6379.conf
+        description: Redis configuration file cleaned of obsolete replication directives.
+      cache_redis_rdb_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Enable Redis RDB persistence.
+      cache_redis_aof_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Enable Redis append-only-file persistence.
+      cache_redis_replication_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Enable Redis replication.
+      cache_redis_cluster_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Enable Redis cluster mode.
+      cache_redis_sentinel_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Enable Redis Sentinel mode.
+      redis_password:
+        type: str
+        required: true
+        description: Redis password injected by the AAP credential type.

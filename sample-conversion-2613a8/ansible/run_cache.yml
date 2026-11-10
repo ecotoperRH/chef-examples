@@ -1,0 +1,8 @@
+---
+- name: Run migrated role cache
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Apply cache role
+      ansible.builtin.include_role:
+        name: x2a.project.cache
