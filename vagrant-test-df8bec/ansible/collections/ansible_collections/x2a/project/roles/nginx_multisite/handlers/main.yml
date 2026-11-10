@@ -1,0 +1,23 @@
+---
+- name: Restart Fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted
+
+- name: Reload kernel security settings
+  ansible.builtin.command:
+    argv:
+      - sysctl
+      - -p
+      - /etc/sysctl.d/99-security.conf
+  changed_when: false
+
+- name: Restart SSH service
+  ansible.builtin.service:
+    name: "{{ 'ssh' if ansible_facts['os_family'] == 'Debian' else 'sshd' }}"
+    state: restarted
+
+- name: Reload NGINX
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded

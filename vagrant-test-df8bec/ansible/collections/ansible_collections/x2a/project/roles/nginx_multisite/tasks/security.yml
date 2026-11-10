@@ -1,0 +1,92 @@
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - fail2ban
+      - ufw
+      - openssh-server
+    state: present
+
+- name: Deploy Fail2ban jail configuration
+  ansible.builtin.template:
+    src: fail2ban.jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    backup: true
+  notify: Restart Fail2ban
+
+- name: Enable and start Fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: Set UFW default incoming policy to deny
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - --force
+      - default
+      - deny
+  changed_when: false
+
+- name: Allow SSH through UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - allow
+      - ssh
+  changed_when: false
+
+- name: Allow HTTP through UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - allow
+      - http
+  changed_when: false
+
+- name: Allow HTTPS through UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - allow
+      - https
+  changed_when: false
+
+- name: Enable UFW
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - --force
+      - enable
+  when: nginx_multisite_ufw_enabled | bool
+  changed_when: false
+
+- name: Deploy kernel security settings
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    mode: "0644"
+    backup: true
+  notify: Reload kernel security settings
+
+- name: Disable SSH root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PermitRootLogin.*$
+    line: PermitRootLogin no
+    create: false
+    backup: true
+  when: nginx_multisite_ssh_disable_root | bool
+  notify: Restart SSH service
+
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^#?PasswordAuthentication.*$
+    line: PasswordAuthentication no
+    create: false
+    backup: true
+  when: not (nginx_multisite_ssh_password_auth | bool)
+  notify: Restart SSH service

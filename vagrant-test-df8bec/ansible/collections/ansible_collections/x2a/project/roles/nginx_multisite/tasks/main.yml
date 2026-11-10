@@ -1,0 +1,3 @@
+---
+- name: Run nginx_multisite role tasks
+  ansible.builtin.import_tasks: default.yml
