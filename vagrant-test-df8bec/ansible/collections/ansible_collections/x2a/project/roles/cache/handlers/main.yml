@@ -1,0 +1,5 @@
+---
+- name: Restart Redis
+  ansible.builtin.service:
+    name: "{{ cache_redis_service_name }}" # noqa: R114 - service name is a role-defined default
+    state: restarted

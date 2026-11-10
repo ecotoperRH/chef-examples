@@ -1,0 +1,181 @@
+{
+  "module_name": "cache",
+  "items": [
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/run_cache.yml",
+      "status": "complete",
+      "description": "Deployment entry point for the migrated role",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/requirements.yml",
+      "status": "complete",
+      "description": "Test-only Podman collection dependency",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/README.md",
+      "status": "complete",
+      "description": "Developer instructions for running Molecule",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/molecule.yml",
+      "status": "complete",
+      "description": "Ansible-native Molecule scenario configuration",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/inventory/hosts.yml",
+      "status": "complete",
+      "description": "Disposable Podman target inventory",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/create.yml",
+      "status": "complete",
+      "description": "Create and inspect disposable Podman targets",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/destroy.yml",
+      "status": "complete",
+      "description": "Remove disposable Podman targets",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/prepare.yml",
+      "status": "complete",
+      "description": "Bootstrap Python on the disposable Linux target",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/converge.yml",
+      "status": "complete",
+      "description": "Run the deployment playbook under test",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "molecule",
+      "source_path": "N/A",
+      "target_path": "ansible/molecule/cache/verify.yml",
+      "status": "complete",
+      "description": "Verify migrated behavior against the source plan",
+      "notes": "Generated and statically validated; runtime execution is pending."
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/aap-configuration/controller_credential_types.yml",
+      "status": "complete",
+      "description": "AAP credential types configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/aap-configuration/controller_credentials.yml",
+      "status": "complete",
+      "description": "AAP credentials configuration",
+      "notes": ""
+    },
+    {
+      "category": "credentials",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/validate_credentials.yml",
+      "status": "complete",
+      "description": "Credential validation tasks",
+      "notes": ""
+    },
+    {
+      "category": "structure",
+      "source_path": "cookbooks/cache/metadata.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Role metadata derived from the Chef cookbook metadata.",
+      "notes": "Reviewed Chef metadata; existing completed meta/main.yml retains compatible Apache-2.0 metadata, x2a namespace, supported platforms, and cache role identity."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/defaults/main.yml",
+      "status": "complete",
+      "description": "Role defaults for Redis port, PID directory, and secret variable reference; do not store the Redis password in plaintext.",
+      "notes": "Defined role defaults for cache services, Redis topology and persistence, paths, port, and secret logging."
+    },
+    {
+      "category": "structure",
+      "source_path": "defaults/main.yml",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/argument_specs.yml",
+      "status": "complete",
+      "description": "Role argument specifications; generate after defaults/main.yml.",
+      "notes": "Documented all role defaults and the required AAP-injected redis_password credential variable."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/handlers/main.yml",
+      "status": "complete",
+      "description": "Redis handler definitions after the actual Redis service unit is discovered.",
+      "notes": "Created Redis restart handler for configuration cleanup notifications."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Migrate local recipe ordering, Redis log directory, guarded legacy directive cleanup, and external Redis role integration; protect password values with no_log.",
+      "notes": "Created role entrypoint with credential validation as the first include and the converted cache-service tasks."
+    },
+    {
+      "category": "dependencies",
+      "source_path": "collection:eloy.redis",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/requirements.yml",
+      "status": "complete",
+      "description": "AAP Private Hub Redis collection; use eloy.redis.redis for the standalone password-protected Redis instance on port 6379.",
+      "notes": "Wrote the exact Private Hub collection requirement supplied in the migration request."
+    },
+    {
+      "category": "recipes",
+      "source_path": "cookbooks/cache/recipes/default.rb",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/default.yml",
+      "status": "complete",
+      "description": "Convert the default Chef recipe into cache role tasks: Redis collection integration, log directory, and guarded legacy directive removal.",
+      "notes": "Converted local recipe. Redis provisioning uses the discovered eloy.redis.redis role and the AAP-injected redis_password credential."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/tasks/main.yml",
+      "status": "complete",
+      "description": "Role task entry point that includes the converted default recipe task file.",
+      "notes": "Created role entrypoint with pre-generated credential validation as its first task."
+    },
+    {
+      "category": "structure",
+      "source_path": "N/A",
+      "target_path": "ansible/collections/ansible_collections/x2a/project/roles/cache/meta/main.yml",
+      "status": "complete",
+      "description": "Created standard meta/main.yml",
+      "notes": ""
+    }
+  ]
+}

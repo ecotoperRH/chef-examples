@@ -1,0 +1,77 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Memcached and a password-protected standalone Redis service
+    description:
+      - Installs Memcached and configures Redis through the eloy.redis.redis collection.
+      - Removes legacy Redis replication directives from the Redis configuration when present.
+    options:
+      cache_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Hide output from tasks that handle the injected Redis password.
+      cache_memcached_package_name:
+        type: str
+        required: false
+        default: memcached
+        description: Package name for the Memcached service.
+      cache_memcached_service_name:
+        type: str
+        required: false
+        default: memcached
+        description: Service name for Memcached.
+      cache_redis_service_name:
+        type: str
+        required: false
+        default: redis-6379
+        description: Service name for the standalone Redis instance.
+      cache_redis_port:
+        type: int
+        required: false
+        default: 6379
+        description: TCP port for the standalone Redis listener.
+      cache_redis_pid_dir:
+        type: str
+        required: false
+        default: /run/redis
+        description: Base directory for Redis PID files.
+      cache_redis_log_dir:
+        type: str
+        required: false
+        default: /var/log/redis
+        description: Directory in which Redis writes log files.
+      cache_redis_config_file:
+        type: str
+        required: false
+        default: /etc/redis/6379.conf
+        description: Redis configuration file cleaned of legacy replication directives.
+      cache_redis_cluster_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Whether to enable Redis cluster mode.
+      cache_redis_sentinel_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Whether to enable Redis Sentinel mode.
+      cache_redis_replication_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Whether to enable Redis replication.
+      cache_redis_aof_enabled:
+        type: bool
+        required: false
+        default: false
+        description: Whether Redis append-only file persistence is enabled.
+      cache_redis_rdb_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether Redis RDB snapshot persistence is enabled.
+      redis_password:
+        type: str
+        required: true
+        description: Redis password injected by an AAP credential type.

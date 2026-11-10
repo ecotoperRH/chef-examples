@@ -1,0 +1,14 @@
+---
+cache_secure_logging: true
+cache_memcached_package_name: memcached
+cache_memcached_service_name: memcached
+cache_redis_service_name: redis-6379
+cache_redis_port: 6379
+cache_redis_pid_dir: /run/redis
+cache_redis_log_dir: /var/log/redis
+cache_redis_config_file: /etc/redis/6379.conf
+cache_redis_cluster_enabled: false
+cache_redis_sentinel_enabled: false
+cache_redis_replication_enabled: false
+cache_redis_aof_enabled: false
+cache_redis_rdb_enabled: true

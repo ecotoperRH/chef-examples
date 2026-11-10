@@ -1,0 +1,92 @@
+---
+# Unsupported pre-flight diagnostics: /run/redis metadata, Redis INFO output, Redis
+# service discovery/log inspection, and all Memcached discovery/status/log checks have
+# no stated expected result. Authenticated PING is unsupported because no secure
+# runtime credential variable is provided for REDISCLI_AUTH.
+- name: Verify cache migration
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check that the Redis 6379 configuration file exists
+      ansible.builtin.stat:
+        path: /etc/redis/6379.conf
+      register: redis_6379_config_stat
+
+    - name: Assert that the Redis 6379 configuration file exists
+      ansible.builtin.assert:
+        that:
+          - redis_6379_config_stat.stat.exists
+          - redis_6379_config_stat.stat.isreg
+        fail_msg: Redis 6379 configuration file must exist.
+        success_msg: Redis 6379 configuration file exists.
+
+    - name: Check Redis log directory ownership and mode
+      ansible.builtin.stat:
+        path: /var/log/redis
+      register: redis_log_directory_stat
+
+    - name: Assert Redis log directory ownership and mode
+      ansible.builtin.assert:
+        that:
+          - redis_log_directory_stat.stat.exists
+          - redis_log_directory_stat.stat.isdir
+          - redis_log_directory_stat.stat.pw_name == 'redis'
+          - redis_log_directory_stat.stat.gr_name == 'redis'
+          - redis_log_directory_stat.stat.mode == '0755'
+        fail_msg: Redis log directory must be owned by redis:redis with mode 0755.
+        success_msg: Redis log directory ownership and mode are correct.
+
+    - name: Check removed Redis replication directives are absent
+      ansible.builtin.command:
+        argv:
+          - grep
+          - -nE
+          - -e
+          - '^replica-serve-stale-data.*$'
+          - -e
+          - '^replica-read-only.*$'
+          - -e
+          - '^repl-ping-replica-period.*$'
+          - -e
+          - '^client-output-buffer-limit.*$'
+          - -e
+          - '^replica-priority.*$'
+          - /etc/redis/6379.conf
+      register: redis_removed_directives
+      changed_when: false
+      failed_when: false
+
+    - name: Assert removed Redis replication directives are absent
+      ansible.builtin.assert:
+        that:
+          - redis_removed_directives.rc == 1
+        fail_msg: Removed Redis replication directives must be absent from the configuration.
+        success_msg: Removed Redis replication directives are absent from the configuration.
+
+    - name: Count active Redis requirepass directives without displaying the value
+      ansible.builtin.command:
+        argv:
+          - grep
+          - -cE
+          - '^requirepass[[:space:]]+[^[:space:]]+'
+          - /etc/redis/6379.conf
+      register: redis_requirepass_count
+      changed_when: false
+      failed_when: false
+
+    - name: Assert exactly one active Redis requirepass directive exists
+      ansible.builtin.assert:
+        that:
+          - redis_requirepass_count.rc == 0
+          - redis_requirepass_count.stdout == '1'
+        fail_msg: Redis configuration must contain exactly one active requirepass directive.
+        success_msg: Redis configuration contains exactly one active requirepass directive.
+
+    - name: Check that Redis TCP port 6379 is listening
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        state: started
+        connect_timeout: 1
+        timeout: 5

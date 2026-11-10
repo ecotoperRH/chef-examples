@@ -1,0 +1,47 @@
+---
+- name: Install Memcached package
+  ansible.builtin.package:
+    name:
+      - "{{ cache_memcached_package_name }}"
+    state: present
+
+- name: Ensure Memcached service is enabled and started
+  ansible.builtin.service:
+    name: "{{ cache_memcached_service_name }}"
+    enabled: true
+    state: started
+
+- name: Configure standalone Redis service
+  ansible.builtin.include_role:
+    name: eloy.redis.redis # noqa: L038 - role is provided by the declared eloy.redis collection dependency
+  no_log: "{{ cache_secure_logging }}"
+  vars:
+    redis_port: "{{ cache_redis_port }}"
+    redis_requirepass: "{{ redis_password }}"
+    redis_cluster_enabled: "{{ cache_redis_cluster_enabled }}"
+    redis_sentinel_enabled: "{{ cache_redis_sentinel_enabled }}"
+    redis_replication_enabled: "{{ cache_redis_replication_enabled }}"
+    redis_aof_enabled: "{{ cache_redis_aof_enabled }}"
+    redis_rdb_enabled: "{{ cache_redis_rdb_enabled }}"
+    redis_pid_dir: "{{ cache_redis_pid_dir }}"
+
+- name: Ensure Redis log directory exists
+  ansible.builtin.file:
+    path: "{{ cache_redis_log_dir }}" # noqa: R114 - path is defined in role defaults, not user input
+    state: directory
+    owner: redis
+    group: redis
+    mode: "0755"
+
+- name: Check whether Redis configuration exists
+  ansible.builtin.stat:
+    path: "{{ cache_redis_config_file }}"
+  register: cache_redis_6379_config
+
+- name: Remove legacy Redis replication directives
+  ansible.builtin.replace:
+    path: "{{ cache_redis_config_file }}" # noqa: R114 - path is defined in role defaults, not user input
+    regexp: ^(replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority).*$
+    replace: ""
+  when: cache_redis_6379_config['stat']['exists'] # noqa: L039 - variable is registered by the preceding stat task
+  notify: Restart Redis
