@@ -1,0 +1,20 @@
+[
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Installs and configures Memcached and a password-protected Redis instance, including Redis service setup and a configuration workaround for replica directives.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Deploys the FastAPI tutorial application with a Python virtual environment, PostgreSQL database and user, environment configuration, and a Uvicorn systemd service.",
+    "technology": "Chef"
+  },
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Configures Nginx static sites for three TLS-enabled subdomains and applies web and host hardening, including Fail2ban, UFW, SSH settings, sysctl tuning, and security headers.",
+    "technology": "Chef"
+  }
+]
