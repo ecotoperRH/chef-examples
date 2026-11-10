@@ -1,0 +1,9 @@
+---
+fastapi_tutorial_package_names:
+  - python3
+  - python3-pip
+  - git
+  - postgresql-server
+  - postgresql-contrib
+  - libpq-devel
+fastapi_tutorial_postgresql_service_name: postgresql

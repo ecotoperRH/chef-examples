@@ -1,0 +1,248 @@
+---
+# Unsupported pre-flight diagnostics with no stated outcome: Git branch/status output,
+# systemctl status, daemon-reload, lsof output, and journal output/error review.
+- name: Verify fastapi-tutorial deployment
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Inspect required fastapi-tutorial files
+      ansible.builtin.stat:
+        path: "{{ item_fastapi_file['path'] }}"
+      loop:
+        - path: /opt/fastapi-tutorial
+          type: directory
+          executable: false
+        - path: /opt/fastapi-tutorial/venv
+          type: directory
+          executable: false
+        - path: /opt/fastapi-tutorial/venv/bin/python
+          type: file
+          executable: true
+        - path: /opt/fastapi-tutorial/venv/bin/uvicorn
+          type: file
+          executable: true
+        - path: /opt/fastapi-tutorial/requirements.txt
+          type: file
+          executable: false
+        - path: /opt/fastapi-tutorial/.env
+          type: file
+          executable: false
+        - path: /etc/systemd/system/fastapi-tutorial.service
+          type: file
+          executable: false
+      loop_control:
+        loop_var: item_fastapi_file
+      register: fastapi_file_stats
+      changed_when: false
+
+    - name: Assert required fastapi-tutorial files exist with expected types
+      ansible.builtin.assert:
+        that:
+          - item_fastapi_stat['stat']['exists']
+          - >-
+            (item_fastapi_stat['item']['type'] == 'directory' and
+            item_fastapi_stat['stat']['isdir']) or
+            (item_fastapi_stat['item']['type'] == 'file' and
+            item_fastapi_stat['stat']['isreg'])
+          - >-
+            not item_fastapi_stat['item']['executable'] or
+            item_fastapi_stat['stat']['executable']
+        fail_msg: Required fastapi-tutorial path is missing or has an unexpected type.
+      loop: "{{ fastapi_file_stats['results'] }}"
+      loop_control:
+        loop_var: item_fastapi_stat
+
+    - name: Inspect fastapi-tutorial environment file permissions
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial/.env
+      register: fastapi_env_stat
+      changed_when: false
+
+    - name: Assert fastapi-tutorial environment file permissions
+      ansible.builtin.assert:
+        that:
+          - fastapi_env_stat['stat']['pw_name'] == 'root'
+          - fastapi_env_stat['stat']['gr_name'] == 'root'
+          - fastapi_env_stat['stat']['mode'] in ['0600', '0644']
+        fail_msg: The environment file must be owned by root:root with mode 0600 or 0644.
+
+    - name: Verify fastapi-tutorial systemd unit syntax
+      ansible.builtin.command:
+        argv:
+          - systemd-analyze
+          - verify
+          - /etc/systemd/system/fastapi-tutorial.service
+      changed_when: false
+
+    - name: Read fastapi-tutorial systemd unit
+      ansible.builtin.slurp:
+        src: /etc/systemd/system/fastapi-tutorial.service
+      register: fastapi_unit
+      changed_when: false
+
+    - name: Assert fastapi-tutorial systemd unit settings
+      ansible.builtin.assert:
+        that:
+          - "'WorkingDirectory=/opt/fastapi-tutorial' in (fastapi_unit['content'] | b64decode)"
+          - "'Environment=\"PATH=/opt/fastapi-tutorial/venv/bin\"' in (fastapi_unit['content'] | b64decode)"
+          - >-
+            'ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000'
+            in (fastapi_unit['content'] | b64decode)
+          - "'After=network.target postgresql.service' in (fastapi_unit['content'] | b64decode)"
+          - "'Restart=always' in (fastapi_unit['content'] | b64decode)"
+        fail_msg: The fastapi-tutorial systemd unit is missing a required setting.
+
+    - name: Check postgresql service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - postgresql
+      register: postgresql_enabled
+      changed_when: false
+
+    - name: Assert postgresql service is enabled
+      ansible.builtin.assert:
+        that:
+          - postgresql_enabled['stdout'] | trim == 'enabled'
+        fail_msg: The postgresql service is not enabled.
+
+    - name: Check postgresql service is active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - postgresql
+      register: postgresql_active
+      changed_when: false
+
+    - name: Assert postgresql service is active
+      ansible.builtin.assert:
+        that:
+          - postgresql_active['stdout'] | trim == 'active'
+        fail_msg: The postgresql service is not active.
+
+    - name: Query required PostgreSQL objects
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -d
+          - "{{ item_fastapi_query['database'] }}"
+          - -tAc
+          - "{{ item_fastapi_query['query'] }}"
+      become: true
+      become_user: postgres
+      loop:
+        - database: postgres
+          query: "SELECT 1 FROM pg_roles WHERE rolname = 'fastapi';"
+          expected: '1'
+        - database: postgres
+          query: "SELECT 1 FROM pg_database WHERE datname = 'fastapi_db';"
+          expected: '1'
+        - database: postgres
+          query: "SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = 'fastapi_db';"
+          expected: fastapi
+        - database: fastapi_db
+          query: 'SELECT current_database();'
+          expected: fastapi_db
+        - database: fastapi_db
+          query: 'SELECT current_user;'
+          expected: postgres
+      loop_control:
+        loop_var: item_fastapi_query
+      register: fastapi_postgresql_queries
+      changed_when: false
+
+    - name: Assert required PostgreSQL objects and connectivity
+      ansible.builtin.assert:
+        that:
+          - >-
+            item_fastapi_query_result['stdout'] | trim ==
+            item_fastapi_query_result['item']['expected']
+        fail_msg: A required PostgreSQL object or connection check did not match its expected value.
+      loop: "{{ fastapi_postgresql_queries['results'] }}"
+      loop_control:
+        loop_var: item_fastapi_query_result
+
+    - name: Inspect PostgreSQL initialization sentinel on Fedora or RHEL
+      ansible.builtin.stat:
+        path: /var/lib/pgsql/data/PG_VERSION
+      register: postgresql_initdb_sentinel
+      changed_when: false
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Assert PostgreSQL initialization sentinel exists on Fedora or RHEL
+      ansible.builtin.assert:
+        that:
+          - postgresql_initdb_sentinel['stat']['isreg']
+        fail_msg: The PostgreSQL initialization sentinel does not exist.
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Check fastapi-tutorial service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - fastapi-tutorial
+      register: fastapi_service_enabled
+      changed_when: false
+
+    - name: Assert fastapi-tutorial service is enabled
+      ansible.builtin.assert:
+        that:
+          - fastapi_service_enabled['stdout'] | trim == 'enabled'
+        fail_msg: The fastapi-tutorial service is not enabled.
+
+    - name: Check fastapi-tutorial service is active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - fastapi-tutorial
+      register: fastapi_service_active
+      changed_when: false
+
+    - name: Assert fastapi-tutorial service is active
+      ansible.builtin.assert:
+        that:
+          - fastapi_service_active['stdout'] | trim == 'active'
+        fail_msg: The fastapi-tutorial service is not active.
+
+    - name: Inspect Uvicorn process command
+      ansible.builtin.command:
+        argv:
+          - ps
+          - -ef
+      register: fastapi_processes
+      changed_when: false
+
+    - name: Assert Uvicorn process command is present
+      ansible.builtin.assert:
+        that:
+          - >-
+            'uvicorn app.main:app --host 0.0.0.0 --port 8000'
+            in fastapi_processes['stdout']
+        fail_msg: The expected Uvicorn process command is not running.
+
+    - name: Wait for fastapi-tutorial TCP listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8000
+        state: started
+        timeout: 10
+
+    - name: Verify fastapi-tutorial HTTP reachability
+      ansible.builtin.command:
+        argv:
+          - curl
+          - --connect-timeout
+          - '5'
+          - --max-time
+          - '10'
+          - -sS
+          - -o
+          - /dev/null
+          - -w
+          - 'HTTP status: %{http_code}\n'
+          - http://127.0.0.1:8000/
+      changed_when: false

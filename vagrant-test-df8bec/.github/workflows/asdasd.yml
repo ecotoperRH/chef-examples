@@ -1,0 +1,12 @@
+---
+name: asdasd
+
+on:
+  workflow_dispatch:
+
+jobs:
+  asdasd:
+    runs-on: ubuntu-latest
+    steps:
+      - name: asdasd
+        run: "true"
