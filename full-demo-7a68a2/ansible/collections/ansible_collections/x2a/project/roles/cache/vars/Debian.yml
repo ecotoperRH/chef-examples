@@ -1,0 +1,5 @@
+---
+cache_memcached_package_name: memcached
+cache_memcached_service_name: memcached
+cache_memcached_environment_file: /etc/default/memcached
+cache_redis_service_name: redis_6379

@@ -1,0 +1,242 @@
+---
+# Unsupported pre-flight diagnostics without a stated safe assertion: Memcached stats and journal output;
+# Redis authenticated INFO/CONFIG checks, secret-bearing configuration output, unit content, and journal output.
+- name: Verify cache services
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Collect cache service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert Memcached service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['services']['memcached.service']['state'] == 'running'
+        fail_msg: Memcached service is not running.
+
+    - name: Check Memcached service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - memcached
+      changed_when: false
+      register: memcached_enabled
+
+    - name: Assert Memcached service is enabled
+      ansible.builtin.assert:
+        that:
+          - memcached_enabled['rc'] == 0
+          - memcached_enabled['stdout'] == 'enabled'
+        fail_msg: Memcached service is not enabled.
+
+    - name: Check Memcached process is present
+      ansible.builtin.command:
+        argv:
+          - pgrep
+          - -a
+          - memcached
+      changed_when: false
+      register: memcached_process
+
+    - name: Assert Memcached process is present
+      ansible.builtin.assert:
+        that:
+          - memcached_process['rc'] == 0
+        fail_msg: Memcached process is not present.
+
+    - name: Check Memcached TCP listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 11211
+        state: started
+        timeout: 3
+
+    - name: Check Memcached UDP listener
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -lunp
+      changed_when: false
+      register: memcached_udp_listeners
+
+    - name: Assert Memcached UDP port 11211 is listening
+      ansible.builtin.assert:
+        that:
+          - "':11211' in memcached_udp_listeners['stdout']"
+        fail_msg: Memcached UDP port 11211 is not listening.
+
+    - name: Check Memcached version protocol response
+      ansible.builtin.command:
+        argv:
+          - nc
+          - -w
+          - '3'
+          - 127.0.0.1
+          - '11211'
+        stdin: "version\r\n"
+        stdin_add_newline: false
+      changed_when: false
+      register: memcached_version
+
+    - name: Assert Memcached version protocol is available
+      ansible.builtin.assert:
+        that:
+          - memcached_version['rc'] == 0
+          - memcached_version['stdout'] is match('^VERSION ')
+        fail_msg: Memcached did not return a version protocol response.
+
+    - name: Check Redis service is active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - redis@6379
+      changed_when: false
+      register: redis_active
+
+    - name: Assert Redis service is active
+      ansible.builtin.assert:
+        that:
+          - redis_active['rc'] == 0
+          - redis_active['stdout'] == 'active'
+        fail_msg: Redis instance redis@6379 is not active.
+
+    - name: Check Redis service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - redis@6379
+      changed_when: false
+      register: redis_enabled
+
+    - name: Assert Redis service is enabled
+      ansible.builtin.assert:
+        that:
+          - redis_enabled['rc'] == 0
+          - redis_enabled['stdout'] == 'enabled'
+        fail_msg: Redis instance redis@6379 is not enabled.
+
+    - name: Check distribution Redis service is inactive
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - redis-server
+      changed_when: false
+      failed_when: false
+      register: distribution_redis_active
+
+    - name: Assert distribution Redis service is inactive
+      ansible.builtin.assert:
+        that:
+          - distribution_redis_active['stdout'] != 'active'
+        fail_msg: Distribution Redis service is competing with redis@6379.
+
+    - name: Check distribution Redis service is disabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - redis-server
+      changed_when: false
+      failed_when: false
+      register: distribution_redis_enabled
+
+    - name: Assert distribution Redis service is disabled
+      ansible.builtin.assert:
+        that:
+          - distribution_redis_enabled['stdout'] != 'enabled'
+        fail_msg: Distribution Redis service is enabled and may compete with redis@6379.
+
+    - name: Stat source-installed Redis binary
+      ansible.builtin.stat:
+        path: /usr/local/bin/redis-server
+      register: redis_binary
+
+    - name: Assert source-installed Redis binary exists
+      ansible.builtin.assert:
+        that:
+          - redis_binary['stat']['exists']
+          - redis_binary['stat']['executable']
+        fail_msg: Source-installed Redis binary is unavailable.
+
+    - name: Check Redis TCP listener
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6379
+        state: started
+        timeout: 3
+
+    - name: Check removed Redis replication directives
+      ansible.builtin.command:
+        argv:
+          - grep
+          - -E
+          - ^(replica-serve-stale-data|replica-read-only|repl-ping-replica-period|client-output-buffer-limit|replica-priority)
+          - /etc/redis/6379.conf
+      changed_when: false
+      failed_when: false
+      register: removed_redis_directives
+
+    - name: Assert removed Redis replication directives have no output
+      ansible.builtin.assert:
+        that:
+          - removed_redis_directives['rc'] != 0
+          - removed_redis_directives['stdout'] == ''
+        fail_msg: Removed Redis replication directives are present in the configuration.
+
+    - name: Check unauthenticated Redis response
+      ansible.builtin.command:
+        argv:
+          - redis-cli
+          - -h
+          - 127.0.0.1
+          - -p
+          - '6379'
+          - PING
+      changed_when: false
+      register: redis_unauthenticated_ping
+
+    - name: Assert unauthenticated Redis response requires authentication
+      ansible.builtin.assert:
+        that:
+          - "'NOAUTH Authentication required' in redis_unauthenticated_ping['stdout']"
+        fail_msg: Unauthenticated Redis PING did not require authentication.
+
+    - name: Check Redis account
+      ansible.builtin.getent:
+        database: passwd
+        key: redis
+
+    - name: Assert Redis account exists
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['getent_passwd']['redis'] is defined
+        fail_msg: Redis account does not exist.
+
+    - name: Stat Redis files and directories
+      ansible.builtin.stat:
+        path: "{{ item_cache }}"
+      loop:
+        - /var/log/redis
+        - /etc/redis
+        - /var/lib/redis
+        - /var/run/redis/6379
+        - /etc/redis/6379.conf
+        - /etc/redis/6379.conf.breadcrumb
+        - /etc/tmpfiles.d/redis@6379.conf
+        - /var/lib/redis/dump-6379.rdb
+      loop_control:
+        loop_var: item_cache
+      register: redis_paths
+
+    - name: Assert Redis files and directories exist
+      ansible.builtin.assert:
+        that:
+          - item_cache['stat']['exists']
+        fail_msg: A required Redis file or directory is missing.
+      loop: "{{ redis_paths['results'] }}"
+      loop_control:
+        loop_var: item_cache
