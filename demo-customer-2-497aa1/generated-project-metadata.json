@@ -1,0 +1,20 @@
+[
+  {
+    "name": "cache",
+    "path": "cookbooks/cache",
+    "description": "Configures Memcached and a password-protected Redis service, including Redis log storage and service enablement.",
+    "technology": "Chef"
+  },
+  {
+    "name": "fastapi-tutorial",
+    "path": "cookbooks/fastapi-tutorial",
+    "description": "Deploys the FastAPI tutorial application from Git, provisions its Python environment and local PostgreSQL database, and runs Uvicorn through systemd.",
+    "technology": "Chef"
+  },
+  {
+    "name": "nginx-multisite",
+    "path": "cookbooks/nginx-multisite",
+    "description": "Configures Nginx for the test.cluster.local, ci.cluster.local, and status.cluster.local static sites with TLS and baseline host-security controls.",
+    "technology": "Chef"
+  }
+]
