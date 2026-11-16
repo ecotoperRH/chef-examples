@@ -1,0 +1,219 @@
+---
+# Unsupported: sysctl -p would modify state; sysctl values, TLS/stat output,
+# certificate subject/dates, enabled-link targets, HTTPS status, and journal output
+# have no stated expected values in the pre-flight checks.
+- name: Verify nginx multisite deployment
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert required packages are installed
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['packages']['nginx'] is defined
+          - ansible_facts['packages']['fail2ban'] is defined
+          - ansible_facts['packages']['ufw'] is defined
+          - ansible_facts['packages']['openssl'] is defined
+          - ansible_facts['packages']['ca-certificates'] is defined
+        fail_msg: Required nginx multisite packages are not installed.
+        success_msg: Required nginx multisite packages are installed.
+
+    - name: Check nginx service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - nginx
+      changed_when: false
+      register: nginx_enabled
+
+    - name: Assert nginx service is enabled
+      ansible.builtin.assert:
+        that:
+          - nginx_enabled['rc'] == 0
+        fail_msg: The nginx service is not enabled.
+        success_msg: The nginx service is enabled.
+
+    - name: Check nginx service is active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - nginx
+      changed_when: false
+      register: nginx_active
+
+    - name: Assert nginx service is active
+      ansible.builtin.assert:
+        that:
+          - nginx_active['rc'] == 0
+        fail_msg: The nginx service is not active.
+        success_msg: The nginx service is active.
+
+    - name: Check fail2ban service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - fail2ban
+      changed_when: false
+      register: fail2ban_enabled
+
+    - name: Assert fail2ban service is enabled
+      ansible.builtin.assert:
+        that:
+          - fail2ban_enabled['rc'] == 0
+        fail_msg: The fail2ban service is not enabled.
+        success_msg: The fail2ban service is enabled.
+
+    - name: Check fail2ban service is active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - fail2ban
+      changed_when: false
+      register: fail2ban_active
+
+    - name: Assert fail2ban service is active
+      ansible.builtin.assert:
+        that:
+          - fail2ban_active['rc'] == 0
+        fail_msg: The fail2ban service is not active.
+        success_msg: The fail2ban service is active.
+
+    - name: Gather service facts for SSH service status
+      ansible.builtin.service_facts:
+
+    - name: Assert SSH or sshd service is active
+      ansible.builtin.assert:
+        that:
+          - >-
+            (ansible_facts['services']['ssh.service'] is defined and
+            ansible_facts['services']['ssh.service']['state'] == 'running') or
+            (ansible_facts['services']['sshd.service'] is defined and
+            ansible_facts['services']['sshd.service']['state'] == 'running')
+        fail_msg: Neither the ssh nor sshd service is active.
+        success_msg: An SSH service is active.
+
+    - name: Validate SSH daemon configuration
+      ansible.builtin.command:
+        argv:
+          - sshd
+          - -t
+      changed_when: false
+
+    - name: Read SSH daemon configuration
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: sshd_config
+
+    - name: Assert SSH hardening settings
+      ansible.builtin.assert:
+        that:
+          - sshd_config['content'] | b64decode is search('(?m)^PermitRootLogin\\s+no\\s*$')
+          - sshd_config['content'] | b64decode is search('(?m)^PasswordAuthentication\\s+no\\s*$')
+        fail_msg: SSH hardening settings do not disable root and password authentication.
+        success_msg: SSH hardening settings are configured.
+
+    - name: Validate nginx configuration
+      ansible.builtin.command:
+        argv:
+          - nginx
+          - -t
+      changed_when: false
+
+    - name: Read verbose UFW status
+      ansible.builtin.command:
+        argv:
+          - ufw
+          - status
+          - verbose
+      changed_when: false
+      register: ufw_status
+
+    - name: Assert UFW policy and allow rules
+      ansible.builtin.assert:
+        that:
+          - ufw_status['stdout'] is search('(?m)^Status:\\s+active\\s*$')
+          - ufw_status['stdout'] is search('Default:\\s+deny \\(incoming\\)')
+          - ufw_status['stdout'] is search('(?m)^22/tcp\\s+ALLOW')
+          - ufw_status['stdout'] is search('(?m)^80/tcp\\s+ALLOW')
+          - ufw_status['stdout'] is search('(?m)^443/tcp\\s+ALLOW')
+        fail_msg: UFW is not active with the required inbound policy and rules.
+        success_msg: UFW policy and required allow rules are configured.
+
+    - name: Validate Fail2ban configuration
+      ansible.builtin.command:
+        argv:
+          - fail2ban-client
+          - -t
+      changed_when: false
+
+    - name: Verify HTTP to HTTPS redirects for configured sites
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        headers:
+          Host: "{{ item_nginx_site['name'] }}"
+        follow_redirects: none
+        return_content: false
+        status_code:
+          - 301
+      loop:
+        - name: test.cluster.local
+        - name: ci.cluster.local
+        - name: status.cluster.local
+      loop_control:
+        loop_var: item_nginx_site
+      register: nginx_http_redirects
+
+    - name: Assert HTTP redirects use each site's HTTPS URL
+      ansible.builtin.assert:
+        that:
+          - >-
+            item_nginx_redirect['location'] ==
+            'https://' + item_nginx_redirect['item_nginx_site']['name'] + '/'
+        fail_msg: A configured site does not redirect HTTP to its HTTPS URL.
+        success_msg: Configured sites redirect HTTP to their HTTPS URLs.
+      loop: "{{ nginx_http_redirects['results'] }}"
+      loop_control:
+        loop_var: item_nginx_redirect
+
+    - name: Check configured service listener ports
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ item_nginx_port }}"
+        state: started
+        timeout: 5
+      loop:
+        - 22
+        - 80
+        - 443
+      loop_control:
+        loop_var: item_nginx_port
+      register: nginx_listener_ports
+
+    - name: Assert configured service listener ports are open
+      ansible.builtin.assert:
+        that:
+          - item_nginx_listener['state'] == 'started'
+        fail_msg: A required SSH or nginx listener port is not open.
+        success_msg: Required SSH and nginx listener ports are open.
+      loop: "{{ nginx_listener_ports['results'] }}"
+      loop_control:
+        loop_var: item_nginx_listener
+
+    - name: Check default nginx site is absent
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: nginx_default_site
+
+    - name: Assert default nginx site is absent
+      ansible.builtin.assert:
+        that:
+          - not nginx_default_site['stat']['exists']
+        fail_msg: The default nginx site is still enabled.
+        success_msg: The default nginx site is absent.
