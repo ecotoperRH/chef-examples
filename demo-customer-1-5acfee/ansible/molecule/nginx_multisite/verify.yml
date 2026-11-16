@@ -1,0 +1,234 @@
+---
+# Unsupported diagnostics with no stated expected outcome: UFW status; sysctl values;
+# private-key stat output; resolved symlink targets; HTTP/HTTPS response headers; TLS subjects.
+- name: Verify nginx multisite deployment
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert required packages are installed
+      ansible.builtin.assert:
+        that:
+          - "item_nginx_multisite_package in ansible_facts['packages']"
+      loop:
+        - nginx
+        - fail2ban
+        - ufw
+        - openssl
+        - ca-certificates
+      loop_control:
+        loop_var: item_nginx_multisite_package
+
+    - name: Check enabled nginx and fail2ban services
+      ansible.builtin.command:
+        argv: "{{ item_nginx_multisite_enabled_check['argv'] }}"
+      changed_when: false
+      loop:
+        - argv:
+            - systemctl
+            - is-enabled
+            - nginx
+        - argv:
+            - systemctl
+            - is-enabled
+            - fail2ban
+      loop_control:
+        loop_var: item_nginx_multisite_enabled_check
+
+    - name: Check active services and service diagnostics
+      ansible.builtin.command:
+        argv: "{{ item_nginx_multisite_diagnostic['argv'] }}"
+      changed_when: false
+      loop:
+        - argv:
+            - systemctl
+            - is-active
+            - nginx
+        - argv:
+            - systemctl
+            - is-active
+            - fail2ban
+        - argv:
+            - systemctl
+            - is-active
+            - ssh
+        - argv:
+            - nginx
+            - -t
+        - argv:
+            - fail2ban-client
+            - ping
+        - argv:
+            - sshd
+            - -t
+      loop_control:
+        loop_var: item_nginx_multisite_diagnostic
+
+    - name: Collect checked files and directories
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite_path['path'] }}"
+      register: nginx_multisite_path_stats
+      loop:
+        - path: /etc/fail2ban/jail.local
+          type: file
+        - path: /etc/sysctl.d/99-security.conf
+          type: file
+        - path: /etc/ssh/sshd_config
+          type: file
+        - path: /etc/nginx/nginx.conf
+          type: file
+        - path: /etc/nginx/conf.d/security.conf
+          type: file
+        - path: /opt/server/test
+          type: directory
+        - path: /opt/server/test/index.html
+          type: file
+        - path: /opt/server/ci
+          type: directory
+        - path: /opt/server/ci/index.html
+          type: file
+        - path: /opt/server/status
+          type: directory
+        - path: /opt/server/status/index.html
+          type: file
+        - path: /etc/ssl/certs/test.cluster.local.crt
+          type: file
+        - path: /etc/ssl/private/test.cluster.local.key
+          type: file
+        - path: /etc/ssl/certs/ci.cluster.local.crt
+          type: file
+        - path: /etc/ssl/private/ci.cluster.local.key
+          type: file
+        - path: /etc/ssl/certs/status.cluster.local.crt
+          type: file
+        - path: /etc/ssl/private/status.cluster.local.key
+          type: file
+        - path: /etc/nginx/sites-available/test.cluster.local
+          type: file
+        - path: /etc/nginx/sites-available/ci.cluster.local
+          type: file
+        - path: /etc/nginx/sites-available/status.cluster.local
+          type: file
+      loop_control:
+        loop_var: item_nginx_multisite_path
+
+    - name: Assert checked files and directories have the expected type
+      ansible.builtin.assert:
+        that:
+          - "item_nginx_multisite_path_result['stat']['exists']"
+          - >-
+            (item_nginx_multisite_path_result['item']['type'] == 'file' and
+            item_nginx_multisite_path_result['stat']['isreg']) or
+            (item_nginx_multisite_path_result['item']['type'] == 'directory' and
+            item_nginx_multisite_path_result['stat']['isdir'])
+      loop: "{{ nginx_multisite_path_stats['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite_path_result
+
+    - name: Check enabled site links
+      ansible.builtin.stat:
+        path: "{{ item_nginx_multisite_site_link }}"
+      register: nginx_multisite_site_link_stats
+      loop:
+        - /etc/nginx/sites-enabled/test.cluster.local
+        - /etc/nginx/sites-enabled/ci.cluster.local
+        - /etc/nginx/sites-enabled/status.cluster.local
+      loop_control:
+        loop_var: item_nginx_multisite_site_link
+
+    - name: Assert enabled site paths are symbolic links
+      ansible.builtin.assert:
+        that:
+          - "item_nginx_multisite_link_result['stat']['islnk']"
+      loop: "{{ nginx_multisite_site_link_stats['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite_link_result
+
+    - name: Collect configuration files checked for directives
+      ansible.builtin.slurp:
+        src: "{{ item_nginx_multisite_directive['path'] }}"
+      register: nginx_multisite_directive_contents
+      loop:
+        - path: /etc/ssh/sshd_config
+          text: PermitRootLogin no
+        - path: /etc/ssh/sshd_config
+          text: PasswordAuthentication no
+        - path: /etc/nginx/conf.d/security.conf
+          text: server_tokens off;
+        - path: /etc/nginx/conf.d/security.conf
+          text: ssl_protocols TLSv1.2 TLSv1.3;
+        - path: /etc/nginx/nginx.conf
+          text: worker_processes auto;
+        - path: /etc/nginx/nginx.conf
+          text: include /etc/nginx/sites-enabled/*;
+        - path: /etc/nginx/sites-available/test.cluster.local
+          text: server_name test.cluster.local;
+        - path: /etc/nginx/sites-available/test.cluster.local
+          text: root /opt/server/test;
+        - path: /etc/nginx/sites-available/ci.cluster.local
+          text: server_name ci.cluster.local;
+        - path: /etc/nginx/sites-available/ci.cluster.local
+          text: root /opt/server/ci;
+        - path: /etc/nginx/sites-available/status.cluster.local
+          text: server_name status.cluster.local;
+        - path: /etc/nginx/sites-available/status.cluster.local
+          text: root /opt/server/status;
+      loop_control:
+        loop_var: item_nginx_multisite_directive
+
+    - name: Assert checked configuration directives are present
+      ansible.builtin.assert:
+        that:
+          - >-
+            item_nginx_multisite_directive_result['item']['text'] in
+            (item_nginx_multisite_directive_result['content'] | b64decode)
+      loop: "{{ nginx_multisite_directive_contents['results'] }}"
+      loop_control:
+        loop_var: item_nginx_multisite_directive_result
+
+    - name: Check default nginx site is absent
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: nginx_multisite_default_site
+
+    - name: Assert default nginx site is absent
+      ansible.builtin.assert:
+        that:
+          - not nginx_multisite_default_site['stat']['exists']
+
+    - name: Collect TCP listener information
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -tlnp
+      changed_when: false
+      register: nginx_multisite_tcp_listeners
+
+    - name: Assert required TCP ports are listening
+      ansible.builtin.assert:
+        that:
+          - "nginx_multisite_tcp_listeners['stdout'] is regex('(?m):22\\s')"
+          - "nginx_multisite_tcp_listeners['stdout'] is regex('(?m):80\\s')"
+          - "nginx_multisite_tcp_listeners['stdout'] is regex('(?m):443\\s')"
+
+    - name: Check TCP port 80 and 443 listener diagnostics
+      ansible.builtin.command:
+        argv: "{{ item_nginx_multisite_lsof_check['argv'] }}"
+      changed_when: false
+      loop:
+        - argv:
+            - lsof
+            - -nP
+            - -iTCP:80
+            - -sTCP:LISTEN
+        - argv:
+            - lsof
+            - -nP
+            - -iTCP:443
+            - -sTCP:LISTEN
+      loop_control:
+        loop_var: item_nginx_multisite_lsof_check

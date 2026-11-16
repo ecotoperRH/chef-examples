@@ -1,0 +1,61 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Nginx with SSL-enabled static virtual hosts
+    description:
+      - Installs Nginx and Fail2ban, hardens the host, and serves static SSL-enabled virtual hosts.
+    options:
+      nginx_multisite_sites:
+        type: dict
+        required: false
+        default:
+          test.cluster.local:
+            document_root: /opt/server/test
+            ssl_enabled: true
+          ci.cluster.local:
+            document_root: /opt/server/ci
+            ssl_enabled: true
+          status.cluster.local:
+            document_root: /opt/server/status
+            ssl_enabled: true
+        description: Mapping of virtual host names to static site settings.
+      nginx_multisite_certificate_path:
+        type: str
+        required: false
+        default: /etc/ssl/certs
+        description: Directory where TLS certificates are stored.
+      nginx_multisite_private_key_path:
+        type: str
+        required: false
+        default: /etc/ssl/private
+        description: Directory where TLS private keys are stored.
+      nginx_multisite_fail2ban_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether Fail2ban protection is enabled.
+      nginx_multisite_ufw_enabled:
+        type: bool
+        required: false
+        default: true
+        description: Whether UFW firewall rules are managed.
+      nginx_multisite_disable_root_login:
+        type: bool
+        required: false
+        default: true
+        description: Whether SSH root login is disabled.
+      nginx_multisite_password_authentication:
+        type: bool
+        required: false
+        default: false
+        description: Whether SSH password authentication is allowed.
+      nginx_multisite_certificate_days:
+        type: int
+        required: false
+        default: 365
+        description: Validity duration for generated self-signed certificates.
+      nginx_multisite_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Whether tasks handling TLS private keys hide their output.

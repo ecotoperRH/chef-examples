@@ -1,0 +1,3 @@
+---
+- name: Execute Nginx multisite configuration
+  ansible.builtin.include_tasks: default.yml
