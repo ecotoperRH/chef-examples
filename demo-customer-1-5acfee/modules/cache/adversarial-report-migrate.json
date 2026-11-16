@@ -1,0 +1,14 @@
+{
+  "phase": "migrate",
+  "agents_run": 1,
+  "total_findings": 1,
+  "total_critical_findings": 1,
+  "agents": [
+    {
+      "name": "Dangerous Operations",
+      "findings": 1,
+      "critical_findings": 1,
+      "summary": "One critical finding was identified: configuration changes trigger an unguarded Memcached restart, flushing in-memory cache contents and interrupting clients without maintenance, rolling deployment, validation, or health-check safeguards. No deletion, destructive storage operations, or explicit stop/disable tasks were detected."
+    }
+  ]
+}
