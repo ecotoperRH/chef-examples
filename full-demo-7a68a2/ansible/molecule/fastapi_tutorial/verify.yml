@@ -1,0 +1,245 @@
+---
+# Unsupported pre-flight diagnostics with no stated expected value: version, Git remote/branch,
+# service status/log/order, PostgreSQL password connectivity, HTTP response, and storage checks.
+# The DATABASE_URL content check is omitted because it would expose the credential in verification.
+- name: Verify fastapi tutorial deployment
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check application source and required files
+      ansible.builtin.stat:
+        path: "{{ item_fastapi_file['path'] }}"
+      loop:
+        - path: /opt/fastapi-tutorial
+          type: directory
+        - path: /opt/fastapi-tutorial/.git
+          type: directory
+        - path: /opt/fastapi-tutorial/venv/bin/uvicorn
+          type: executable
+        - path: /opt/fastapi-tutorial/requirements.txt
+          type: file
+      loop_control:
+        loop_var: item_fastapi_file
+      register: fastapi_file_stats
+
+    - name: Assert application source and required files exist
+      ansible.builtin.assert:
+        that:
+          - >-
+            (item_fastapi_file_stat['item']['type'] == 'directory' and
+            item_fastapi_file_stat['stat']['isdir']) or
+            (item_fastapi_file_stat['item']['type'] == 'file' and
+            item_fastapi_file_stat['stat']['isreg']) or
+            (item_fastapi_file_stat['item']['type'] == 'executable' and
+            item_fastapi_file_stat['stat']['isreg'] and
+            item_fastapi_file_stat['stat']['executable'])
+        fail_msg: Required fastapi-tutorial source or virtual-environment file is missing.
+      loop: "{{ fastapi_file_stats['results'] }}"
+      loop_control:
+        loop_var: item_fastapi_file_stat
+
+    - name: Check PostgreSQL role fastapi exists
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -tAc
+          - "SELECT rolname FROM pg_roles WHERE rolname = 'fastapi';"
+      become: true
+      become_user: postgres
+      changed_when: false
+      register: fastapi_postgresql_role
+
+    - name: Assert PostgreSQL role fastapi exists
+      ansible.builtin.assert:
+        that:
+          - fastapi_postgresql_role['stdout'] | trim == 'fastapi'
+        fail_msg: PostgreSQL role fastapi does not exist.
+
+    - name: Check PostgreSQL database fastapi_db exists
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -tAc
+          - "SELECT datname FROM pg_database WHERE datname = 'fastapi_db';"
+      become: true
+      become_user: postgres
+      changed_when: false
+      register: fastapi_postgresql_database
+
+    - name: Assert PostgreSQL database fastapi_db exists
+      ansible.builtin.assert:
+        that:
+          - fastapi_postgresql_database['stdout'] | trim == 'fastapi_db'
+        fail_msg: PostgreSQL database fastapi_db does not exist.
+
+    - name: Check PostgreSQL database fastapi_db owner
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -tAc
+          - "SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = 'fastapi_db';"
+      become: true
+      become_user: postgres
+      changed_when: false
+      register: fastapi_postgresql_owner
+
+    - name: Assert PostgreSQL database fastapi_db is owned by fastapi
+      ansible.builtin.assert:
+        that:
+          - fastapi_postgresql_owner['stdout'] | trim == 'fastapi'
+        fail_msg: PostgreSQL database fastapi_db is not owned by fastapi.
+
+    - name: Check fastapi CONNECT privilege on fastapi_db
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -tAc
+          - "SELECT has_database_privilege('fastapi', 'fastapi_db', 'CONNECT');"
+      become: true
+      become_user: postgres
+      changed_when: false
+      register: fastapi_postgresql_connect_privilege
+
+    - name: Assert fastapi has CONNECT privilege on fastapi_db
+      ansible.builtin.assert:
+        that:
+          - fastapi_postgresql_connect_privilege['stdout'] | trim == 't'
+        fail_msg: PostgreSQL role fastapi lacks CONNECT privilege on fastapi_db.
+
+    - name: Check fastapi-tutorial environment file metadata
+      ansible.builtin.stat:
+        path: /opt/fastapi-tutorial/.env
+      register: fastapi_environment_file
+
+    - name: Assert fastapi-tutorial environment file metadata
+      ansible.builtin.assert:
+        that:
+          - fastapi_environment_file['stat']['isreg']
+          - fastapi_environment_file['stat']['mode'] == '0644'
+          - fastapi_environment_file['stat']['pw_name'] == 'root'
+          - fastapi_environment_file['stat']['gr_name'] == 'root'
+        fail_msg: The fastapi-tutorial environment file does not match the expected metadata.
+
+    - name: Read fastapi-tutorial environment file
+      ansible.builtin.slurp:
+        src: /opt/fastapi-tutorial/.env
+      register: fastapi_environment_content
+
+    - name: Assert non-secret fastapi-tutorial environment settings
+      ansible.builtin.assert:
+        that:
+          - >-
+            'PROJECT_NAME="FastAPI Tutorial"' in
+            (fastapi_environment_content['content'] | b64decode).split('\n')
+          - >-
+            'API_VERSION=1.0.0' in
+            (fastapi_environment_content['content'] | b64decode).split('\n')
+        fail_msg: The fastapi-tutorial environment file lacks an expected non-secret setting.
+
+    - name: Read fastapi-tutorial systemd unit
+      ansible.builtin.slurp:
+        src: /etc/systemd/system/fastapi-tutorial.service
+      register: fastapi_systemd_unit
+
+    - name: Assert fastapi-tutorial systemd unit settings
+      ansible.builtin.assert:
+        that:
+          - >-
+            'WorkingDirectory=/opt/fastapi-tutorial' in
+            (fastapi_systemd_unit['content'] | b64decode).split('\n')
+          - >-
+            'Environment="PATH=/opt/fastapi-tutorial/venv/bin"' in
+            (fastapi_systemd_unit['content'] | b64decode).split('\n')
+          - >-
+            'ExecStart=/opt/fastapi-tutorial/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000' in
+            (fastapi_systemd_unit['content'] | b64decode).split('\n')
+          - "'Restart=always' in (fastapi_systemd_unit['content'] | b64decode).split('\\n')"
+          - >-
+            'After=network.target postgresql.service' in
+            (fastapi_systemd_unit['content'] | b64decode).split('\n')
+          - "'EnvironmentFile=' not in (fastapi_systemd_unit['content'] | b64decode)"
+        fail_msg: The fastapi-tutorial systemd unit does not match the expected settings.
+
+    - name: Check PostgreSQL service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - postgresql
+      changed_when: false
+      register: fastapi_postgresql_enabled
+
+    - name: Assert PostgreSQL service is enabled
+      ansible.builtin.assert:
+        that:
+          - fastapi_postgresql_enabled['stdout'] | trim == 'enabled'
+        fail_msg: PostgreSQL service is not enabled.
+
+    - name: Check PostgreSQL service is active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - postgresql
+      changed_when: false
+      register: fastapi_postgresql_active
+
+    - name: Assert PostgreSQL service is active
+      ansible.builtin.assert:
+        that:
+          - fastapi_postgresql_active['stdout'] | trim == 'active'
+        fail_msg: PostgreSQL service is not active.
+
+    - name: Check fastapi-tutorial service is enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - fastapi-tutorial
+      changed_when: false
+      register: fastapi_service_enabled
+
+    - name: Assert fastapi-tutorial service is enabled
+      ansible.builtin.assert:
+        that:
+          - fastapi_service_enabled['stdout'] | trim == 'enabled'
+        fail_msg: fastapi-tutorial service is not enabled.
+
+    - name: Check fastapi-tutorial service is active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - fastapi-tutorial
+      changed_when: false
+      register: fastapi_service_active
+
+    - name: Assert fastapi-tutorial service is active
+      ansible.builtin.assert:
+        that:
+          - fastapi_service_active['stdout'] | trim == 'active'
+        fail_msg: fastapi-tutorial service is not active.
+
+    - name: Check Uvicorn process arguments
+      ansible.builtin.command:
+        argv:
+          - ps
+          - -eo
+          - args
+      changed_when: false
+      register: fastapi_processes
+
+    - name: Assert Uvicorn process uses the expected command
+      ansible.builtin.assert:
+        that:
+          - >-
+            fastapi_processes['stdout'] is search(
+            'uvicorn app\\.main:app --host 0\\.0\\.0\\.0 --port 8000')
+        fail_msg: Uvicorn is not running with the expected application and listener arguments.
+
+    - name: Wait for FastAPI listener on TCP port 8000
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8000
+        state: started
+        timeout: 10

@@ -1,0 +1,49 @@
+---
+argument_specs:
+  main:
+    short_description: Configure FastAPI tutorial application with PostgreSQL
+    description:
+      - Deploys the FastAPI tutorial application, its Python environment, and local PostgreSQL database.
+    options:
+      fastapi_tutorial_secure_logging:
+        type: bool
+        required: false
+        default: true
+        description: Controls whether sensitive task output is hidden.
+      fastapi_tutorial_app_path:
+        type: str
+        required: false
+        default: /opt/fastapi-tutorial
+        description: Filesystem path where the FastAPI tutorial application is deployed.
+      fastapi_tutorial_git_repository:
+        type: str
+        required: false
+        default: https://github.com/dibanez/fastapi_tutorial.git
+        description: Git repository containing the FastAPI tutorial application.
+      fastapi_tutorial_git_revision:
+        type: str
+        required: false
+        default: main
+        description: Git revision of the FastAPI tutorial application to deploy.
+      fastapi_tutorial_database_name:
+        type: str
+        required: false
+        default: fastapi_db
+        description: Name of the PostgreSQL database owned by the application role.
+      fastapi_tutorial_app_port:
+        type: int
+        required: false
+        default: 8000
+        description: TCP port on which Uvicorn serves the application.
+      postgresql_username:
+        type: str
+        required: true
+        description: PostgreSQL role name injected by an AAP credential type.
+      postgresql_password:
+        type: str
+        required: true
+        description: Sensitive PostgreSQL password injected by an AAP credential type.
+      database_url:
+        type: str
+        required: true
+        description: Sensitive database URL injected by an AAP credential type.
